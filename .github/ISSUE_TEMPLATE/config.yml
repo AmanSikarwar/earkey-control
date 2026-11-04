@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Security reporting policy
-    url: https://github.com/AmanSikarwar/earkey-control/blob/main/SECURITY.md
-    about: Private reporting is currently disabled. Read SECURITY.md and never put vulnerability details in a public issue.
+  - name: Private security report
+    url: https://github.com/AmanSikarwar/earkey-control/security/advisories/new
+    about: Report vulnerabilities privately through GitHub. Never put vulnerability details in a public issue.

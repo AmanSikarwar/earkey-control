@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 0: documentation prepared for review; validation is recorded in the stage review. No module, installer, daemon, UI, or device profile exists. Nothing here is installable.**
+**Stage 0 contract and repository setup verified; Stage 1 discovery awaits phone-access authorization. No module, installer, daemon, UI, or device profile exists. Nothing here is installable.**
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

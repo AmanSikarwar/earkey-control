@@ -43,13 +43,20 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D01 | Source license and its final text | Confirmed 4 November: MIT; LICENSE contains full text |
 | D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; supplied repository and origin verified; published main contains baseline 9c1e00a19f0f74032be75bb85899ca8554e116b3 |
 | D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
-| D04 | Exact reference environment, accessory, transport, mapping, permissions | Partial read-only measurements are in the local discovery checkpoint; repeat/context/root/service evidence and backend eligibility remain pending |
+| D04 | Exact reference environment, accessory, transport, mapping, permissions | Root UID/context, userspace/kernel versions and USB/input/audio separation are measured in the checkpoint; remaining gesture/context/preservation and actual module-service evidence are pending. Reference reconnect repetition is waived by D09 |
 | D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | Conditional candidate; settle through Stages 1–4 before active interception |
 | D06 | Private security route | Enabled, verified by GitHub API on 4 November; SECURITY.md and issue chooser use the private reporting form. Earlier denied setup attempts remain historical evidence |
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
 | D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Active default-branch ruleset 26527076 requires PRs, blocks deletion/force pushes, has no bypass actors and zero required approving reviews. Merge/squash/rebase allowed; required CI rules will follow real jobs. Signing/attestation remains a later release gate |
+| D09 | Reference reconnect repetition and Center clarification | Confirmed 4 November: no further physical reconnect-cycle runs for the reference setup; one observed cycle remains evidence. The maintainer confirms seven intentional Center presses, matching the seven captured pairs |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
+
+## Reference validation amendment — 4 November 2026
+
+The maintainer explicitly said "No need to perform reconnect cycles" and confirmed "I pressed 7 times" for Center. These direct instructions supersede the original reference-device repetition counts in specification §§4/17. Do not run further physical reconnect-cycle repetitions for this reference setup. Record one measured reconnect and the waived repetitions; never describe the original three-insertion or twenty-cycle thresholds as passed. Other environments retain their documented scope until changed explicitly.
+
+The original specification remains byte-for-byte unchanged for provenance. This amendment changes the reference validation scope, not the software's required reconnect handling, stable matching, post-open/reconnect revalidation, essential-device denials or failure recovery. Host tests for those behaviors remain required. Seven intentional Center presses now explain the seven captured press/release pairs; no Center-count discrepancy remains. Other gesture, context, audio/microphone, isolation and service-permission evidence is still required.
 
 ## Stage 0 acceptance
 

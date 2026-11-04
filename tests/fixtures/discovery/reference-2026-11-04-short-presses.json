@@ -30,7 +30,7 @@
   "observations": {
     "volume_up": "User confirmed phone volume increased; 5 complete pairs recorded",
     "volume_down": "User confirmed phone volume decreased; 5 complete pairs recorded",
-    "center": "User confirmed play/pause worked; 7 complete pairs in a window requesting 5, physical count unconfirmed; cause unresolved"
+    "center": "User confirmed seven intentional Center presses and working play/pause; 7 complete pairs match the confirmed physical count"
   },
   "records": [
     {

@@ -63,8 +63,8 @@ All rows below are **Not run for a module; no runtime artifact exists**. Authori
 
 ## Required counts and environments
 
-- Discovery: at least five observations of each mapping and three insertion cycles, preserving complete event/action evidence.
-- Release qualification: at least 20 press/release cycles per supported independent group, 20 reconnect cycles, and three boots in **each** tested boot configuration (with and without earphones). Document tested combinations; add stress for a regression or timing concern.
+- Discovery: at least five observations of each mapping. The original three-insertion reference count is waived under the [4 November amendment](project-contract.md#reference-validation-amendment--4-november-2026); retain one observed reconnect and perform no further physical reconnect-cycle repetitions for this reference setup. The confirmed seven Center presses match seven recorded pairs.
+- Release qualification: retain at least 20 press/release cycles per supported independent group and three boots in **each** tested boot configuration (with and without earphones), when separately authorized. The original 20-reconnect reference count is also covered by the maintainer's no-further-cycles instruction; report that repetition coverage as waived, never passed. Other environments retain their original cycle counts unless explicitly amended. Runtime/host reconnect handling and safe identity revalidation remain required.
 - First evidence is the user's exact KernelSU implementation on the reference setup. Upstream KernelSU and each fork need separate rows. Magisk and APatch each require real event, lifecycle and preservation evidence on their own environments.
 - API 31 must be physically tested before claiming the minimum. Test the newest stable release being claimed and state intermediate coverage. Additional digital headsets, USB adapters, and any analog backend each need their own enrollment and preservation evidence.
 - Verify phone controls and an unrelated keyboard/other available input, including media keys; expand Bluetooth isolation separately. Do not change the primary phone's root method/kernel to fill a matrix.

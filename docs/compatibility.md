@@ -1,6 +1,6 @@
 # Compatibility contract
 
-Status as of 4 November 2026: **no physically tested combinations; tested Android minimum/maximum: none**. No installation has been attempted. All listed targets are plans.
+Status as of 4 November 2026: **no physically qualified module combinations; tested support minimum/maximum: none**. Read-only Stage 1 baseline measurements exist in a local [discovery checkpoint](discovery/reference-2026-11-04.md), whose publication awaits approval. No installation/interception has been attempted. Baseline discovery does not qualify module support.
 
 | Level | Definition |
 | --- | --- |
@@ -15,7 +15,7 @@ An untested roadmap row remains Design target; an evaluated combination that fai
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Reference Redmi Note 10 Pro | Exact releases, PixelOS build and kernel pending | KernelSU implementation/fork, kernel integration, userspace and manager versions pending | Unmeasured | Exact Xiaomi Type-C model, identity, transport and collections pending | Grab + uinput candidate; all groups unmeasured | Design target; user-stated reference only |
+| Reference Redmi Note 10 Pro | M2101K6P/sweetin; PixelOS_sweet-17.0-20261030-2116; Android 17/API 37 reported; 4.14.357-openela-VantomKernel | ReSukiSU manager v4.2.0-rc3/35257 installed; active root kernel/userspace/service context unverified | arm64 advertised; 4 KiB pages; no ELF load test | USB HID candidate, input IDs 0003:0020:0b21:0201, interface 1.3; identity stability incomplete | Grab + uinput candidate only; short volume/play-pause observations, contextual semantics pending | Design target with partial baseline discovery; no module support verified |
 | Magisk expansion | Device, ROM, Android and kernel pending | Versions pending | Unmeasured | Pending | Same core candidate, root command interface | Design target; no test environment |
 | APatch expansion | Device, ROM, Android and kernel pending | Versions pending | Unmeasured | Pending | Adapter and configuration path untested | Design target; no test environment |
 | Android minimum | Android 12 / API 31 intended; no measured ROM/kernel | Each manager separately | Pending | Pending | Pending | Design target; no tested minimum |

@@ -20,6 +20,6 @@ Local EK IDs identify acceptance scope; they are not GitHub issue numbers. Creat
 
 ## Independent work and stop conditions
 
-Without hardware, continue research, review, synthetic fixture design, test planning, build convention and release preparation appropriate to the current gate. Do not enroll guessed reference identities, commit to an active backend, call a synthetic test physical, or mark dependent stages complete. The current request ends with Stage 0; it does not authorize Stage 1 access or Stage 4 installation.
+Continue independent research, review, fixture design and test planning appropriate to the current gate when measurements are missing. Do not enroll guessed reference identities, commit to an active backend, call a synthetic test physical, or mark dependent stages complete. The maintainer has now authorized read-only wireless ADB access for Stage 1; Stage 4 installation and all interception remain unauthorized. See the local [discovery checkpoint](discovery/reference-2026-11-04.md); Stage 1 is incomplete and device-derived publication awaits approval.
 
 Before Stage 4, define finite neutral/readiness/pause/output/supervisor bounds, repeat ownership, real service permissions and a tested independent recovery route. Stage 6/7 integration and hardening do not permit omitting these protections in an earlier prototype. If a platform cannot preserve input within constraints, remain inactive and record Unsupported rather than silently choosing an unsafe fallback.

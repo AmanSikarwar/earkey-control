@@ -1,12 +1,12 @@
 # Project contract
 
-Date: 4 November 2026. Status: **Stage 0 exit verified: contract decisions confirmed, PR #2 merged, private reporting enabled and default-branch ruleset active. Stage 1 phone access is not yet authorized.**
+Date: 4 November 2026. Status: **Stage 0 exit verified; the maintainer merged PR #3 and authorized read-only wireless ADB access for Stage 1. Discovery is incomplete; diagnostic publication awaits specific approval.**
 
 ## Requirements and authority
 
 The [supplied specification](requirements/Wired_Earphone_Module_Agent_Specification.md), version 1.1, is the acceptance baseline. Original SHA-256: `eeeb157cc59986f27391598ebafb08988bed5fb420a928f1700853de4211dd4a` (669 lines; 75,018 bytes). Its code-free rule applies to the specification, not future implementation. Direct user/platform instructions take precedence; record and surface substantive conflicts rather than silently weakening acceptance. No substantive conflict was identified in this review.
 
-This task authorizes Stage 0 preparation. The maintainer's follow-up selects MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. Public repository creation and the first documentation issue/PR are within that authorization. No release is authorized now: implementation and the full acceptance gates must pass first. Phone access (including read-only ADB discovery), installation, root-manager/kernel changes and reboot remain unauthorized.
+The maintainer selected MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. PR #3 is now merged at `363bf13e10125cf75b19df7ef1fdd28340c1daec`. The latest instruction explicitly authorizes access to the wirelessly connected phone for the proposed read-only Stage 1 discovery, including bounded earphone-candidate recordings. Installation, input interception/injection, root-manager/kernel changes and reboot remain unauthorized. General public-source authorization does not override the specific diagnostic-publication approval gate raised during this collection; no Stage 1 phone findings have been posted.
 
 ## Approved identity and stack
 
@@ -43,7 +43,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D01 | Source license and its final text | Confirmed 4 November: MIT; LICENSE contains full text |
 | D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; supplied repository and origin verified; published main contains baseline 9c1e00a19f0f74032be75bb85899ca8554e116b3 |
 | D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
-| D04 | Exact reference environment, accessory, transport, mapping, permissions | Pending authorized Stage 1 measurements; blocks backend enrollment and device implementation |
+| D04 | Exact reference environment, accessory, transport, mapping, permissions | Partial read-only measurements are in the local discovery checkpoint; repeat/context/root/service evidence and backend eligibility remain pending |
 | D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | Conditional candidate; settle through Stages 1–4 before active interception |
 | D06 | Private security route | Enabled, verified by GitHub API on 4 November; SECURITY.md and issue chooser use the private reporting form. Earlier denied setup attempts remain historical evidence |
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
@@ -61,4 +61,4 @@ The maintainer resolved D01–D03 in this chat; no further Stage 0 product decis
 - [x] Verify the supplied public repository, published baseline and remote, and prepare an issue-linked documentation PR without rewriting published history. [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2) is merged at 7c577198bf6db0c692e9064c064e8271f296c5e5; [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1) is closed.
 - [x] Verify private reporting is enabled and the active ruleset applies to main with a suitable solo-maintainer PR gate and deletion/force-push protection. No in-repository CI jobs or required status checks are claimed.
 
-This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. After documentation checks, the next eligible stage is read-only Stage 1 discovery, which requires separate phone-access authorization. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.
+This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. Read-only Stage 1 is authorized and in progress; its [checkpoint](discovery/reference-2026-11-04.md) does not close the stage or authorize a prototype. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.

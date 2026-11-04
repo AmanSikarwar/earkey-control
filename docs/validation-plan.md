@@ -1,6 +1,6 @@
 # Validation plan
 
-Status: test design; **all runtime and physical cases are Not run**. The unchanged specification §§4, 7, 16–17, 20 controls acceptance. Documentation checks are reported separately in the [stage review](stage-0-review.md).
+Status: test design; **all module runtime and physical acceptance cases are Not run**. Partial unfiltered Stage 1 baseline observations and retained diagnostic failures are in the local [discovery checkpoint](discovery/reference-2026-11-04.md), whose publication awaits approval. They are not module acceptance passes. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 
@@ -28,7 +28,7 @@ A final required CI status must fail when a mandatory dependency fails or is une
 
 ## Physical T01–T28 matrix
 
-All rows below are **Not run; no phone access or runtime artifact**. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
+All rows below are **Not run for a module; no runtime artifact exists**. Authorized baseline observation does not change those outcomes. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
 
 | ID | Case | Acceptance | Earliest stage |
 | --- | --- | --- | --- |

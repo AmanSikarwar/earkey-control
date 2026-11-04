@@ -10,6 +10,8 @@ The maintainer selected MIT, owner `AmanSikarwar`, a public repository, and rele
 
 On 4 November the maintainer also approved publication of the follow-up reviewed at `7a384fe5fe95f38fb6707e56a10ad58ad7c75a15` by replying "publish". Its sanitized scope includes Center hold/double/cellular answer/end observations, listening/phone-control/USB-microphone and two-way call baselines, the diagnostic cleanup failure and correction, and the selected Center fixture. Raw audio, routing dumps, mixed event windows, process identities and failed helper revisions remain private; no additional phone action or module release is authorized by this publication approval.
 
+On 5 November the maintainer approved publication of the screen-off/idle checkpoint reviewed at `61646a68f79e1cf8beb742ca9df0dd9a467eaecc` by replying "publish". Its sanitized scope includes the Dozing/locked/off short-button observations and fixture, the instrumented idle interval and reported whole-phone battery/CPU counters, their limitations and evidence digests. Raw endpoint/state dumps, process identities and private helpers remain private. This approval does not authorize further phone changes, interception or a module release.
+
 ## Approved identity and stack
 
 | Item | Approved value |

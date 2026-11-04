@@ -1,12 +1,12 @@
 # Project contract
 
-Date: 4 November 2026. Status: **Stage 0 exit verified; the maintainer merged PR #3 and authorized read-only wireless ADB access for Stage 1. Discovery is incomplete; diagnostic publication awaits specific approval.**
+Date: 4 November 2026. Status: **Stage 0 exit verified; read-only Stage 1 discovery is authorized and incomplete. The maintainer explicitly approved publication of the reviewed sanitized checkpoint on 4 November.**
 
 ## Requirements and authority
 
 The [supplied specification](requirements/Wired_Earphone_Module_Agent_Specification.md), version 1.1, is the acceptance baseline. Original SHA-256: `eeeb157cc59986f27391598ebafb08988bed5fb420a928f1700853de4211dd4a` (669 lines; 75,018 bytes). Its code-free rule applies to the specification, not future implementation. Direct user/platform instructions take precedence; record and surface substantive conflicts rather than silently weakening acceptance. No substantive conflict was identified in this review.
 
-The maintainer selected MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. PR #3 is now merged at `363bf13e10125cf75b19df7ef1fdd28340c1daec`. The latest instruction explicitly authorizes access to the wirelessly connected phone for the proposed read-only Stage 1 discovery, including bounded earphone-candidate recordings. Installation, input interception/injection, root-manager/kernel changes and reboot remain unauthorized. General public-source authorization does not override the specific diagnostic-publication approval gate raised during this collection; no Stage 1 phone findings have been posted.
+The maintainer selected MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. PR #3 is merged at `363bf13e10125cf75b19df7ef1fdd28340c1daec`. Read-only access to the wirelessly connected phone, including bounded earphone-candidate recordings, is explicitly authorized for Stage 1. After reviewing the concrete sanitized report, fixture and prepared issue, the maintainer replied "you can publish" on 4 November. This authorizes that checkpoint's public branch/PR and [acceptance issue #4](https://github.com/AmanSikarwar/earkey-control/issues/4). Raw diagnostics, serials/unique IDs and ADB network identifiers remain private. Installation, input interception/injection, root-manager/kernel changes, reboot and module-release publication remain outside the current authorization.
 
 ## Approved identity and stack
 

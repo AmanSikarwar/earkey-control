@@ -1,6 +1,6 @@
 # Enrollment and Stage 1 discovery
 
-Status: read-only phone access was explicitly authorized on 4 November 2026 and Stage 1 is in progress. The local [reference checkpoint](discovery/reference-2026-11-04.md) records partial measurements and missing gates; its publication awaits approval. No profile or blocking prototype is installed.
+Status: read-only phone access was explicitly authorized on 4 November 2026 and Stage 1 is in progress. The [reference checkpoint](discovery/reference-2026-11-04.md) records partial measurements and missing gates; its sanitized publication was explicitly approved. No profile or blocking prototype is installed.
 
 1. Record exact variant, Android/API, full PixelOS build, kernel build/release, executable ABIs, root implementation/fork and kernel/userspace/manager versions, SELinux enforcing state and intended module service context. Do not derive them from the phone name.
 2. Inventory candidate input capabilities before insertion, after insertion and after removal. Correlate USB enumeration if present, audio state, sysfs parentage and control collections; Type-C alone does not identify transport. Record any other remapping module.

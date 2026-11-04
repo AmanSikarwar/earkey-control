@@ -1,6 +1,6 @@
 # Reference discovery checkpoint — 4 November 2026
 
-**Stage 1 incomplete. Local review draft; publication of this device-derived material is awaiting explicit approval.** These are unfiltered physical baseline observations, not module acceptance results or an enrolled profile. No installable module or runtime artifact exists.
+**Stage 1 incomplete. The maintainer explicitly approved this sanitized checkpoint for public review on 4 November 2026.** Remaining acceptance gates are tracked in [issue #4](https://github.com/AmanSikarwar/earkey-control/issues/4). These are unfiltered physical baseline observations, not module acceptance results or an enrolled profile. No installable module or runtime artifact exists.
 
 The maintainer authorized read-only access to the wireless ADB connection after merging [PR #3](https://github.com/AmanSikarwar/earkey-control/pull/3). Collection used the reviewed source at `363bf13e10125cf75b19df7ef1fdd28340c1daec`. No installation, exclusive grab, virtual-device creation, event injection, root-manager setting change, SELinux change or reboot was performed. Recording stopped when the requested windows ended; no capture is active at this checkpoint.
 
@@ -57,7 +57,7 @@ Successful captures retained all scan/key/synchronization records. They contain 
 - Private reader source SHA-256: `d789a894dea1b14dda82212d872138c42e5d6d26c161ab867127485c6f2cf22f`. This temporary diagnostic reader is not the production identity/filter implementation.
 - Private checkpoint manifest SHA-256: `1b2cf8b506fe318bdab38dd6aaed8abce3b386a1c6938ec744767d8de270a86d`, covering 103 evidence files / 117,586 bytes before the manifest itself. Raw records are under ignored private storage with mode 0600 inside private directories. Transport identifiers, serial/unique IDs, unrestricted mapping/audio diagnostics and incidental logs are excluded from this report/fixture.
 
-Source timestamps, exit/stop reasons and raw digests remain in the private records. Public fixture event timestamps are relative; collection UTC metadata is retained for traceability. Publishing this sanitized subset is a separate approval gate, because its model/build/accessory details still disclose the tested setup publicly. The attempted public Stage 1 issue was rejected by automatic approval review and was not created.
+Source timestamps, exit/stop reasons and raw digests remain in the private records. Public fixture event timestamps are relative; collection UTC metadata is retained for traceability. The initial public issue attempt was rejected by automatic approval review because device-derived disclosure needed specific consent; nothing was posted then. After reviewing the concrete report, fixture and prepared issue, the maintainer replied "you can publish" on 4 November. [Issue #4](https://github.com/AmanSikarwar/earkey-control/issues/4) was then created under that authorization. The approved subset discloses model/build/accessory details and sanitized button sequences; raw diagnostics, serial/unique IDs and network identifiers remain private.
 
 ## Remaining Stage 1 gates and backend decision
 

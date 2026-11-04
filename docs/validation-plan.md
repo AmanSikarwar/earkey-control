@@ -1,6 +1,6 @@
 # Validation plan
 
-Status: test design; **all module runtime and physical acceptance cases are Not run**. Partial unfiltered Stage 1 baseline observations and retained diagnostic failures are in the local [discovery checkpoint](discovery/reference-2026-11-04.md), whose publication awaits approval. They are not module acceptance passes. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
+Status: test design; **all module runtime and physical acceptance cases are Not run**. Partial unfiltered Stage 1 baseline observations and retained diagnostic failures are in the [discovery checkpoint](discovery/reference-2026-11-04.md). The maintainer approved its sanitized publication; it is not a module acceptance pass. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 

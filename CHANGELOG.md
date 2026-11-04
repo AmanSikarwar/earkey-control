@@ -14,3 +14,4 @@
 - Recorded explicit approval to publish that sanitized follow-up and selected fixture; raw diagnostics remain private and Stage 1 stays incomplete.
 - Prepared a local Stage 1 screen-off/Dozing fixture with five short observations per button and user-confirmed actions without visible wake. Recorded a 306-second instrumented idle baseline with raw counter/CPU scope and measurement limits; no module resource budget or battery-impact claim is established.
 - Recorded explicit 5 November approval to publish the sanitized screen-off/idle checkpoint and fixture; raw endpoint diagnostics and helpers remain private, and Stage 1 stays incomplete.
+- Prepared local 5 November inline-volume hold/double fixtures and controlled paused-index observations, retaining the clarified phone-side-key attempt and raw/physical count distinctions. Updated the measured eligibility assessment without authorizing active interception or closing Stage 1.

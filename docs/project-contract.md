@@ -1,6 +1,6 @@
 # Project contract
 
-Date: 4 November 2026. Status: **Stage 0 contract and documentation prepared locally; public repository/PR setup blocked by GitHub credential permissions**.
+Date: 4 November 2026. Status: **Stage 0 baseline published; repository-setup follow-up prepared for review. Main protection and private reporting remain blocked by token permissions.**
 
 ## Requirements and authority
 
@@ -14,7 +14,7 @@ This task authorizes Stage 0 preparation. The maintainer's follow-up selects MIT
 | --- | --- |
 | Product | EarKey Control |
 | Stable module ID | `earkey_control` |
-| Approved public GitHub repository | `AmanSikarwar/earkey-control`; creation blocked, no remote configured |
+| Approved public GitHub repository | [AmanSikarwar/earkey-control](https://github.com/AmanSikarwar/earkey-control); verified public, default branch main; origin is the supplied repository's HTTPS Git URL |
 | Description | Configurable blocking of wired earphone button actions. |
 | Platform order | KernelSU, then Magisk, then APatch |
 | Android design range | Android 12 and later, beginning at API 31; no tested range yet |
@@ -41,13 +41,13 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | ID | Decision | Status / effect |
 | --- | --- | --- |
 | D01 | Source license and its final text | Confirmed 4 November: MIT; LICENSE contains full text |
-| D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; authenticated GitHub identity verified as AmanSikarwar / Aman Sikarwar; initial lookup found no existing repository |
+| D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; supplied repository and origin verified; published main contains baseline 9c1e00a19f0f74032be75bb85899ca8554e116b3 |
 | D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
 | D04 | Exact reference environment, accessory, transport, mapping, permissions | Pending authorized Stage 1 measurements; blocks backend enrollment and device implementation |
 | D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | Conditional candidate; settle through Stages 1–4 before active interception |
-| D06 | Private security route | Enable and verify GitHub private reporting during public setup if account capabilities permit; no contact address invented |
+| D06 | Private security route | Disabled, verified 4 November; enabling returned HTTP 403. Owner must enable it or provide administration access, then verify; issue chooser links to SECURITY.md meanwhile |
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
-| D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Confirm for selected repository before enforcement/release; no fabricated self-review or signature |
+| D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Sole direct collaborator is owner; main-protection GET denied HTTP 403, ruleset list empty; no protection or required checks claimed. Existing merge options retained. Signing/attestation remains a later release gate |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -58,6 +58,7 @@ The maintainer resolved D01–D03 in this chat; no further Stage 0 product decis
 - [x] Record approved identity and stack, prohibited behavior, evidence boundaries, and authorization limits.
 - [x] Confirm source license, ownership, and release policy (D01–D03).
 - [x] Check the documentation and prepare a local reviewable baseline. A draft PR is reviewable output, not claimed reviewer approval.
-- [ ] Create/configure the public repository and open the documentation issue/PR when access permits. GitHub denied creation with the current token; no remote or active protections are claimed.
+- [x] Verify the supplied public repository, published baseline and remote, and create [Stage 0 acceptance issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1). Prepare a focused follow-up documentation PR without rewriting published history.
+- [ ] Complete main-protection and private-reporting setup. Both administration operations are blocked by current token permissions; these controls are not claimed active.
 
 This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. After documentation checks, the next eligible stage is read-only Stage 1 discovery, which requires separate phone-access authorization. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.

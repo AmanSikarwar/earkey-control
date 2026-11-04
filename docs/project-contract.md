@@ -1,0 +1,63 @@
+# Project contract
+
+Date: 4 November 2026. Status: **Stage 0 contract and documentation prepared locally; public repository/PR setup blocked by GitHub credential permissions**.
+
+## Requirements and authority
+
+The [supplied specification](requirements/Wired_Earphone_Module_Agent_Specification.md), version 1.1, is the acceptance baseline. Original SHA-256: `eeeb157cc59986f27391598ebafb08988bed5fb420a928f1700853de4211dd4a` (669 lines; 75,018 bytes). Its code-free rule applies to the specification, not future implementation. Direct user/platform instructions take precedence; record and surface substantive conflicts rather than silently weakening acceptance. No substantive conflict was identified in this review.
+
+This task authorizes Stage 0 preparation. The maintainer's follow-up selects MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. Public repository creation and the first documentation issue/PR are within that authorization. No release is authorized now: implementation and the full acceptance gates must pass first. Phone access (including read-only ADB discovery), installation, root-manager/kernel changes and reboot remain unauthorized.
+
+## Approved identity and stack
+
+| Item | Approved value |
+| --- | --- |
+| Product | EarKey Control |
+| Stable module ID | `earkey_control` |
+| Approved public GitHub repository | `AmanSikarwar/earkey-control`; creation blocked, no remote configured |
+| Description | Configurable blocking of wired earphone button actions. |
+| Platform order | KernelSU, then Magisk, then APatch |
+| Android design range | Android 12 and later, beginning at API 31; no tested range yet |
+| Reference setup | Redmi Note 10 Pro, PixelOS custom ROM, KernelSU, Xiaomi Type-C wired earphones |
+| Core | Rust: discovery, policy, filtering, supervision, root command interface |
+| Lifecycle | BusyBox ash |
+| KernelSU WebUI | TypeScript compiled to JavaScript, HTML, CSS; bundled offline |
+| Native builds | Cargo, pinned Rust toolchain, Android NDK |
+
+Do not reopen these approvals without a concrete conflict or measured reason and maintainer agreement. No author identity, source license, phone codename, transport, ABI, event code, USB ID, manager fork, or kernel version is inferred.
+
+## Product invariants
+
+- Affect only explicitly enrolled, verified earphone control collections; unknown or ambiguous devices stay untouched. Mixed essential nodes and general keyboards are rejected.
+- Preserve audio, microphone, routing, connection state, phone input, unrelated devices, and independent rescue controls. Audio-interface manipulation and global/shared layout edits are prohibited.
+- Evaluate mountless exclusive evdev interception plus validated uinput forwarding; backend eligibility is unresolved until discovery. Prove passthrough before suppression. Reading alone is never presented as cancellation.
+- Block all covers all verified button groups across an enrolled accessory's verified collections. Custom offers only independently measurable groups; shared center effects must be disclosed before activation.
+- Fresh install is inactive until enrollment and explicit activation. Invalid configuration never widens scope. Pause, fault release, and next-boot inactivity must work without earphone buttons.
+- SELinux stays enforcing. Start with no extra policy; any proven narrow permission needs independent review and service-context tests. No baseline mounting, injection, kernel changes, or network runtime dependency.
+- Report requested, saved, and active policy separately. Preserve settings and pause state across updates. No security-boundary or zero-leakage claim is made.
+
+## Decision register
+
+| ID | Decision | Status / effect |
+| --- | --- | --- |
+| D01 | Source license and its final text | Confirmed 4 November: MIT; LICENSE contains full text |
+| D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; authenticated GitHub identity verified as AmanSikarwar / Aman Sikarwar; initial lookup found no existing repository |
+| D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
+| D04 | Exact reference environment, accessory, transport, mapping, permissions | Pending authorized Stage 1 measurements; blocks backend enrollment and device implementation |
+| D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | Conditional candidate; settle through Stages 1–4 before active interception |
+| D06 | Private security route | Enable and verify GitHub private reporting during public setup if account capabilities permit; no contact address invented |
+| D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
+| D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Confirm for selected repository before enforcement/release; no fabricated self-review or signature |
+
+The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
+
+## Stage 0 acceptance
+
+- [x] Read the entire v1.1 specification and inspect selected workspace, instructions, Git state, and available tools before creating files.
+- [x] Prepare reviewable contract, conventions, safety architecture/decisions, threat model, compatibility definitions, recovery outline, backlog, and validation plan.
+- [x] Record approved identity and stack, prohibited behavior, evidence boundaries, and authorization limits.
+- [x] Confirm source license, ownership, and release policy (D01–D03).
+- [x] Check the documentation and prepare a local reviewable baseline. A draft PR is reviewable output, not claimed reviewer approval.
+- [ ] Create/configure the public repository and open the documentation issue/PR when access permits. GitHub denied creation with the current token; no remote or active protections are claimed.
+
+This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. After documentation checks, the next eligible stage is read-only Stage 1 discovery, which requires separate phone-access authorization. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.

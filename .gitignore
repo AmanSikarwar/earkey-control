@@ -1,0 +1,26 @@
+# Generated output
+/target/
+/dist/
+/build/
+/node_modules/
+/webui/node_modules/
+/webui/dist/
+*.zip
+*.apk
+*.img
+*.elf
+*.so
+
+# Private evidence and credentials; sanitized fixtures require explicit review
+/private/
+/diagnostics/
+/device-evidence/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+*.log
+.DS_Store

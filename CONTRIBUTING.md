@@ -10,9 +10,9 @@ Stage only named paths. Before committing, inspect status, staged diff, staged s
 
 Synchronize with the selected upstream base before a PR, resolve conflicts on the branch, and rerun affected checks. Use the [PR template](.github/pull_request_template.md). Keep source review, CI, and physical evidence distinct. Disclose absent independent review for sensitive changes. No self-approval requirement for a solo maintainer.
 
-The public repository's default branch is `main`; the owner is the sole direct collaborator. GitHub denied main-protection inspection with HTTP 403 for the current token, and no rulesets were returned. Protection therefore remains unverified; no protection was overwritten or claimed configured. Private vulnerability reporting is also disabled. These setup blockers are tracked in [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1).
+The default branch `main` is covered by the active [Protection rules ruleset](https://github.com/AmanSikarwar/earkey-control/rules/26527076), verified on 4 November 2026. It requires PRs, prevents branch deletion and force pushes, has no bypass actors, and requires zero approving reviews for the solo maintainer. Private vulnerability reporting is enabled. [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2) is merged and [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1) is closed.
 
-Configure a solo-maintainer PR gate with no impossible self-approval, prevent force pushes/deletion, and require stable check names only when their jobs exist. No CI workflow or required-check run is implemented yet. Existing merge options permit merge commits, squash and rebase; no enforced merge method is claimed. Squash remains the proposed default for small issue branches; confirm policy before merging. Delete branches only after a verified merge.
+No repository CI workflow or required-status-check rule is implemented yet; add stable required check names when their jobs exist. The ruleset permits merge commits, squash and rebase; no single merge method is enforced. Squash remains the proposed default for small issue branches; confirm policy before merging. Delete branches only after a verified merge. The classic branch-protection endpoint reports no classic rule; the separate active ruleset supplies the verified protection.
 
 ## Planned code locations
 

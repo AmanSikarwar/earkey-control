@@ -1,6 +1,6 @@
 # Project contract
 
-Date: 4 November 2026. Status: **Stage 0 baseline published; repository-setup follow-up prepared for review. Main protection and private reporting remain blocked by token permissions.**
+Date: 4 November 2026. Status: **Stage 0 exit verified: contract decisions confirmed, PR #2 merged, private reporting enabled and default-branch ruleset active. Stage 1 phone access is not yet authorized.**
 
 ## Requirements and authority
 
@@ -45,9 +45,9 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
 | D04 | Exact reference environment, accessory, transport, mapping, permissions | Pending authorized Stage 1 measurements; blocks backend enrollment and device implementation |
 | D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | Conditional candidate; settle through Stages 1–4 before active interception |
-| D06 | Private security route | Disabled, verified 4 November; enabling returned HTTP 403. Owner must enable it or provide administration access, then verify; issue chooser links to SECURITY.md meanwhile |
+| D06 | Private security route | Enabled, verified by GitHub API on 4 November; SECURITY.md and issue chooser use the private reporting form. Earlier denied setup attempts remain historical evidence |
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
-| D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Sole direct collaborator is owner; main-protection GET denied HTTP 403, ruleset list empty; no protection or required checks claimed. Existing merge options retained. Signing/attestation remains a later release gate |
+| D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Active default-branch ruleset 26527076 requires PRs, blocks deletion/force pushes, has no bypass actors and zero required approving reviews. Merge/squash/rebase allowed; required CI rules will follow real jobs. Signing/attestation remains a later release gate |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -58,7 +58,7 @@ The maintainer resolved D01–D03 in this chat; no further Stage 0 product decis
 - [x] Record approved identity and stack, prohibited behavior, evidence boundaries, and authorization limits.
 - [x] Confirm source license, ownership, and release policy (D01–D03).
 - [x] Check the documentation and prepare a local reviewable baseline. A draft PR is reviewable output, not claimed reviewer approval.
-- [x] Verify the supplied public repository, published baseline and remote, and create [Stage 0 acceptance issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1). Prepare a focused follow-up documentation PR without rewriting published history.
-- [ ] Complete main-protection and private-reporting setup. Both administration operations are blocked by current token permissions; these controls are not claimed active.
+- [x] Verify the supplied public repository, published baseline and remote, and prepare an issue-linked documentation PR without rewriting published history. [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2) is merged at 7c577198bf6db0c692e9064c064e8271f296c5e5; [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1) is closed.
+- [x] Verify private reporting is enabled and the active ruleset applies to main with a suitable solo-maintainer PR gate and deletion/force-push protection. No in-repository CI jobs or required status checks are claimed.
 
 This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. After documentation checks, the next eligible stage is read-only Stage 1 discovery, which requires separate phone-access authorization. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.

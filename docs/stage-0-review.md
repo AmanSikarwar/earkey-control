@@ -1,6 +1,6 @@
 # Stage 0 review record
 
-Date: 4 November 2026. **Status: Stage 0 baseline published; repository-setup follow-up prepared for review. Main protection is unverified and private reporting is disabled because administration requests are denied.** No phone access, interception, prototype installation or release is part of this change.
+Date: 4 November 2026. **Status: Stage 0 exit verified. PR #2 is merged, issue #1 closed, private reporting enabled and the default-branch ruleset active.** No phone access, interception, prototype installation or release is part of this change.
 
 ## Concrete scope
 
@@ -30,14 +30,22 @@ At the initial handoff, network-enabled read-only GitHub access confirmed `AmanS
 
 The maintainer subsequently supplied [the public repository](https://github.com/AmanSikarwar/earkey-control). Live checks confirmed default `main`, the HTTPS origin and baseline commit `9c1e00a19f0f74032be75bb85899ca8554e116b3` already published there. Preserve that shared history: the follow-up is on `docs/repo-setup`, fetched from `origin/main`, rather than fabricating a first-baseline diff. The initial handoff's 35-file baseline and seven ADRs remain unchanged apart from the setup records described below.
 
-Created [acceptance issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1). The follow-up PR corrects stale repository/security status and links the issue; its exact head commit and URL are reported in the handoff and issue timeline. No independent reviewer approval or merge is claimed.
+Created [acceptance issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1). The setup follow-up was [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2), head `57d761a6701b4c85e1a8423f31d28fa4353c8984`. The maintainer subsequently merged it at `7c577198bf6db0c692e9064c064e8271f296c5e5` and closed issue #1; both states were verified through GitHub. No independent reviewer approval is inferred from the merge.
 
-Repository setup evidence: public visibility and owner admin role verified; sole direct collaborator is the owner. Main-protection inspection returned HTTP 403 for the token, and no rulesets were returned. Protection remains unverified and was not overwritten. Private-reporting enablement also returned HTTP 403; subsequent GET confirmed it remains disabled. The issue chooser now points to SECURITY.md instead of presenting a disabled private report form. Existing merge options remain available; no enforced merge method or CI status is claimed. The desired solo-maintainer PR gate, force-push/deletion restrictions and private channel remain owner setup tasks.
+During PR #2 preparation, main-protection inspection and private-reporting enablement returned HTTP 403, no rulesets were returned, and reporting remained disabled. Those failed attempts remain evidence; protection was not overwritten and the issue chooser temporarily linked to SECURITY.md. They are superseded by the verified settings below.
 
 The follow-up validation covers the retained specification digest/bytes, relative links, Stage 0–12 and T01–T28 coverage, issue-template metadata, text/whitespace, preservation of the published base and focused diff. Actual results and exact reviewed commit are recorded in the PR/handoff; runtime and device checks remain Not run.
 
+## Verified Stage 0 exit
+
+- PR #2 merged and issue #1 closed; clean local main fast-forwarded to the exact merge commit above.
+- Private-reporting API returns enabled=true. SECURITY.md and the issue chooser can now direct reports to the private form; no test report was submitted.
+- Active ruleset [Protection rules, 26527076](https://github.com/AmanSikarwar/earkey-control/rules/26527076) targets the default branch. Its details and effective main rules require PRs, prevent deletion/force pushes, require zero approving reviews and expose no bypass actors.
+- The classic-protection endpoint returns 404 because no classic rule is configured; protection is supplied by the active ruleset. No destructive push/deletion test was attempted.
+- No required-status-check rule or repository CI workflow is claimed. Add required checks alongside implemented jobs; merge/squash/rebase remain permitted. License, owner and release policy are confirmed, and all Stage 0 contract items are satisfied.
+
 ## Unresolved evidence and next step
 
-No required Stage 0 product decision remains pending. Main-protection inspection/setup and private-reporting enablement still need suitable administration access or direct owner configuration followed by verification. Stage 0 repository hardening is not complete while those controls remain unresolved. Do not paste credentials into chat or source control. Exact phone/ROM/kernel/root implementation/ABI/accessory/transport/event mappings and service permissions are unmeasured. All runtime, physical T01–T28, loading, page-size, UI and reproducibility tests are Not run because implementation has not started.
+No required Stage 0 product or repository-setup item remains pending. Exact phone/ROM/kernel/root implementation/ABI/accessory/transport/event mappings and service permissions are unmeasured. All runtime, physical T01–T28, loading, page-size, UI and reproducibility tests are Not run because implementation has not started.
 
-After Stage 0 checks, the next eligible stage is authorized read-only Stage 1 discovery. This chat has not authorized phone access or changes. No tested support or safe recovery on the reference phone is claimed.
+The next eligible stage is read-only Stage 1 discovery. This chat has not authorized phone access or changes; obtain that explicit authorization before any ADB device enumeration or phone inspection. No tested support or safe recovery on the reference phone is claimed.

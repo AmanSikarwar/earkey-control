@@ -1,0 +1,773 @@
+{
+  "format": "earkey.discovery-events.v1",
+  "evidence_kind": "Physical unfiltered candidate-only diagnostic; selected gesture segments, not an enrolled profile or module acceptance",
+  "source_commit": "3a4141ff7a89d01a11e753ccc9ea8e24e8051173",
+  "environment": {
+    "model": "M2101K6P",
+    "device_property": "sweetin",
+    "rom": "PixelOS_sweet-17.0-20261030-2116",
+    "android_reported": "17",
+    "api_reported": 37,
+    "kernel_release": "4.14.357-openela-VantomKernel",
+    "selinux": "Enforcing",
+    "adb_uid": 0
+  },
+  "input_identity_observed": {
+    "bus_hex": "0003",
+    "vendor_hex": "0020",
+    "product_hex": "0b21",
+    "version_hex": "0201",
+    "name": "Generic Xiaomi Type-C Earphones 1",
+    "usb_interface": "1.3",
+    "note": "diagnostic observations only; not an enrollment profile; event number and unique serial omitted"
+  },
+  "event_columns": [
+    "relative_timestamp_us",
+    "linux_event_type_hex",
+    "linux_event_code_hex",
+    "value_hex"
+  ],
+  "observations": {
+    "center_holds": "Five observed 2.087349-2.984975 second Center holds; user reported assistant triggered, with no per-hold assistant count",
+    "center_double": "Five clearly separated double-press groups from the last ten captured Center press/release pairs; user reported track changed each time",
+    "scope": "Observed Center short/hold/double/cellular-answer/end sequences use Linux 00a4 / HID 000c00cd, mapped MEDIA_PLAY_PAUSE by the measured layout; no separate assistant, track or call key appears in these sequences",
+    "center_cellular": "One incoming-answer and one ongoing/end action both used Center 00a4 / HID 000c00cd; user confirmed both actions and clear two-way cellular-call audio"
+  },
+  "selection_limits": [
+    "Selected complete Center sequences only; raw mixed windows remain private and unchanged",
+    "Android actions are user observations, not inferred from evdev codes",
+    "No locked/off, repeated call-context qualification, per-app or production passthrough/suppression result is established"
+  ],
+  "records": [
+    {
+      "label": "center-holds-05",
+      "collection_started_utc": "2026-11-04T16:57:05.609817+00:00",
+      "source_commit": "3a4141ff7a89d01a11e753ccc9ea8e24e8051173",
+      "raw_sha256": "28f0065198dea2fa1a790134e3d2186d5702cbae2594b740c41ba993c5269c19",
+      "reader_sha256": "3bc623462654e00cdf981ff03a1fbda85883c874159704a8523115714aa7cea5",
+      "gesture": "Five Center holds, about two seconds requested, screen unlocked/media setup",
+      "user_observed_action": "Assistant triggered; per-hold assistant count unreported",
+      "selection": {
+        "kind": "Contiguous complete scan-key-sync frames from private mixed raw window",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "excluded": "Volume events after the five Center holds"
+      },
+      "syn_report_frames": 10,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2984975,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2984975,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          2984975,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9664839,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9664839,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          9664839,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          11994978,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          11994978,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          11994978,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15516852,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15516852,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          15516852,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          17604201,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          17604201,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          17604201,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          21155848,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          21155848,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          21155848,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          23431979,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          23431979,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          23431979,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          27459850,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          27459850,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          27459850,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29920973,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          29920973,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          29920973,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 5,
+          "release": 5,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ]
+    },
+    {
+      "label": "center-double-06",
+      "collection_started_utc": "2026-11-04T17:00:16.631204+00:00",
+      "source_commit": "3a4141ff7a89d01a11e753ccc9ea8e24e8051173",
+      "raw_sha256": "8e7ed93b45b8d6934775f1d82854585cc6c16dcc9ca5d6bbaf9790b1d24b3a8e",
+      "reader_sha256": "3bc623462654e00cdf981ff03a1fbda85883c874159704a8523115714aa7cea5",
+      "gesture": "Five Center double-press groups, screen unlocked/media setup",
+      "user_observed_action": "User reported track changed each time; incidental assistant-triggering press excluded",
+      "selection": {
+        "kind": "Contiguous complete scan-key-sync frames from private mixed raw window",
+        "frame_indices_zero_based": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "excluded": "First four key frames (two extra Center presses), including the user-excluded assistant-triggering long press"
+      },
+      "syn_report_frames": 20,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          302138,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          302138,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          302138,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          392000,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          392000,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          392000,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          528003,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          528003,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          528003,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          6442141,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          6442141,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          6442141,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          6577003,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          6577003,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          6577003,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          6678014,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          6678014,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          6678014,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          6787986,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          6787986,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          6787986,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          10883029,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          10883029,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          10883029,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          11034006,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          11034006,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          11034006,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          11114004,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          11114004,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          11114004,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          11245235,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          11245235,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          11245235,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15973017,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15973017,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          15973017,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          16139002,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          16139002,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          16139002,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          16228998,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          16228998,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          16228998,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          16365114,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          16365114,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          16365114,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          21078013,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          21078013,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          21078013,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          21218997,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          21218997,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          21218997,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          21323998,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          21323998,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          21323998,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          21500200,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          21500200,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          21500200,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 10,
+          "release": 10,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ]
+    },
+    {
+      "label": "call-center-15",
+      "collection_started_utc": "2026-11-04T17:26:59.484688+00:00",
+      "source_commit": "3a4141ff7a89d01a11e753ccc9ea8e24e8051173",
+      "raw_sha256": "856e46f8f574e4d540aadc634078f1d90d0058d21ab94fef88b4de8ec6dcc96a",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "One Center short press during incoming cellular call; one during ongoing call to end it",
+      "user_observed_action": "Center answered and ended the call; clear audio both ways, confirmed by user with consenting participant",
+      "selection": {
+        "kind": "All complete scan-key-sync frames from candidate-only call window; diagnostic process header is not an input event",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "excluded": "No input frames excluded; diagnostic process metadata omitted"
+      },
+      "syn_report_frames": 4,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          164971,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          164971,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          164971,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          55416530,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          55416530,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          55416530,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          55577294,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          55577294,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          55577294,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 2,
+          "release": 2,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ]
+    }
+  ]
+}

@@ -12,6 +12,8 @@ On 4 November the maintainer also approved publication of the follow-up reviewed
 
 On 5 November the maintainer approved publication of the screen-off/idle checkpoint reviewed at `61646a68f79e1cf8beb742ca9df0dd9a467eaecc` by replying "publish". Its sanitized scope includes the Dozing/locked/off short-button observations and fixture, the instrumented idle interval and reported whole-phone battery/CPU counters, their limitations and evidence digests. Raw endpoint/state dumps, process identities and private helpers remain private. This approval does not authorize further phone changes, interception or a module release.
 
+On 5 November the maintainer also approved publication of the checkpoint reviewed at `47a6c60fa3fe7d2fc8ee3340dfee59cda73bc950` by replying "push". This covers the sanitized inline hold/double fixture, phone-side-key clarification, paired paused media-index observations and current eligibility review. Raw event/audio-service dumps, process identities and private analysis helpers remain private. No interception, additional phone change, release or Stage 1 exit is authorized by this publication approval.
+
 ## Approved identity and stack
 
 | Item | Approved value |

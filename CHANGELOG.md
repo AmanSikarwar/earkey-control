@@ -16,3 +16,4 @@
 - Recorded explicit 5 November approval to publish the sanitized screen-off/idle checkpoint and fixture; raw endpoint diagnostics and helpers remain private, and Stage 1 stays incomplete.
 - Prepared local 5 November inline-volume hold/double fixtures and controlled paused-index observations, retaining the clarified phone-side-key attempt and raw/physical count distinctions. Updated the measured eligibility assessment without authorizing active interception or closing Stage 1.
 - Recorded explicit approval to publish the inline-volume/paused-state checkpoint and eligibility review; raw diagnostics remain private and Stage 1 stays incomplete.
+- Prepared a local screen-off inline-volume fixture: five user-confirmed holds per button, plus four double groups and a separate one-group follow-up per button, with reported volume changes and no visible wake. Complete frames and endpoint/reader checks passed; raw data stays private and Stage 1 remains incomplete.

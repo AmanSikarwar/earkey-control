@@ -1,6 +1,6 @@
 # Compatibility contract
 
-Status as of 4 November 2026: **no physically qualified module combinations; tested support minimum/maximum: none**. Read-only Stage 1 baseline measurements are recorded in the [discovery checkpoint](discovery/reference-2026-11-04.md). No installation/interception has been attempted. Baseline discovery does not qualify module support.
+Status as of 5 November 2026: **no physically qualified module combinations; tested support minimum/maximum: none**. Read-only Stage 1 baseline measurements are recorded in the [discovery checkpoint](discovery/reference-2026-11-04.md), including local screen-off volume hold/double follow-up awaiting publication approval. No installation/interception has been attempted. Baseline discovery does not qualify module support.
 
 | Level | Definition |
 | --- | --- |

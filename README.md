@@ -23,4 +23,4 @@ There is no release ZIP and no installation procedure yet. Do not install a sour
 
 The approved core is Rust, lifecycle scripts use BusyBox ash, and the offline KernelSU WebUI uses TypeScript compiled to JavaScript with HTML and CSS. Cargo, a pinned Rust toolchain, and the Android NDK will build native Android executables. Tool versions will be pinned before the first build.
 
-Licensed under [MIT](LICENSE). The approved public repository owner/name is `AmanSikarwar/earkey-control`. Release publication is deferred until implementation and the specification's acceptance gates are complete. See [SECURITY.md](SECURITY.md) for private reporting status and the [stage review](docs/stage-0-review.md) for actual repository setup.
+Licensed under [MIT](LICENSE). The public repository is [AmanSikarwar/earkey-control](https://github.com/AmanSikarwar/earkey-control). Release publication is deferred until implementation and the specification's acceptance gates are complete. See [SECURITY.md](SECURITY.md) for private reporting status and the [stage review](docs/stage-0-review.md) for actual repository setup.

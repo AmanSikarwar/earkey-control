@@ -8,6 +8,8 @@ The [supplied specification](requirements/Wired_Earphone_Module_Agent_Specificat
 
 The maintainer selected MIT, owner `AmanSikarwar`, a public repository, and release only when everything is implemented. PR #3 is merged at `363bf13e10125cf75b19df7ef1fdd28340c1daec`. Read-only access to the wirelessly connected phone, including bounded earphone-candidate recordings, is explicitly authorized for Stage 1. After reviewing the concrete sanitized report, fixture and prepared issue, the maintainer replied "you can publish" on 4 November. This authorizes that checkpoint's public branch/PR and [acceptance issue #4](https://github.com/AmanSikarwar/earkey-control/issues/4). Raw diagnostics, serials/unique IDs and ADB network identifiers remain private. Installation, input interception/injection, root-manager/kernel changes, reboot and module-release publication remain outside the current authorization.
 
+On 4 November the maintainer also approved publication of the follow-up reviewed at `7a384fe5fe95f38fb6707e56a10ad58ad7c75a15` by replying "publish". Its sanitized scope includes Center hold/double/cellular answer/end observations, listening/phone-control/USB-microphone and two-way call baselines, the diagnostic cleanup failure and correction, and the selected Center fixture. Raw audio, routing dumps, mixed event windows, process identities and failed helper revisions remain private; no additional phone action or module release is authorized by this publication approval.
+
 ## Approved identity and stack
 
 | Item | Approved value |

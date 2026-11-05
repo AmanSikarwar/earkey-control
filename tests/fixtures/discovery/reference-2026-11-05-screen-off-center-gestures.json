@@ -25,15 +25,17 @@
     "linux_event_code_hex",
     "value_hex"
   ],
-  "evidence_kind": "Mixed unfiltered screen-off Center double attempts and five individually observed holds with reported wake/assistant; not clean double qualification, enrollment or module acceptance",
+  "evidence_kind": "Unfiltered screen-off Center baseline: retained mixed double attempts, five individual holds and a later five-group double attribution window; not enrollment or module acceptance",
   "source_commit": "8528c46f13d86bb3203aef6126964c254314210d",
   "observations": {
     "double_window": "User reported five double groups plus some delayed second taps acting as singles, track changes, no assistant and no visible wake; all sixteen Linux pairs retained without assigning Android actions to pairs",
     "hold_window": "Original five-hold window stopped after the first reported wake/assistant; one pair lasted 1972769 microseconds; the other four holds were later collected individually after fresh screen-off starts",
     "snapshot_state": "All hold pre-checks: Dozing, SCREEN_STATE_OFF, INTERACTIVE_STATE_SLEEP, keyguard showing. Hold post-checks: trials 1-2 off/Dozing, trials 3-5 on/Awake, keyguard showing throughout. Endpoints do not measure transient wake duration",
-    "limits": "No continuous screen trace, wake latency, Android gesture threshold, clean double-group action count or module preservation result established",
+    "limits": "No continuous screen trace, wake latency, Android gesture threshold or module preservation result. Earlier mixed double window has no clean action count; later group actions are user-reported. Extra playback toggle was not separately confirmed",
     "hold_followups": "Four separate follow-up trials complete five total holds. Each has user-reported wake/assistant; trials 2-5 also report music playing after assistant input timeout. Hold durations range 1701562-2474098 microseconds",
-    "preflight_stop": "Initial trial-4 preflight found on/Awake; no reader started and no hold counted. Retry used a distinct label after a fresh off-state check"
+    "preflight_stop": "Initial trial-4 preflight found on/Awake; no reader started and no hold counted. Retry used a distinct label after a fresh off-state check",
+    "double_attribution_followup": "Later window has ten complete pairs forming five separated double groups; user reported one track change each time, screen stayed dark and no assistant activation. Earlier mixed input is unchanged",
+    "double_attribution_endpoints": "Later double window pre/post: Dozing, screen off, interactive sleep and keyguard showing; no continuous state trace"
   },
   "records": [
     {
@@ -1078,7 +1080,526 @@
           "00000000"
         ]
       ]
+    },
+    {
+      "label": "screen-off-center-doubles-32",
+      "collection_started_utc": "2026-11-05T02:41:51.498066+00:00",
+      "source_commit": "46f0d78c56fd32cac97bb151abc13b0d4e087be5",
+      "raw_sha256": "a0d122093f335bae33f1163f5f90fb511d80a816abd49a1cb434cd1f67b5fe52",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "Five quick Center double-press groups with full releases and separated gaps",
+      "double_groups_completed_as_prompted": 5,
+      "per_group_observations": [
+        {
+          "group_number": 1,
+          "frame_indices_zero_based": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "press_start_relative_us": [
+            0,
+            205536
+          ],
+          "user_reported_action": "one track change"
+        },
+        {
+          "group_number": 2,
+          "frame_indices_zero_based": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "press_start_relative_us": [
+            9151541,
+            9327769
+          ],
+          "user_reported_action": "one track change"
+        },
+        {
+          "group_number": 3,
+          "frame_indices_zero_based": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "press_start_relative_us": [
+            18558835,
+            18774882
+          ],
+          "user_reported_action": "one track change"
+        },
+        {
+          "group_number": 4,
+          "frame_indices_zero_based": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "press_start_relative_us": [
+            29081813,
+            29282793
+          ],
+          "user_reported_action": "one track change"
+        },
+        {
+          "group_number": 5,
+          "frame_indices_zero_based": [
+            16,
+            17,
+            18,
+            19
+          ],
+          "press_start_relative_us": [
+            39981830,
+            40242544
+          ],
+          "user_reported_action": "one track change"
+        }
+      ],
+      "user_observed_action": "One track change each time; screen stayed dark; no assistant activation",
+      "user_reported_screen_wake": false,
+      "user_reported_assistant": false,
+      "extra_playback_toggle_separately_confirmed": null,
+      "pre_state": {
+        "wakefulness": "Dozing",
+        "screen_off": true,
+        "interactive_sleep": true,
+        "keyguard_showing": true
+      },
+      "post_state": {
+        "wakefulness": "Dozing",
+        "screen_off": true,
+        "screen_on": false,
+        "interactive_sleep": true,
+        "interactive_awake": false,
+        "keyguard_showing": true
+      },
+      "within_group_press_start_gap_us": [
+        205536,
+        176228,
+        216047,
+        200980,
+        260714
+      ],
+      "between_group_press_start_gap_us": [
+        8946005,
+        9231066,
+        10306931,
+        10699037
+      ],
+      "within_group_release_to_press_us": [
+        59740,
+        54959,
+        70330,
+        55244,
+        80760
+      ],
+      "stop_reason": "remote_timeout_or_exit",
+      "selection": {
+        "kind": "All complete candidate input frames; diagnostic process metadata omitted",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 10,
+          "release": 10,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 20,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          145796,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          145796,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          145796,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          205536,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          205536,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          205536,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          320543,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          320543,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          320543,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9151541,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9151541,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          9151541,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9272810,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9272810,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          9272810,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9327769,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9327769,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          9327769,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9443539,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9443539,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          9443539,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18558835,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          18558835,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          18558835,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18704552,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          18704552,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          18704552,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18774882,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          18774882,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          18774882,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18890548,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          18890548,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          18890548,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29081813,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          29081813,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          29081813,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29227549,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          29227549,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          29227549,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29282793,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          29282793,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          29282793,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29392746,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          29392746,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          29392746,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          39981830,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          39981830,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          39981830,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          40161784,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          40161784,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          40161784,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          40242544,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          40242544,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          40242544,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          40357850,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          40357850,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          40357850,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
     }
   ],
-  "followup_source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd"
+  "followup_source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd",
+  "double_attribution_source_commit": "46f0d78c56fd32cac97bb151abc13b0d4e087be5"
 }

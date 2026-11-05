@@ -12,6 +12,8 @@ An allowed event must cause its intended action exactly once without added actio
 
 ## Host and packaging checks to implement
 
+Independent [synthetic protocol fixtures](../tests/fixtures/README.md) now provide expected summaries for six event-stream examples. They prepare future host tests; checking their internal consistency is not execution of a production parser/filter or a Stage 2/3 exit. The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
+
 | Area | Meaningful cases / gate |
 | --- | --- |
 | Policy/parser | Valid Block all/Custom, missing/unknown/duplicate/future fields, corrupt and oversized text, bounded depth/lists, namespace errors, unsupported splits, duplicate profiles, capability widening; fuzz corpus and regressions |

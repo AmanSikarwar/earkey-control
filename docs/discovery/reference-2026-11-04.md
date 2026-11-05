@@ -203,6 +203,8 @@ Source timestamps, exit/stop reasons and raw digests remain in the private recor
 
 **The mountless grab + uinput architecture remains a candidate, not an approved device backend.** Mechanical scoping and root/kernel prerequisites are measured. Boot/duplicate identity behavior, actual module-service/forwarding behavior and remaining preservation/context evidence are unproven. No profile is enrolled and no automatic activation is eligible.
 
+The [5 November gap review](stage-1-gap-review-2026-11-05.md) lists the concrete remaining contexts, previously unavailable unrelated-input baseline, closed D09/D10 repetition items and later prototype gates. Its synthetic host-fixture preparation adds no physical observations.
+
 - Further physical reconnect repetitions are waived by the maintainer; one measured cycle is the current identity-stability evidence. Keep software reconnect handling/revalidation and host tests; boot stability remains unmeasured and no reboot is authorized.
 - Reference short Center answer/end repetition is closed under D10 on maintainer verification; retain one instrumented trial and do not request four further repeat calls. This does not establish other call gestures/contexts or actual module behavior.
 - Complete remaining context coverage beyond the measured Center and inline-volume gestures. Five-per-button physical holds and five paused double groups are now user-confirmed; these observations do not establish every context combination or a production repeat owner. Preserve the paired paused-index observation in future passthrough comparisons.

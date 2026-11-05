@@ -25,13 +25,15 @@
     "linux_event_code_hex",
     "value_hex"
   ],
-  "evidence_kind": "Mixed unfiltered screen-off Center double attempts and one hold with reported screen wake; not clean gesture qualification, enrollment or module acceptance",
+  "evidence_kind": "Mixed unfiltered screen-off Center double attempts and five individually observed holds with reported wake/assistant; not clean double qualification, enrollment or module acceptance",
   "source_commit": "8528c46f13d86bb3203aef6126964c254314210d",
   "observations": {
     "double_window": "User reported five double groups plus some delayed second taps acting as singles, track changes, no assistant and no visible wake; all sixteen Linux pairs retained without assigning Android actions to pairs",
-    "hold_window": "User reported the first hold woke the screen and triggered the assistant; remaining four planned holds were not run; one Linux pair lasted 1972769 microseconds",
-    "snapshot_state": "Pre/post snapshots for both windows report Dozing, SCREEN_STATE_OFF, INTERACTIVE_STATE_SLEEP and keyguard showing. Later off endpoints do not negate the user-reported transient wake during the hold",
-    "limits": "No continuous screen trace, wake latency, Android gesture threshold, clean double-group action count or module preservation result established"
+    "hold_window": "Original five-hold window stopped after the first reported wake/assistant; one pair lasted 1972769 microseconds; the other four holds were later collected individually after fresh screen-off starts",
+    "snapshot_state": "All hold pre-checks: Dozing, SCREEN_STATE_OFF, INTERACTIVE_STATE_SLEEP, keyguard showing. Hold post-checks: trials 1-2 off/Dozing, trials 3-5 on/Awake, keyguard showing throughout. Endpoints do not measure transient wake duration",
+    "limits": "No continuous screen trace, wake latency, Android gesture threshold, clean double-group action count or module preservation result established",
+    "hold_followups": "Four separate follow-up trials complete five total holds. Each has user-reported wake/assistant; trials 2-5 also report music playing after assistant input timeout. Hold durations range 1701562-2474098 microseconds",
+    "preflight_stop": "Initial trial-4 preflight found on/Awake; no reader started and no hold counted. Retry used a distinct label after a fresh off-state check"
   },
   "records": [
     {
@@ -741,12 +743,342 @@
       ],
       "planned_holds": 5,
       "completed_holds_user_reported": 1,
-      "remaining_holds_not_run": 4,
       "press_duration_us": [
         1972769
       ],
       "user_reported_screen_wake": true,
-      "user_reported_assistant": true
+      "user_reported_assistant": true,
+      "reference_hold_trial_number": 1,
+      "remaining_holds_not_run_in_initial_window": 4
+    },
+    {
+      "label": "screen-off-center-hold-28",
+      "reference_hold_trial_number": 2,
+      "collection_started_utc": "2026-11-04T22:41:39.351748+00:00",
+      "source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd",
+      "raw_sha256": "50dbefb49a6a29dcddd22cb1e0e8e9ec8cfb854ff6cd0431c66d7a1979ca7dd4",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "One approximately two-second hold after a fresh screen-off start",
+      "completed_holds_user_reported": 1,
+      "user_observed_action": "User reported screen wake, assistant activation and music playing after assistant input timeout; no exact action timing measured",
+      "user_reported_screen_wake": true,
+      "user_reported_assistant": true,
+      "user_reported_music_after_assistant_timeout": true,
+      "press_duration_us": [
+        1701562
+      ],
+      "post_state": {
+        "wakefulness": "Dozing",
+        "screen_off": true,
+        "screen_on": false,
+        "interactive_sleep": true,
+        "interactive_awake": false,
+        "keyguard_showing": true
+      },
+      "stop_reason": "remote_timeout_or_exit",
+      "selection": {
+        "kind": "All complete candidate input frames; diagnostic process metadata omitted",
+        "frame_indices_zero_based": [
+          0,
+          1
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 2,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1701562,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          1701562,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          1701562,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    },
+    {
+      "label": "screen-off-center-hold-29",
+      "reference_hold_trial_number": 3,
+      "collection_started_utc": "2026-11-04T22:46:16.248121+00:00",
+      "source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd",
+      "raw_sha256": "5b4c0c1b16246b6aa8b813b165d0f4e03d8d9604faa47d8ed71a8018f3aee04b",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "One approximately two-second hold after a fresh screen-off start",
+      "completed_holds_user_reported": 1,
+      "user_observed_action": "User reported screen wake, assistant activation and music playing after assistant input timeout; no exact action timing measured",
+      "user_reported_screen_wake": true,
+      "user_reported_assistant": true,
+      "user_reported_music_after_assistant_timeout": true,
+      "press_duration_us": [
+        1721726
+      ],
+      "post_state": {
+        "wakefulness": "Awake",
+        "screen_off": false,
+        "screen_on": true,
+        "interactive_sleep": false,
+        "interactive_awake": true,
+        "keyguard_showing": true
+      },
+      "stop_reason": "user_stop_or_done",
+      "selection": {
+        "kind": "All complete candidate input frames; diagnostic process metadata omitted",
+        "frame_indices_zero_based": [
+          0,
+          1
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 2,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1721726,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          1721726,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          1721726,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    },
+    {
+      "label": "screen-off-center-hold-30a",
+      "reference_hold_trial_number": 4,
+      "collection_started_utc": "2026-11-04T22:50:34.418810+00:00",
+      "source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd",
+      "raw_sha256": "891d448224c64ba452b1b88f3814167aad13b122ee1e4037d847cfdbb4fd9e40",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "One approximately two-second hold after a fresh screen-off start",
+      "completed_holds_user_reported": 1,
+      "user_observed_action": "User reported screen wake, assistant activation and music playing after assistant input timeout; no exact action timing measured",
+      "user_reported_screen_wake": true,
+      "user_reported_assistant": true,
+      "user_reported_music_after_assistant_timeout": true,
+      "press_duration_us": [
+        2474098
+      ],
+      "post_state": {
+        "wakefulness": "Awake",
+        "screen_off": false,
+        "screen_on": true,
+        "interactive_sleep": false,
+        "interactive_awake": true,
+        "keyguard_showing": true
+      },
+      "stop_reason": "user_stop_or_done",
+      "selection": {
+        "kind": "All complete candidate input frames; diagnostic process metadata omitted",
+        "frame_indices_zero_based": [
+          0,
+          1
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 2,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2474098,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2474098,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          2474098,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    },
+    {
+      "label": "screen-off-center-hold-31",
+      "reference_hold_trial_number": 5,
+      "collection_started_utc": "2026-11-04T22:53:11.614692+00:00",
+      "source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd",
+      "raw_sha256": "22b9fe10e2154a2c16799363db690983bce6ec576c030ee0dbb7724c6db1d2b0",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "One approximately two-second hold after a fresh screen-off start",
+      "completed_holds_user_reported": 1,
+      "user_observed_action": "User reported screen wake, assistant activation and music playing after assistant input timeout; no exact action timing measured",
+      "user_reported_screen_wake": true,
+      "user_reported_assistant": true,
+      "user_reported_music_after_assistant_timeout": true,
+      "press_duration_us": [
+        2294348
+      ],
+      "post_state": {
+        "wakefulness": "Awake",
+        "screen_off": false,
+        "screen_on": true,
+        "interactive_sleep": false,
+        "interactive_awake": true,
+        "keyguard_showing": true
+      },
+      "stop_reason": "user_stop_or_done",
+      "selection": {
+        "kind": "All complete candidate input frames; diagnostic process metadata omitted",
+        "frame_indices_zero_based": [
+          0,
+          1
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 2,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2294348,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2294348,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          2294348,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
     }
-  ]
+  ],
+  "followup_source_commit": "d1ed74143ed4d50d648d1db08617850df13d12cd"
 }

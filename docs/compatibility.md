@@ -1,6 +1,6 @@
 # Compatibility contract
 
-Status as of 5 November 2026: **no physically qualified module combinations; tested support minimum/maximum: none**. Read-only Stage 1 baseline measurements are recorded in the [discovery checkpoint](discovery/reference-2026-11-04.md), including local screen-off volume and Center follow-ups awaiting publication approval. Five individually reset Center holds have user-reported wake/assistant activation; mixed double attempts do not establish clean per-group action counts. No installation/interception has been attempted. Baseline discovery does not qualify module support.
+Status as of 5 November 2026: **no physically qualified module combinations; tested support minimum/maximum: none**. Read-only Stage 1 baseline measurements are recorded in the [discovery checkpoint](discovery/reference-2026-11-04.md), including approved screen-off volume and Center follow-ups. Five individually reset Center holds have user-reported wake/assistant activation; mixed double attempts do not establish clean per-group action counts. No installation/interception has been attempted. Baseline discovery does not qualify module support.
 
 | Level | Definition |
 | --- | --- |

@@ -14,6 +14,8 @@ On 5 November the maintainer approved publication of the screen-off/idle checkpo
 
 On 5 November the maintainer also approved publication of the checkpoint reviewed at `47a6c60fa3fe7d2fc8ee3340dfee59cda73bc950` by replying "push". This covers the sanitized inline hold/double fixture, phone-side-key clarification, paired paused media-index observations and current eligibility review. Raw event/audio-service dumps, process identities and private analysis helpers remain private. No interception, additional phone change, release or Stage 1 exit is authorized by this publication approval.
 
+On 5 November the maintainer approved publication of the screen-off volume and Center checkpoint reviewed at `e8c7921875a5d3a3904a1b69710a4078bdd36d51` by replying "push". This covers the three reviewed local documentation commits: volume holds/doubles with the four-plus-one group split, mixed Center double attempts, five individually reset Center holds with reported wake/assistant actions, state/reader endpoints and measurement limits. The two sanitized fixtures and evidence digests may be published. Raw diagnostics, unique identifiers, process details, assistant/audio content and private helpers remain private. This approval authorizes no further phone changes, interception, module release or Stage 1 exit.
+
 ## Approved identity and stack
 
 | Item | Approved value |

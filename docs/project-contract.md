@@ -57,6 +57,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
 | D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Active default-branch ruleset 26527076 requires PRs, blocks deletion/force pushes, has no bypass actors and zero required approving reviews. Merge/squash/rebase allowed; required CI rules will follow real jobs. Signing/attestation remains a later release gate |
 | D09 | Reference reconnect repetition and Center clarification | Confirmed 4 November: no further physical reconnect-cycle runs for the reference setup; one observed cycle remains evidence. The maintainer confirms seven intentional Center presses, matching the seven captured pairs |
+| D10 | Reference Stage 1 Center answer/end repetition closure | Confirmed 5 November: close the five-trial follow-up on maintainer verification of Center call behavior. One instrumented answer/end trial remains evidence; additional instrumented repetitions are waived, not represented as five captured passes. Other call contexts and module/release acceptance remain required |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -65,6 +66,14 @@ The maintainer resolved D01–D03 in this chat; no further Stage 0 product decis
 The maintainer explicitly said "No need to perform reconnect cycles" and confirmed "I pressed 7 times" for Center. These direct instructions supersede the original reference-device repetition counts in specification §§4/17. Do not run further physical reconnect-cycle repetitions for this reference setup. Record one measured reconnect and the waived repetitions; never describe the original three-insertion or twenty-cycle thresholds as passed. Other environments retain their documented scope until changed explicitly.
 
 The original specification remains byte-for-byte unchanged for provenance. This amendment changes the reference validation scope, not the software's required reconnect handling, stable matching, post-open/reconnect revalidation, essential-device denials or failure recovery. Host tests for those behaviors remain required. Seven intentional Center presses now explain the seven captured press/release pairs; no Center-count discrepancy remains. Other gesture, context, audio/microphone, isolation and service-permission evidence is still required.
+
+## Reference Center-call validation amendment — 5 November 2026
+
+When asked to prepare Center answer/end trial 2 of 5, the maintainer instructed: "mark all 5 completed, as I have verified pressing center intrupts or answers the call". Close the reference Stage 1 five-trial follow-up on that maintainer verification and do not request the four further instrumented repeat calls. This is a direct-user coverage amendment to the general five-observation discovery requirement, not five newly measured trials.
+
+Evidence remains one instrumented incoming answer and ongoing end, plus the maintainer's verification of Center answering/interrupting a call. The user's instruction closes the repetition item; it supplies no additional event traces, trial-by-trial observations or numeric instrumented count. Preserve the original fixture and counts. The newly prepared trial-2 preflight started no reader or call. Additional recorded repetitions are waived rather than marked as measured passes; no assertion is made about how many unrecorded checks the maintainer performed.
+
+This amendment applies only to the reference Stage 1 short Center answer/end repetition item. It does not establish unobserved call gestures, complete telephony routing, unrelated-input isolation, service permissions, proxy equivalence or recovery. Module T08/passthrough/suppression and final-artifact/release qualification still require their own physical evidence. Stage 1 remains incomplete. The original specification remains byte-for-byte unchanged.
 
 ## Stage 0 acceptance
 

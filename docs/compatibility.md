@@ -11,6 +11,8 @@ Status as of 5 November 2026: **no physically qualified module combinations; tes
 
 An untested roadmap row remains Design target; an evaluated combination that fails a prerequisite becomes Unsupported. Installation or an accepted ZIP alone never promotes a support level. Host tests and emulators cannot promote an accessory to Verified.
 
+The reference Stage 1 Center answer/end repetition item is closed on maintainer verification under [D10](project-contract.md#reference-center-call-validation-amendment--5-november-2026). One instrumented trial remains the captured evidence; this closure adds no module acceptance or support qualification.
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

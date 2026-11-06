@@ -16,6 +16,8 @@ On 5 November the maintainer also approved publication of the checkpoint reviewe
 
 On 5 November the maintainer approved publication of the screen-off volume and Center checkpoint reviewed at `e8c7921875a5d3a3904a1b69710a4078bdd36d51` by replying "push". This covers the three reviewed local documentation commits: volume holds/doubles with the four-plus-one group split, mixed Center double attempts, five individually reset Center holds with reported wake/assistant actions, state/reader endpoints and measurement limits. The two sanitized fixtures and evidence digests may be published. Raw diagnostics, unique identifiers, process details, assistant/audio content and private helpers remain private. This approval authorizes no further phone changes, interception, module release or Stage 1 exit.
 
+On 6 November the maintainer approved publication of the seven local commits reviewed at `1be76a95d6c5ffe143c11d33464169f7e1f85118` by instructing "Push, update PR and Issue". This covers the sanitized per-group screen-off Center double/identity review, ongoing-call volume baseline, D10 maintainer-verification closure, six synthetic protocol cases, paused Center double/hold observations and paused-volume holds with their index discrepancy/mixed-input limits. Their reviewed source, reports and fixtures may be pushed to the existing draft PR #5 and open issue #4. Raw diagnostics, serial/network/process identifiers, audio and private helpers remain private. Stage 1 remains incomplete; no additional phone access, merge, tag, module release or interception is authorized by this publication instruction.
+
 ## Approved identity and stack
 
 | Item | Approved value |

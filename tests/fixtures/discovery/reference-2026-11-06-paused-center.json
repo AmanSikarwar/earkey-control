@@ -1,0 +1,514 @@
+{
+  "format": "earkey.discovery-events.v1",
+  "environment": {
+    "model": "M2101K6P",
+    "device_property": "sweetin",
+    "rom": "PixelOS_sweet-17.0-20261030-2116",
+    "android_reported": "17",
+    "api_reported": 37,
+    "kernel_release": "4.14.357-openela-VantomKernel",
+    "selinux": "Enforcing",
+    "adb_uid": 0
+  },
+  "input_identity_observed": {
+    "bus_hex": "0003",
+    "vendor_hex": "0020",
+    "product_hex": "0b21",
+    "version_hex": "0201",
+    "name": "Generic Xiaomi Type-C Earphones 1",
+    "usb_interface": "1.3",
+    "note": "diagnostic observations only; not an enrollment profile; event number and unique serial omitted"
+  },
+  "event_columns": [
+    "relative_timestamp_us",
+    "linux_event_type_hex",
+    "linux_event_code_hex",
+    "value_hex"
+  ],
+  "evidence_kind": "Physical unfiltered paused-start Center double observations; not enrollment, module acceptance or an app-action trace",
+  "source_commit": "5a3352ef724bcbe25ee1d9c2fb50a323f43f205b",
+  "local_collection_date": "2026-11-06",
+  "observations": {
+    "grouping": "One completed double group followed by four more in a separate window. Full raw timing retained; no Android gesture threshold inferred",
+    "first_group": "Fresh paused start explicitly confirmed before rerun; user reported track changed, nothing else happened; no separate numerical Android action count supplied",
+    "next_four_groups": "User later explicitly confirmed each of four groups changed the track exactly once and music stayed paused throughout",
+    "context": "Pre/post MODE_NORMAL, Awake and keyguard not showing. Paused starting/continuing playback is user evidence, not an independent app-player trace",
+    "excluded_attempt": "Original window had two Center pairs but user requested rerun and supplied no action result; retained privately and excluded from the five-group total",
+    "limits": "No audio, per-action framework trace, exact action latency, gesture threshold, production matcher or module preservation result"
+  },
+  "records": [
+    {
+      "label": "paused-center-double-38",
+      "collection_started_utc": "2026-11-06T16:41:07.700512+00:00",
+      "source_commit": "5a3352ef724bcbe25ee1d9c2fb50a323f43f205b",
+      "raw_sha256": "40aedeac53f7e047622f35a6aff662347f77024686971eecd83255c6ee5a61d0",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "Paused-start Center double group",
+      "groups_completed_as_prompted": 1,
+      "user_report": "Done, track changed, nothing else happened",
+      "starting_playback_basis": "User Ready after fresh screen pause",
+      "track_change_report": "Track changed; nothing else happened",
+      "track_change_count_per_group_explicitly_confirmed": null,
+      "music_stayed_paused_explicitly_confirmed": null,
+      "other_reported_action": "None reported",
+      "within_group_press_start_gap_us": [
+        230969
+      ],
+      "between_group_press_start_gap_us": [],
+      "post_state": {
+        "audio_service_actual_mode": "MODE_NORMAL",
+        "awake": true,
+        "keyguard_showing": false
+      },
+      "stop_reason": "remote_timeout_or_exit",
+      "selection": {
+        "kind": "All complete candidate frames from this completed window; process metadata omitted; rerun-requested window excluded",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 2,
+          "release": 2,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 4,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          130976,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          130976,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          130976,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          230969,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          230969,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          230969,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          386969,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          386969,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          386969,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    },
+    {
+      "label": "paused-center-doubles-39",
+      "collection_started_utc": "2026-11-06T16:44:34.369348+00:00",
+      "source_commit": "5a3352ef724bcbe25ee1d9c2fb50a323f43f205b",
+      "raw_sha256": "76436fa37927c3dc6f23d6bc1a11dda6a26fbe742fbc38122ff425ed33d4268c",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "Four further paused Center double groups",
+      "groups_completed_as_prompted": 4,
+      "user_report": "Done, track changed, nothing else happened",
+      "starting_playback_basis": "Continuation after reported track-only first group; later explicit confirmation music stayed paused",
+      "track_change_report": "User explicitly confirmed one track change per group",
+      "track_change_count_per_group_explicitly_confirmed": 1,
+      "music_stayed_paused_explicitly_confirmed": true,
+      "other_reported_action": "None reported",
+      "within_group_press_start_gap_us": [
+        164997,
+        216021,
+        460988,
+        220984
+      ],
+      "between_group_press_start_gap_us": [
+        2353834,
+        6214002,
+        6169007
+      ],
+      "post_state": {
+        "audio_service_actual_mode": "MODE_NORMAL",
+        "awake": true,
+        "keyguard_showing": false
+      },
+      "stop_reason": "remote_timeout_or_exit",
+      "selection": {
+        "kind": "All complete candidate frames from this completed window; process metadata omitted; rerun-requested window excluded",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      "counts_linux_hex": {
+        "00a4": {
+          "press": 8,
+          "release": 8,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00cd"
+      ],
+      "syn_report_frames": 16,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          99843,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          99843,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          99843,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          164997,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          164997,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          164997,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          315849,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          315849,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          315849,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2518831,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2518831,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          2518831,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2674976,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2674976,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          2674976,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2734852,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2734852,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          2734852,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          2894983,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          2894983,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          2894983,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          8948854,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          8948854,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          8948854,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9319837,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9319837,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          9319837,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9409842,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9409842,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          9409842,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          9595990,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          9595990,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          9595990,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15578849,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15578849,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          15578849,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15708828,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15708828,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          15708828,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15799833,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15799833,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          15799833,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          15959831,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          15959831,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          15959831,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    }
+  ]
+}

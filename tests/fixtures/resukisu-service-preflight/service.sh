@@ -39,6 +39,37 @@ mkdir -m 0700 .preflight 2>/dev/null || exit 0
                             ;;
                     esac
                 fi
+
+                # Query only the reviewed manager; this does not relax the failed guard.
+                if [ "${KSU_UAPI_VER:-}" = 6 ] && [ "$(id -u)" = 0 ] &&
+                   [ -f /data/adb/ksud ] && [ ! -L /data/adb/ksud ] &&
+                   [ -x /data/adb/ksud ] &&
+                   [ "$(stat -c '%u:%g:%a' /data/adb/ksud)" = 0:0:755 ] &&
+                   manager_hash=$(timeout -s KILL 5 /system/bin/sha256sum /data/adb/ksud) &&
+                   [ "${manager_hash%% *}" = fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50 ]; then
+                    if manager_result=$(timeout -s KILL 5 /data/adb/ksud debug version 2>/dev/null); then
+                        case "$manager_result" in
+                            'Kernel Version: '*)
+                                manager_version=${manager_result#'Kernel Version: '}
+                                case "$manager_version" in
+                                    ''|*[!0123456789]*) printf 'fresh_query=invalid\n' ;;
+                                    *)
+                                        if [ "${#manager_version}" -le 10 ]; then
+                                            printf 'fresh_query=numeric\nfresh_query_value=%s\n' "$manager_version"
+                                        else
+                                            printf 'fresh_query=invalid\n'
+                                        fi
+                                        ;;
+                                esac
+                                ;;
+                            *) printf 'fresh_query=invalid\n' ;;
+                        esac
+                    else
+                        printf 'fresh_query=failed\n'
+                    fi
+                else
+                    printf 'fresh_query=unavailable\n'
+                fi
             fi
             return 1
         fi

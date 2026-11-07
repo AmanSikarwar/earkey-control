@@ -1,6 +1,7 @@
 import hashlib
 import os
 from pathlib import Path
+import shlex
 import shutil
 import stat
 import subprocess
@@ -21,15 +22,33 @@ class ServicePreflightTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.case = self.root / "module"
         shutil.copytree(FIXTURE, self.case)
+        self.manager = self.case / "manager"
+        self.manager.write_text('#!/bin/sh\n[ "$*" = "debug version" ] || exit 98\nprintf "ran\\n" >> .manager_calls\nprintf "%s\\n" "${TEST_MANAGER_OUTPUT:-Kernel Version: 35240}"\n')
+        self.manager.chmod(0o755)
+        hook = self.case / "service.sh"
+        hook.write_text(hook.read_text().replace("/data/adb/ksud", str(self.manager)))
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.mock("id", '[ "$1" = -u ] && printf "%s\\n" "${TEST_UID:-0}"')
+        real_stat = shlex.quote(shutil.which("stat"))
+        self.mock("stat", f'''if [ "${{3:-}}" = "$TEST_MANAGER_PATH" ]; then
+    printf "%s\\n" "${{TEST_MANAGER_STAT:-0:0:755}}"
+else
+    exec {real_stat} "$@"
+fi''')
         self.mock(
             "timeout",
             '''[ "$1" = -s ] && [ "$2" = KILL ] && [ "$3" = 5 ] || exit 96
 shift 3
 case "$1" in
-    /system/bin/sha256sum) shift; exec sha256sum "$@" ;;
+    /system/bin/sha256sum)
+        shift
+        if [ "$1" = "$TEST_MANAGER_PATH" ]; then
+            printf '%s  %s\\n' "${TEST_MANAGER_SHA:-fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50}" "$1"
+            exit 0
+        fi
+        exec sha256sum "$@" ;;
+    "$TEST_MANAGER_PATH") [ "${TEST_MANAGER_TIMEOUT:-0}" = 1 ] && exit 137 ;;
     ./earkey-probe) [ "${TEST_TIMEOUT:-0}" = 1 ] && exit 137 ;;
     *) exit 96 ;;
 esac
@@ -43,6 +62,7 @@ exec "$@"''',
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "KSU": "true", "BAKASU": "true", "KSU_MODULE": "earkey_control_preflight",
             "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "35240", "KSU_UAPI_VER": "6",
+            "TEST_MANAGER_PATH": str(self.manager),
         }
 
     def mock(self, name, body):
@@ -70,6 +90,7 @@ exec "$@"''',
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
+        self.assertFalse((self.case / ".manager_calls").exists())
         self.assertEqual(self.run_hook().returncode, 0)
         self.assertEqual((self.case / ".calls").read_text(), "ran\n")
 
@@ -86,10 +107,14 @@ exec "$@"''',
         for variable, value, label in cases:
             with self.subTest(guard=label):
                 shutil.rmtree(self.case / ".preflight", ignore_errors=True)
+                (self.case / ".manager_calls").unlink(missing_ok=True)
                 self.assertEqual(self.run_hook(**{variable: value}).returncode, 0)
                 detail = "kernel_version_state=numeric\nkernel_version_value=1\n" if label == "kernel_version" else ""
+                if label == "kernel_version":
+                    detail += "fresh_query=numeric\nfresh_query_value=35240\n"
                 self.assertEqual(self.result(), f"hook=entered\nguard_failure={label}\n{detail}service_probe_exit=1\n")
                 self.assertFalse((self.case / ".calls").exists())
+                self.assertEqual((self.case / ".manager_calls").exists(), label == "kernel_version")
 
     def test_kernel_version_failure_reports_only_bounded_numeric_values(self):
         cases = [
@@ -109,8 +134,39 @@ exec "$@"''',
                 detail = f"kernel_version_value={number}\n" if number is not None else ""
                 self.assertEqual(self.result(),
                     "hook=entered\nguard_failure=kernel_version\n"
-                    f"kernel_version_state={state}\n{detail}service_probe_exit=1\n")
+                    f"kernel_version_state={state}\n{detail}"
+                    "fresh_query=numeric\nfresh_query_value=35240\nservice_probe_exit=1\n")
                 self.assertFalse((self.case / ".calls").exists())
+
+    def test_fresh_query_requires_valid_manager_and_rejects_untrusted_output(self):
+        cases = [
+            ({"TEST_MANAGER_SHA": "0" * 64}, "unavailable", False),
+            ({"TEST_MANAGER_STAT": "501:0:755"}, "unavailable", False),
+            ({"KSU_UAPI_VER": "0"}, "unavailable", False),
+            ({"TEST_UID": "2000"}, "unavailable", False),
+            ({"TEST_MANAGER_TIMEOUT": "1"}, "failed", False),
+            ({"TEST_MANAGER_OUTPUT": "Kernel Version: 12345678901"}, "invalid", True),
+            ({"TEST_MANAGER_OUTPUT": "Kernel Version: 3\nforged=value"}, "invalid", True),
+            ({"TEST_MANAGER_OUTPUT": "unexpected"}, "invalid", True),
+        ]
+        for changes, state, called in cases:
+            with self.subTest(changes=changes):
+                shutil.rmtree(self.case / ".preflight", ignore_errors=True)
+                (self.case / ".manager_calls").unlink(missing_ok=True)
+                self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704", **changes).returncode, 0)
+                self.assertEqual(self.result(), "hook=entered\nguard_failure=kernel_version\n"
+                    "kernel_version_state=numeric\nkernel_version_value=32704\n"
+                    f"fresh_query={state}\nservice_probe_exit=1\n")
+                self.assertEqual((self.case / ".manager_calls").exists(), called)
+                self.assertFalse((self.case / ".calls").exists())
+
+    def test_symlink_manager_is_not_queried(self):
+        self.manager.rename(self.case / "real_manager")
+        self.manager.symlink_to("real_manager")
+        self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704").returncode, 0)
+        self.assertIn("fresh_query=unavailable\n", self.result())
+        self.assertFalse((self.case / ".manager_calls").exists())
+        self.assertFalse((self.case / ".calls").exists())
 
     def test_disable_remove_and_existing_attempt_prevent_execution(self):
         for marker in ("disable", "remove", ".preflight"):

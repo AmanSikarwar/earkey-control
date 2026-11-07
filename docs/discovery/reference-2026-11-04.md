@@ -220,6 +220,14 @@ Both volume groups use the previously measured key/scan signals. Five physical h
 
 This adds a scoped paused-volume baseline, not a quantitative gain or module preservation result. The Up index discrepancy, remaining relevant call/context evidence, unrelated-input isolation and later service/proxy/passthrough/recovery gates remain open. Stage 1 is incomplete and support remains Design target.
 
+### Host review of the paused Volume Up endpoints — 7 November 2026
+
+The retained Up trace contains 29 Linux press starts. Their elapsed times, measured from the first press, match one contiguous block of 29 `STREAM_MUSIC` raise requests in the retained AudioService log. The largest difference after aligning the first entries is 3.015 ms. This is a relative timing comparison between two logs. Absolute clock alignment and action latency remain unmeasured.
+
+The retained request lines added between the snapshots include three lower requests before the matching block, nine lower requests after it, and five additional raise requests after it. The stored 9→7 index measures the wider snapshot interval. Preserve the maintainer’s reported increase and the timing match as evidence of the Up action. Treat the endpoint change as an interval measurement with mixed request directions. Request origins, individual index changes and the cause of the net decrease remain unverified. Any future quantitative Up comparison needs an isolated measurement interval.
+
+Private host review SHA-256 `47f50e465860602c5251f1a50b628ea103183443a7a60a9cadf75807c3f4a4e2` binds the matching result to the sealed trace, retained log comparison and user summary.
+
 ## Evidence and artifact identities
 
 - Runtime module artifact: **none**. Initial short-press observations used source context `363bf13e10125cf75b19df7ef1fdd28340c1daec`; root/held-volume follow-up used `dc76ba0dd9b548ae538deb4447ce35c00fd44ab2`. Existing phone tools performed collection; no EarKey binary ran on the phone.

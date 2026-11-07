@@ -19,6 +19,8 @@ The maintainer reports that holding inline volume buttons during ongoing calls c
 
 The maintainer reports that double-pressing an inline volume button during a call only displayed the volume slider. The Stage 1 follow-up for that gesture is complete on maintainer verification. [D12](project-contract.md#reference-ongoing-call-volume-double-press-amendment--7-november-2026)
 
+The maintainer reports that holding Center during an ongoing call toggled mute. The Stage 1 follow-up for that gesture is complete on maintainer verification. Microphone-path and module call acceptance still need physical evidence. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026)
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

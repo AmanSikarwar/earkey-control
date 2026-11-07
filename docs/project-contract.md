@@ -62,6 +62,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D10 | Reference Stage 1 Center answer/end repetition closure | Confirmed 5 November: close the five-trial follow-up on maintainer verification of Center call behavior. One instrumented answer/end trial remains evidence; additional instrumented repetitions are waived, not represented as five captured passes. Other call contexts and module/release acceptance remain required |
 | D11 | Reference Stage 1 ongoing-call inline volume holds | Closed on 7 November on the maintainer’s report that volume was the only action observed while holding the inline volume buttons during ongoing calls. The instrumented follow-up is waived for this item. Other call contexts and T08 remain open |
 | D12 | Reference Stage 1 ongoing-call inline volume double presses | Closed on 7 November on the maintainer’s report that double-pressing a volume button during a call only displayed the volume slider. The instrumented follow-up is waived for this item. Other call contexts and T08 remain open |
+| D13 | Reference Stage 1 ongoing-call Center holds | Closed on 7 November on the maintainer’s report that holding Center toggled call mute. The instrumented follow-up is waived for this item. Center double presses and T08 remain open |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -90,6 +91,12 @@ The report supplies a qualitative action observation. Trial count, call type, ho
 The maintainer reported that double-pressing an inline volume button during an ongoing call only displayed the volume slider. They reported that a test call was unavailable and asked to record the behavior and move on. D12 closes the Stage 1 instrumented follow-up and waives the planned capture repetitions for this item.
 
 The report supplies a qualitative action observation. Button direction, trial count, tap timing, raw mapping, volume indices, call continuity and audio routing remain unverified for these doubles. Incoming-call gestures, ongoing Center holds and doubles, and module T08 and release qualification retain their acceptance requirements.
+
+## Reference ongoing-call Center-hold amendment — 7 November 2026
+
+The maintainer reported that holding the inline Center button during an ongoing call toggled mute and unmute. They said a test call was unavailable and asked to record the behavior and move on. D13 closes the Stage 1 instrumented follow-up and waives the planned capture repetitions for this item.
+
+The report establishes the observed call action on maintainer verification. Hold timing, trial count, raw mapping and actual microphone-path behavior remain unmeasured. Ongoing Center double presses, incoming-call gestures, T08 and release qualification retain their own acceptance requirements.
 
 ## Stage 0 acceptance
 

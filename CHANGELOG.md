@@ -31,3 +31,4 @@
 - Closed the Stage 1 ongoing-call inline volume-hold follow-up under D11 on the maintainer’s report that only volume changed while held. The report is qualitative evidence. Other call gestures and module acceptance remain open.
 - Closed the Stage 1 ongoing-call inline volume double-press follow-up under D12 on the maintainer’s report that only the slider appeared. The report supplies qualitative evidence for this gesture.
 - Compared the paused Volume Up trace with retained AudioService request timings. The matching raise block and lower requests on either side bound the 9→7 endpoint to the wider snapshot interval. The cause of the decrease remains unverified.
+- Closed the Stage 1 ongoing-call Center-hold follow-up under D13 on the maintainer’s report of toggling call mute. Added the reported effect to the Center blocking disclosure requirements and prepared the next Center double-press check.

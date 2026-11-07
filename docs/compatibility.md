@@ -17,6 +17,8 @@ The reference Stage 1 Center answer/end repetition item is closed on maintainer 
 
 The maintainer reports that holding inline volume buttons during ongoing calls changed only the volume while held. This completes the Stage 1 follow-up for that gesture on maintainer verification. Compatibility remains Design target and module call acceptance is pending. [D11](project-contract.md#reference-ongoing-call-volume-hold-amendment--7-november-2026)
 
+The maintainer reports that double-pressing an inline volume button during a call only displayed the volume slider. The Stage 1 follow-up for that gesture is complete on maintainer verification. [D12](project-contract.md#reference-ongoing-call-volume-double-press-amendment--7-november-2026)
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

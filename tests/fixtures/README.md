@@ -7,7 +7,7 @@ These files are data, not an installer, enrolled profile, production policy or i
 | `discovery/` | Sanitized physical, unfiltered observations | Preserve exactly what was captured and what the maintainer reported; each record retains source/raw/helper identities and limits |
 | `protocol/` | Hand-authored synthetic examples | Prepare independent host checks while device gates remain open; never count these events as physical observations |
 
-The discovery report explains which physical windows qualify a baseline, which remain mixed or interrupted, and how D09–D11 change the discovery scope. The D11 volume-hold report is recorded separately from the instrumented short-press fixture. [Discovery report](../../docs/discovery/reference-2026-11-04.md)
+The discovery report explains which physical windows qualify a baseline, which remain mixed or interrupted, and how D09–D12 change the discovery scope. The D11 volume-hold and D12 volume double-press reports are recorded separately from the instrumented short-press fixture. [Discovery report](../../docs/discovery/reference-2026-11-04.md)
 
 ## Synthetic protocol summaries
 

@@ -10,7 +10,7 @@ The first schema will require all declared policy fields and reject unknown fiel
 
 Keep Linux codes, HID usages (page and usage), and Android keycodes distinct. Block all expands only to verified controls across the accessory's verified collections. Custom uses supported independent groups; it cannot request an action split absent from measurements. Unsupported requests retain the previous valid policy and explain collateral effects.
 
-Include the reported in-call mute toggle in the potential effects shown before blocking the reference accessory’s Center control. An independent mute option requires evidence of a separately identifiable signal. The call-hold mapping and microphone behavior still need physical verification. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026)
+Include the reported in-call mute toggle and incoming-call rejection in the potential effects shown before blocking the reference accessory’s Center control. An independent mute option requires evidence of a separately identifiable signal. The call-hold mapping and microphone behavior still need physical verification. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026), [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
 
 ## Transaction and update behavior
 

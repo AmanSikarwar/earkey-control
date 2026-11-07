@@ -64,6 +64,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D12 | Reference Stage 1 ongoing-call inline volume double presses | Closed on 7 November on the maintainer’s report that double-pressing a volume button during a call only displayed the volume slider. The instrumented follow-up is waived for this item. Other call contexts and T08 remain open |
 | D13 | Reference Stage 1 ongoing-call Center holds | Closed on 7 November on the maintainer’s report that holding Center toggled call mute. The instrumented follow-up is waived for this item. T08 remains open |
 | D14 | Reference Stage 1 ongoing-call Center double-press follow-up | Closed on 7 November at the maintainer’s request after they reported that pressing Center ended the call. The planned capture is waived. Tap count and double-press attribution remain unverified |
+| D15 | Reference Stage 1 incoming-call Center holds | Closed on 7 November on the maintainer’s report that holding Center rejected the ringing call. The planned capture is waived. Timing, mapping and module acceptance remain unverified |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -104,6 +105,12 @@ The report establishes the observed call action on maintainer verification. Hold
 When asked to prepare the ongoing-call Center double-press check, the maintainer reported that a test call was unavailable and that pressing Center ended the call. They asked to record the behavior and move on. D14 closes the planned Stage 1 follow-up on that report and waives its capture repetitions.
 
 Record call termination as the reported effect of a Center press. The number of taps, which tap ended the call and any distinct double-press action remain unverified. The earlier instrumented short answer/end trial supplies separate evidence under D10. Incoming-call gestures, T08 and release qualification retain their own acceptance requirements.
+
+## Reference incoming-call Center-hold amendment — 7 November 2026
+
+The maintainer reported that holding inline Center while an incoming call was ringing rejected the call. They said a test call was unavailable and asked to record the behavior and move on. D15 closes this Stage 1 follow-up and waives the planned capture repetitions for this item.
+
+The report supplies a qualitative action observation. Hold timing, event mapping, trial count and audio routing remain unmeasured. Incoming Center doubles, incoming volume gestures, T08 and release qualification retain their own evidence requirements.
 
 ## Stage 0 acceptance
 

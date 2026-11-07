@@ -33,3 +33,4 @@
 - Compared the paused Volume Up trace with retained AudioService request timings. The matching raise block and lower requests on either side bound the 9→7 endpoint to the wider snapshot interval. The cause of the decrease remains unverified.
 - Closed the Stage 1 ongoing-call Center-hold follow-up under D13 on the maintainer’s report of toggling call mute. Added the reported effect to the Center blocking disclosure requirements and prepared the next Center double-press check.
 - Closed the planned Stage 1 ongoing-call Center double-press follow-up under D14 on the reported call-end action of a Center press. Tap attribution remains unverified. Prepared the incoming-call Center-hold check.
+- Closed the Stage 1 incoming-call Center-hold follow-up under D15 on the maintainer’s report of call rejection. Added the reported effect to the Center disclosure and prepared the incoming Center double-press check.

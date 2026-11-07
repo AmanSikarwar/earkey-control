@@ -23,6 +23,8 @@ The maintainer reports that holding Center during an ongoing call toggled mute. 
 
 The maintainer reports that pressing Center ended an ongoing call. This closes the planned Stage 1 double-press follow-up at their request. The number of taps and a distinct double-press action remain unverified. [D14](project-contract.md#reference-ongoing-call-center-double-press-amendment--7-november-2026)
 
+The maintainer reports that holding Center while an incoming call was ringing rejected it. The Stage 1 follow-up for that gesture is complete on maintainer verification. [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

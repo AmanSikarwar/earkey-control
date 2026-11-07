@@ -133,6 +133,8 @@ impl Policy {
         })
     }
 
+    /// Validates policy bytes against the caller's independently verified enrollments.
+    /// Successful decoding does not establish that an accessory is currently present.
     pub fn parse(
         bytes: &[u8],
         enrollments: &[VerifiedEnrollment<'_>],
@@ -225,10 +227,12 @@ impl Policy {
         self.0.generation = generation;
     }
 
+    /// Serializes private policy data, including enrolled accessory serials.
     pub fn to_json(&self) -> Vec<u8> {
         serde_json::to_vec(&self.0).expect("policy v1 only contains JSON data types")
     }
 
+    /// Previews the configured selection, including when activation is inhibited.
     pub fn blocked_controls(&self, profile_index: usize) -> impl Iterator<Item = &'static Control> {
         self.0
             .profiles
@@ -242,6 +246,7 @@ impl Policy {
             })
     }
 
+    /// Selects eligible nodes from a complete inventory before opening them.
     pub fn targets(
         &self,
         environment: &Environment<'_>,
@@ -291,6 +296,8 @@ impl Policy {
         Ok(targets)
     }
 
+    /// Checks observations from the opened descriptor and an independently refreshed inventory.
+    /// A reconnect requires a new target from `targets`.
     pub fn revalidate(
         &self,
         target: &Target,

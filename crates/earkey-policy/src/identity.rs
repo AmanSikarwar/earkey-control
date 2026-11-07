@@ -211,6 +211,8 @@ pub struct VerifiedEnrollment<'a> {
 }
 
 impl<'a> VerifiedEnrollment<'a> {
+    /// Use only with a serial taken from an independently reviewed measurement.
+    /// This constructor validates the serial format and relies on the caller for provenance.
     pub fn from_reviewed_measurement(evidence: Evidence, serial: &'a str) -> Option<Self> {
         valid_serial(serial).then_some(Self { evidence, serial })
     }

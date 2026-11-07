@@ -296,6 +296,21 @@ fn revalidation_requires_live_instance_and_unique_fresh_inventory() {
             .revalidate(&target, &earphones(1), &ENVIRONMENT, &[earphones(1)])
             .unwrap()
     );
+    let opened_wrong_serial = Candidate {
+        usb_serial: Some("REPLACEMENT"),
+        ..earphones(1)
+    };
+    let opened_with_switch = Candidate {
+        event_types: &[0, 1, 4, 5],
+        ..earphones(1)
+    };
+    for opened in [opened_wrong_serial, opened_with_switch] {
+        assert!(
+            !policy
+                .revalidate(&target, &opened, &ENVIRONMENT, &[earphones(1)])
+                .unwrap()
+        );
+    }
     assert!(
         !policy
             .revalidate(&target, &earphones(2), &ENVIRONMENT, &[earphones(2)])

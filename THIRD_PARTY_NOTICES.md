@@ -24,3 +24,19 @@ The locked packages below were reviewed on 7 November 2026. The [lockfile](Cargo
 | [syn 3.0.9](https://crates.io/crates/syn/3.0.9) | Host derive build | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
 | [unicode-ident 1.0.27](https://crates.io/crates/unicode-ident/1.0.27) | Host derive build | `(MIT OR Apache-2.0) AND Unicode-3.0` | `LICENSE-APACHE`, `LICENSE-MIT`, `LICENSE-UNICODE` |
 | [zmij 1.0.23](https://crates.io/crates/zmij/1.0.23) | Runtime JSON number formatting | `MIT` | `LICENSE-MIT` |
+
+## Stage 3 host fuzz tooling
+
+The campaign used [cargo-fuzz 0.13.2](https://crates.io/crates/cargo-fuzz/0.13.2), installed with its upstream lockfile. The separate [fuzz lockfile](fuzz/Cargo.lock) pins and records checksums for the harness crates. The packages below are additional host tooling and are outside the production workspace. No package has been modified or bundled.
+
+| Package | License expression | License and notice files in archive |
+| --- | --- | --- |
+| [arbitrary 1.5.0](https://crates.io/crates/arbitrary/1.5.0) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [cc 1.11.1](https://crates.io/crates/cc/1.11.1) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [cfg-if 1.0.5](https://crates.io/crates/cfg-if/1.0.5) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [find-msvc-tools 0.1.15](https://crates.io/crates/find-msvc-tools/0.1.15) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [getrandom 0.4.3](https://crates.io/crates/getrandom/0.4.3) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [jobserver 0.1.35](https://crates.io/crates/jobserver/0.1.35) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [libfuzzer-sys 0.4.13](https://crates.io/crates/libfuzzer-sys/0.4.13) | `(MIT OR Apache-2.0) AND NCSA` | `LICENSE-APACHE`, `LICENSE-MIT` |
+| [r-efi 6.0.0](https://crates.io/crates/r-efi/6.0.0) | `MIT OR Apache-2.0 OR LGPL-2.1-or-later` | Expression recorded in the package manifest |
+| [shlex 2.0.1](https://crates.io/crates/shlex/2.0.1) | `MIT OR Apache-2.0` | `LICENSE-APACHE`, `LICENSE-MIT` |

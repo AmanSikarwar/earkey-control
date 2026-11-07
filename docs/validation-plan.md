@@ -1,6 +1,6 @@
 # Validation plan
 
-Stage 2 has policy, identity and persistence host tests. **All module runtime and physical acceptance cases are Not run.** The [discovery checkpoint](discovery/reference-2026-11-04.md) contains unfiltered Stage 1 baseline observations and retained diagnostic failures. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
+Stages 2 and 3 have policy, identity, persistence and event-engine host tests. **All module runtime and physical acceptance cases are Not run.** The [discovery checkpoint](discovery/reference-2026-11-04.md) contains unfiltered Stage 1 baseline observations and retained diagnostic failures. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 
@@ -12,9 +12,9 @@ An allowed event must cause its intended action exactly once without added actio
 
 ## Host and packaging checks
 
-Stage 2 ran 12 tests on arm64 macOS with Rust 1.99.1. The synthetic cases exercise exact identity and post-open matching, duplicates, essential and virtual device exclusion, strict policy decoding, shared labels, generation conflicts, unsafe file rejection and recovery-state retention. They cover the host portions of T02 and T05 and policy/storage inputs from T21. Parser fuzzing, Android inventory and storage integration, and T23 migration and rollback remain later gates. [Host commands](build.md#stage-2-host-checks)
+Stage 2 ran 12 tests on arm64 macOS with Rust 1.99.1. The synthetic cases exercise exact identity and post-open matching, duplicates, essential and virtual device exclusion, strict policy decoding, shared labels, generation conflicts, unsafe file rejection and recovery-state retention. They cover the host portions of T02 and T05 and policy/storage inputs from T21. Android inventory and storage integration, an injected directory-sync fault after rename, and T23 migration and rollback remain later gates. [Host commands](build.md#stage-2-host-checks)
 
-Independent [synthetic protocol fixtures](../tests/fixtures/README.md) now provide expected summaries for six event-stream examples. They prepare future host tests; checking their internal consistency is not execution of a production parser/filter or a Stage 2/3 exit. The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
+Stage 3 replays the six [synthetic protocol fixtures](../tests/fixtures/README.md) and 1,530 captured records across 510 sanitized Stage 1 frames into a host sink. Eleven session tests cover the host portions of T06, T15 and T19. The full 23-test workspace passed on arm64 macOS with Rust 1.99.1 and under AddressSanitizer with the pinned nightly. The policy and event harnesses each completed 100,000 coverage-guided inputs under AddressSanitizer. [Reproduction commands](build.md#stage-3-host-fuzzing-and-sanitizer) The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
 
 | Area | Meaningful cases / gate |
 | --- | --- |

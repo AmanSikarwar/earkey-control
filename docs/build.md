@@ -1,6 +1,6 @@
 # Build and reproducibility conventions
 
-Stage 2 has a Rust library and locked host checks. The Android executable, installable package and CI workflow are later gates.
+Stages 2 and 3 have Rust libraries and locked host checks. The Android executable, installable package and CI workflow are later gates.
 
 ## Stage 2 host checks
 
@@ -13,6 +13,43 @@ cargo test --workspace --locked
 ```
 
 Use `--offline` for Clippy and tests after fetching the locked dependencies. These checks exercise the Rust model and the host filesystem. They establish no Android loading, SELinux access or input behavior.
+
+## Stage 3 host fuzzing and sanitizer
+
+The host evidence uses Rust nightly-2026-11-06 (`249c1e4e3`) for instrumentation and cargo-fuzz 0.13.2 with libfuzzer-sys 0.4.13. The production toolchain pin stays on Rust 1.99.1. The fuzz workspace has a separate [lockfile](../fuzz/Cargo.lock) and its dependencies are host-only. The recorded host was arm64 macOS 27.2 with Apple Clang 21.0.0 (`clang-2100.4.1.1`). The sanitizer run instruments the project and dependency crates. [Rust sanitizer support](https://doc.rust-lang.org/unstable-book/compiler-flags/sanitizer.html), [cargo-fuzz 0.13.2](https://github.com/rust-fuzz/cargo-fuzz/releases/tag/0.13.2)
+
+```sh
+rustup toolchain install nightly-2026-11-06 --profile minimal
+cargo install cargo-fuzz --version '=0.13.2' --locked
+cargo fetch --locked --manifest-path fuzz/Cargo.toml
+RUSTFLAGS='-Zsanitizer=address' cargo +nightly-2026-11-06 test --workspace --locked --target aarch64-apple-darwin
+cargo clippy --manifest-path fuzz/Cargo.toml --bins --locked -- -D warnings
+```
+
+Seed the campaigns with the synthetic policy and protocol fixtures. The eight-byte event encoding below belongs to the harness. Native Linux record layout is an adapter concern.
+
+```sh
+earkey_corpus=$(mktemp -d)
+mkdir -p "$earkey_corpus/policy" "$earkey_corpus/events"
+cp tests/fixtures/identity/reference-policy.json "$earkey_corpus/policy/"
+python3 - "$earkey_corpus/events" <<'PYTHON'
+import json, pathlib, struct, sys
+
+out = pathlib.Path(sys.argv[1])
+fixtures = json.loads(pathlib.Path("tests/fixtures/protocol/synthetic-event-summaries.v1.json").read_text())
+for case in fixtures["cases"]:
+    records = b"".join(
+        struct.pack("<HHI", *(int(value, 16) for value in row[1:]))
+        for row in case["events"]
+    )
+    for mask in (0, 1, 7):
+        (out / f"{case['id']}-{mask}").write_bytes(bytes([mask]) + records)
+PYTHON
+CARGO_NET_OFFLINE=true cargo +nightly-2026-11-06 fuzz run policy "$earkey_corpus/policy" -- -runs=100000 -max_len=16385 -seed=13494 -timeout=3 -print_final_stats=1
+CARGO_NET_OFFLINE=true cargo +nightly-2026-11-06 fuzz run events "$earkey_corpus/events" -- -runs=100000 -max_len=4097 -seed=13494 -timeout=3 -print_final_stats=1
+```
+
+Check that the fuzz lockfile stays unchanged. Keep generated corpora and crash artifacts outside the tracked tree. The event harness checks output order, report boundaries and allowed press/repeat/release state.
 
 ## Pins and native target
 

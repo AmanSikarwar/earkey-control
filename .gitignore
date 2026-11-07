@@ -24,3 +24,9 @@
 *.jks
 *.log
 .DS_Store
+
+# Coverage-guided host test output
+/fuzz/artifacts/
+/fuzz/corpus/
+/fuzz/coverage/
+/fuzz/target/

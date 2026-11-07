@@ -171,6 +171,13 @@ impl Evidence {
         }
     }
 
+    /// Complete key capability set for this evidence, including unmapped keys.
+    pub fn advertised_keys(self) -> &'static [LinuxKey] {
+        match self {
+            Self::XiaomiPixelos20261107 => &REFERENCE_KEYS,
+        }
+    }
+
     pub fn matches_environment(self, environment: &Environment<'_>) -> bool {
         match self {
             Self::XiaomiPixelos20261107 => *environment == REFERENCE_ENV,
@@ -196,7 +203,7 @@ impl Evidence {
                 device.layout_sha256
                     == "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
                     && device.event_types == [0, 1, 4]
-                    && device.keys == REFERENCE_KEYS
+                    && device.keys == self.advertised_keys()
                     && device.misc == [4]
                     && device.properties.is_empty()
             }

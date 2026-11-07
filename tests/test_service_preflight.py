@@ -51,9 +51,13 @@ exec "$@"''',
         path.chmod(0o700)
 
     def run_hook(self, **changes):
+        env = self.env | {key: value for key, value in changes.items() if value is not None}
+        for key, value in changes.items():
+            if value is None:
+                env.pop(key, None)
         return subprocess.run(
             ["dash", str(self.case / "service.sh")],
-            env=self.env | changes, capture_output=True, text=True, timeout=8,
+            env=env, capture_output=True, text=True, timeout=8,
         )
 
     def result(self):
@@ -83,7 +87,29 @@ exec "$@"''',
             with self.subTest(guard=label):
                 shutil.rmtree(self.case / ".preflight", ignore_errors=True)
                 self.assertEqual(self.run_hook(**{variable: value}).returncode, 0)
-                self.assertEqual(self.result(), f"hook=entered\nguard_failure={label}\nservice_probe_exit=1\n")
+                detail = "kernel_version_state=numeric\nkernel_version_value=1\n" if label == "kernel_version" else ""
+                self.assertEqual(self.result(), f"hook=entered\nguard_failure={label}\n{detail}service_probe_exit=1\n")
+                self.assertFalse((self.case / ".calls").exists())
+
+    def test_kernel_version_failure_reports_only_bounded_numeric_values(self):
+        cases = [
+            (None, "unset", None),
+            ("", "empty", None),
+            ("000035240", "numeric", "000035240"),
+            ("1234567890", "numeric", "1234567890"),
+            ("12345678901", "invalid", None),
+            ("42\nforged=value", "invalid", None),
+            ("-1", "invalid", None),
+            ("٤٢", "invalid", None),
+        ]
+        for value, state, number in cases:
+            with self.subTest(value=value):
+                shutil.rmtree(self.case / ".preflight", ignore_errors=True)
+                self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE=value).returncode, 0)
+                detail = f"kernel_version_value={number}\n" if number is not None else ""
+                self.assertEqual(self.result(),
+                    "hook=entered\nguard_failure=kernel_version\n"
+                    f"kernel_version_state={state}\n{detail}service_probe_exit=1\n")
                 self.assertFalse((self.case / ".calls").exists())
 
     def test_disable_remove_and_existing_attempt_prevent_execution(self):

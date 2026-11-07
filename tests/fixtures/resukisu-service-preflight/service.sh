@@ -22,6 +22,24 @@ mkdir -m 0700 .preflight 2>/dev/null || exit 0
     guard() {
         if [ "$2" != "$3" ]; then
             printf 'guard_failure=%s\n' "$1"
+            if [ "$1" = kernel_version ]; then
+                if [ "${KSU_KERNEL_VER_CODE+x}" != x ]; then
+                    printf 'kernel_version_state=unset\n'
+                elif [ -z "$2" ]; then
+                    printf 'kernel_version_state=empty\n'
+                else
+                    case "$2" in
+                        *[!0123456789]*) printf 'kernel_version_state=invalid\n' ;;
+                        *)
+                            if [ "${#2}" -le 10 ]; then
+                                printf 'kernel_version_state=numeric\nkernel_version_value=%s\n' "$2"
+                            else
+                                printf 'kernel_version_state=invalid\n'
+                            fi
+                            ;;
+                    esac
+                fi
+            fi
             return 1
         fi
     }

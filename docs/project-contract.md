@@ -67,6 +67,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D15 | Reference Stage 1 incoming-call Center holds | Closed on 7 November on the maintainer’s report that holding Center rejected the ringing call. The planned capture is waived. Timing, mapping and module acceptance remain unverified |
 | D16 | Reference Stage 1 incoming-call Center double presses | Closed on 7 November on the maintainer’s report that double-pressing Center rejected the ringing call. The planned capture is waived. Tap timing, attribution and module acceptance remain unverified |
 | D17 | Reference Stage 1 incoming-call volume holds | Closed on 7 November on the maintainer’s report that holding either inline volume button silenced the ringtone. The planned capture is waived. Timing, event mapping and module acceptance remain unverified |
+| D18 | Reference Stage 1 incoming-call volume double presses | Closed on 7 November on the maintainer’s report that double-pressing an inline volume button silenced the ringtone and showed the slider. The planned capture is waived. Per-tap effects and module acceptance remain unverified |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -125,6 +126,12 @@ The report supplies a qualitative outcome for the two-tap gesture. Tap timing, w
 The maintainer reported that holding either inline volume button during an incoming call silenced the ringtone. They said a test call was unavailable and asked to record the behavior and move on. D17 closes the Stage 1 instrumented follow-up for both volume holds and waives the planned capture repetitions for this item.
 
 The report supplies a qualitative ringtone observation. Trial count, hold timing, raw mapping, volume indices and whether the call stayed incoming remain unmeasured. Incoming volume double presses, T08 and release qualification retain their own evidence requirements.
+
+## Reference incoming-call volume double-press amendment — 7 November 2026
+
+The maintainer reported that double-pressing an inline volume button during an incoming call silenced the ringtone and displayed the volume slider. They said a test call was unavailable and asked to record the behavior and move on. D18 closes the Stage 1 follow-up and waives its planned capture repetitions.
+
+The report supplies a qualitative outcome for the gesture. Button direction, trial count, tap timing, raw mapping, index changes and whether the call stayed incoming remain unmeasured. Isolated incoming volume taps and the module call and release gates retain their own evidence requirements.
 
 ## Stage 0 acceptance
 

@@ -7,7 +7,7 @@ These files are data, not an installer, enrolled profile, production policy or i
 | `discovery/` | Sanitized physical, unfiltered observations | Preserve exactly what was captured and what the maintainer reported; each record retains source/raw/helper identities and limits |
 | `protocol/` | Hand-authored synthetic examples | Prepare independent host checks while device gates remain open; never count these events as physical observations |
 
-The discovery report explains which physical windows qualify a baseline, which remain mixed or interrupted, and how D09–D17 change the discovery scope. The D11–D17 call gesture reports are recorded separately from the instrumented fixtures. [Discovery report](../../docs/discovery/reference-2026-11-04.md)
+The discovery report explains which physical windows qualify a baseline, which remain mixed or interrupted, and how D09–D18 change the discovery scope. The D11–D18 call gesture reports are recorded separately from the instrumented fixtures. [Discovery report](../../docs/discovery/reference-2026-11-04.md)
 
 ## Synthetic protocol summaries
 

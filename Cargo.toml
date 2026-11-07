@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/earkey-policy"]
+resolver = "3"

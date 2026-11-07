@@ -1,25 +1,47 @@
 # Policy and migration contract
 
-Status: pre-implementation design for Stage 2. No schema or CLI syntax is implemented. ADR-006 selects structured JSON at `/data/adb/earkey_control/policy.json`; `/data/adb/earkey_control/` will be root-owned mode 0700 and durable policy/state files mode 0600. These are engineering choices, not paths supplied by a manager API. Generated runtime state is separate from durable policy, pause and recovery state.
+Stage 2 implements the initial schema and host-side storage and identity checks in [earkey-policy](../crates/earkey-policy). ADR-006 selects `/data/adb/earkey_control/policy.json` for all managers. The installer will provision the root-owned directory at mode 0700. The library checks that directory and requires regular, single-link root-owned policy files at mode 0600.
 
-## Required data model
+## Schema v1
 
-Include an explicit schema version, master-enabled state (false on fresh install), Block all or Custom preset, enrolled profiles, stable identity scope and measured capabilities, mapping-evidence version/environment constraints, enabled profile state, explicit blocked independent groups, requested backend, unknown-accessory ignore behavior, diagnostics limits (off by default), and recovery-latch reason. Report effective backend and active generation as observed runtime state, not a success inferred from saved policy.
+Every field is required. The top level, profiles, diagnostics and recovery are JSON objects. Lists are ordered JSON arrays. The parser rejects unknown and duplicate members, malformed UTF-8, extra JSON values, unsupported versions and positional arrays in place of objects.
 
-The first schema will require all declared policy fields and reject unknown fields rather than silently accepting misspellings. Reject duplicate JSON members, unsupported future versions, conflicting presets, duplicate identities, invalid or wrong-namespace codes, unknown groups, ambiguous matches, malformed text, oversized files and excessive list/string/depth counts. Missing policy means inactive; corrupt stored policy means inactive with a reason. No profile may bypass essential-device denials. Exact bounded limits and formal schema are Stage 2 work and must precede parser use.
+| Field | Allowed values and behavior |
+| --- | --- |
+| `schema_version` | Integer `1` |
+| `generation` | Unsigned 64-bit integer. Zero identifies missing storage or the first write request. Saved generations start at one |
+| `enabled` | Boolean master enable. An enabled policy requires an enabled enrolled profile |
+| `preset` | `block_all` or `custom` |
+| `profiles` | Zero to eight enrolled profiles with distinct serials |
+| `requested_backend` | `evdev_uinput`, the candidate backend |
+| `unknown_accessory` | `ignore` |
+| `diagnostics` | `enabled` boolean, `seconds` and `max_bytes` integers. Disabled requires both limits to be zero. Enabled allows 1–120 seconds and 1–65,536 bytes |
+| `recovery` | `paused` and `boot_disabled` booleans, `latch` either `clear` or `restart_limit` |
 
-Keep Linux codes, HID usages (page and usage), and Android keycodes distinct. Block all expands only to verified controls across the accessory's verified collections. Custom uses supported independent groups; it cannot request an action split absent from measurements. Unsupported requests retain the previous valid policy and explain collateral effects.
+Each profile requires `evidence`, `usb_serial`, `enabled`, and `blocked_groups`. The evidence ID `xiaomi_pixelos20261107` resolves to the measured reference identity, capabilities and mapping constraints in code. There is one verified collection in this evidence set. The serial must match an independently verified enrollment supplied by the trusted caller. Serials are nonblank, up to 128 UTF-8 bytes, and contain no control characters. There is no built-in enrollment or model-wide fallback. Policy bytes contain private serials and are suitable only for private storage or a trusted root caller.
 
-Include the reported in-call mute toggle and incoming-call rejection in the potential effects shown before blocking the reference accessory’s Center control. An independent mute option requires evidence of a separately identifiable signal. The call-hold mapping and microphone behavior still need physical verification. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026), [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
+`blocked_groups` is empty for Block all, which expands to all measured controls in the profile. Custom accepts a unique subset of `center`, `volume_up` and `volume_down`. An empty Custom selection yields no target. The schema accepts at most four nested object or array levels including the top-level object. Input is limited to 16 KiB, including whitespace. Fresh storage has no profiles, generation zero, master enable off and diagnostics off. [Synthetic example](../tests/fixtures/identity/reference-policy.json)
 
-Before blocking either inline volume control on the reference accessory, disclose that the block may remove the reported ability to silence the ringtone. Verify the gesture mapping and call behavior before offering any separate ringtone action option. [D17](project-contract.md#reference-incoming-call-volume-hold-amendment--7-november-2026)
+| Group | Linux key | HID page and usage | Android mapping | Effects presented together |
+| --- | --- | --- | --- | --- |
+| Center | `0x00a4` | `0x000c:0x00cd` | `MEDIA_PLAY_PAUSE` | Playback, track changes, assistant and screen wake, cellular answer/end. Maintainer also reports ongoing-call mute/unmute and incoming-call rejection |
+| Volume Up | `0x0073` | `0x000c:0x00e9` | `VOLUME_UP` | Raise volume or show its panel. Maintainer reports silencing an incoming ringtone |
+| Volume Down | `0x0072` | `0x000c:0x00ea` | `VOLUME_DOWN` | Lower volume or show its panel. Maintainer reports silencing an incoming ringtone |
 
-## Transaction and update behavior
+The API separates captured mappings and observed actions from the maintainer-reported effects. Additional advertised keys remain outside the three groups. Separate call, assistant, track, wake, mute and ringtone controls require separately identifiable measured signals. [Discovery evidence](discovery/reference-2026-11-04.md)
 
-Validate a candidate completely before changing behavior; show capability/collateral effects. Serialize concurrent updates and assign an immutable generation. Use private same-directory temporary storage, validated file types/ownership, no symlink following, atomic replacement and durability operations appropriate to Android. Handle full storage, interruption and rollback without truncating the last good file. A failed save must not report success.
+## Identity and target selection
 
-Report requested, saved and active generations separately. Await worker acknowledgment for the exact generation before reporting application. A save can succeed while activation is pending or fails. Keep the prior good active policy on validation failure; invalid runtime identity or a fault releases interception. Apply decisions only to a new press sequence or a neutral whole-device transition.
+A candidate must match the independently enrolled serial, measured USB descriptors, physical HID parent and driver, evdev ID/name, complete event/key/scan/property sets, selected layout digest and exact mapped reference environment. The inventory provider must take those observations from the actual device and Android mapping. A missing observation, changed layout, extra event type or key, mixed node, keyboard or virtual device cannot qualify. Duplicate matches reject selection. Allocation numbers never establish hardware identity.
 
-Provide distinct pause-now, resume-validated-policy, disable-future-boot, safe-inactive-reset and forget-profile operations. Pause persists through updates. Reset/forget must release affected resources safely and disclose exactly what data is removed; neither may silently reactivate the feature.
+The returned target carries the policy generation and a transient node instance. Post-open validation compares observations from the opened descriptor with a fresh inventory that still resolves the same unique target. A reconnect requires a new selection and post-open validation. The host model consumes snapshots. Android discovery, enrollment, descriptor acquisition, service permission checks and actual interception are later work.
 
-Migrations require a private validated backup, explicit version transition, failure-safe replacement and a documented downgrade path. An older binary that cannot read a future schema must stay inactive without overwriting it; restore a compatible reviewed backup only through explicit recovery. Installation defaults never overwrite valid policy or pause state. Test T01–T05, T15, T21 and T23.
+## Transactions and updates
+
+A save takes the generation the caller edited. Updates lock the private directory, validate existing and requested policies, reject stale writers, preserve recovery fields, and assign the next generation. The store writes an exclusive same-directory temporary file, synchronizes its contents, atomically replaces the old file, then synchronizes the directory. If that last sync fails, the API reports uncertain durability and identifies the replacement generation so the caller can reload and reconcile. Ordinary edits cannot clear pause or recovery latches. Dedicated recovery operations belong to the supervised lifecycle and root interface.
+
+A successful save reports a saved generation only. The worker must independently acknowledge the exact generation before the UI reports active policy. The model refuses new targets when inactive or when recovery inhibits activation. Live application must preserve the current press sequence and honor the separate future-boot and pause controls. Corrupt storage yields an error and requires the consumer to remain inactive. A rejected update leaves the last good policy intact.
+
+## Migration and rollback
+
+V1 is the first durable schema. There is no earlier format to migrate. The store refuses to overwrite an unreadable, corrupt or future-version policy, including with factory defaults. When a successor schema is introduced, the migration must validate v1, durably retain a private compatible backup, and validate the successor before atomic replacement. A downgraded binary stays inactive until an explicit recovery operation restores a reviewed compatible backup. Test the backup, restore and failure behavior when a migration and installer exist. [Validation T23](validation-plan.md#physical-t01t28-matrix)

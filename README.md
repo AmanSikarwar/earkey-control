@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 1 discovery is complete within the maintainer-approved reference scope. Stage 2 host-side policy and identity validation is next.** [Discovery checkpoint](docs/discovery/reference-2026-11-04.md)
+**Stage 2 adds the Rust policy model, private storage and reference identity checks.** See the [policy contract](docs/policy.md) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 
@@ -21,6 +21,6 @@ There is no release ZIP and no installation procedure yet. Do not install a sour
 - [Compatibility](docs/compatibility.md), [validation plan](docs/validation-plan.md), and [troubleshooting](docs/troubleshooting.md)
 - [Build conventions](docs/build.md), [release process](docs/releasing.md), [privacy](docs/privacy.md), and [research record](docs/research.md)
 
-The approved core is Rust, lifecycle scripts use BusyBox ash, and the offline KernelSU WebUI uses TypeScript compiled to JavaScript with HTML and CSS. Cargo, a pinned Rust toolchain, and the Android NDK will build native Android executables. Tool versions will be pinned before the first build.
+The approved core is Rust, lifecycle scripts use BusyBox ash, and the offline KernelSU WebUI uses TypeScript compiled to JavaScript with HTML and CSS. Cargo, a pinned Rust toolchain, and the Android NDK will build native Android executables. The [host build](docs/build.md#stage-2-host-checks) pins Rust and Cargo dependencies. Android build pins are a later gate.
 
 Licensed under [MIT](LICENSE). The public repository is [AmanSikarwar/earkey-control](https://github.com/AmanSikarwar/earkey-control). Release publication is deferred until implementation and the specification's acceptance gates are complete. See [SECURITY.md](SECURITY.md) for private reporting status and the [stage review](docs/stage-0-review.md) for actual repository setup.

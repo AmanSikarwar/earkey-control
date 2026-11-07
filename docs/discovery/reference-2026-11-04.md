@@ -313,7 +313,7 @@ The [gap review](stage-1-gap-review-2026-11-05.md) lists the remaining contexts,
 - Root/kernel/context and limited module-conflict metadata are now measured. Actual module-service execution, uinput creation/readiness/mapping and exclusive interception remain later authorized prototype gates; successful root metadata/access predicates do not prove them.
 - Make the explicit eligible/unsupported native-backend decision before dependent implementation. All module acceptance T01–T28, passthrough, suppression, crash/hang, recovery, installation and manager lifecycle tests remain Not run.
 
-See the [5 November eligibility review](../decisions/0001-initial-design.md#reference-eligibility-review--5-november-2026): the native design remains a candidate and active interception remains ineligible until service/proxy/preservation proof. This review does not close Stage 1 or authorize a prototype.
+The 7 November decision retains the measured native candidate for later supervised passthrough validation and selects inactivity for current runtime behavior. Isolated incoming volume taps and the exact telephony microphone path remain open for Stage 1. [Backend decision](../decisions/0001-initial-design.md#reference-backend-eligibility-decision--7-november-2026)
 
 ## Research provenance
 

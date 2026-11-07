@@ -15,6 +15,8 @@ An untested roadmap row remains Design target; an evaluated combination that fai
 
 The reference Stage 1 Center answer/end repetition item is closed on maintainer verification under [D10](project-contract.md#reference-center-call-validation-amendment--5-november-2026). One instrumented trial remains the captured evidence; this closure adds no module acceptance or support qualification.
 
+The maintainer reports that holding inline volume buttons during ongoing calls changed only the volume while held. This completes the Stage 1 follow-up for that gesture on maintainer verification. Compatibility remains Design target and module call acceptance is pending. [D11](project-contract.md#reference-ongoing-call-volume-hold-amendment--7-november-2026)
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

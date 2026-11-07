@@ -60,6 +60,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Active default-branch ruleset 26527076 requires PRs, blocks deletion/force pushes, has no bypass actors and zero required approving reviews. Merge/squash/rebase allowed; required CI rules will follow real jobs. Signing/attestation remains a later release gate |
 | D09 | Reference reconnect repetition and Center clarification | Confirmed 4 November: no further physical reconnect-cycle runs for the reference setup; one observed cycle remains evidence. The maintainer confirms seven intentional Center presses, matching the seven captured pairs |
 | D10 | Reference Stage 1 Center answer/end repetition closure | Confirmed 5 November: close the five-trial follow-up on maintainer verification of Center call behavior. One instrumented answer/end trial remains evidence; additional instrumented repetitions are waived, not represented as five captured passes. Other call contexts and module/release acceptance remain required |
+| D11 | Reference Stage 1 ongoing-call inline volume holds | Closed on 7 November on the maintainer’s report that volume was the only action observed while holding the inline volume buttons during ongoing calls. The instrumented follow-up is waived for this item. Other call contexts and T08 remain open |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -76,6 +77,12 @@ When asked to prepare Center answer/end trial 2 of 5, the maintainer instructed:
 Evidence remains one instrumented incoming answer and ongoing end, plus the maintainer's verification of Center answering/interrupting a call. The user's instruction closes the repetition item; it supplies no additional event traces, trial-by-trial observations or numeric instrumented count. Preserve the original fixture and counts. The newly prepared trial-2 preflight started no reader or call. Additional recorded repetitions are waived rather than marked as measured passes; no assertion is made about how many unrecorded checks the maintainer performed.
 
 This amendment applies only to the reference Stage 1 short Center answer/end repetition item. It does not establish unobserved call gestures, complete telephony routing, unrelated-input isolation, service permissions, proxy equivalence or recovery. Module T08/passthrough/suppression and final-artifact/release qualification still require their own physical evidence. Stage 1 remains incomplete. The original specification remains byte-for-byte unchanged.
+
+## Reference ongoing-call volume-hold amendment — 7 November 2026
+
+The maintainer reported that holding the inline volume buttons during ongoing calls changed only the volume while held. They asked to mark this item complete because they could not run the proposed test now. D11 closes the Stage 1 instrumented follow-up for ongoing-call inline volume holds on that report and waives the five-observation capture requirement for this item.
+
+The report supplies a qualitative action observation. Trial count, call type, hold duration, raw event mapping and repeats, volume indices, call continuity, two-way audibility and microphone routing remain unmeasured for these holds. The existing instrumented short-press baseline is separate evidence. Incoming-call gestures, ongoing Center holds and double presses, ongoing volume double presses, and module T08 and release qualification retain their acceptance requirements.
 
 ## Stage 0 acceptance
 

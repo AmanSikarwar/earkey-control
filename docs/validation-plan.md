@@ -1,6 +1,6 @@
 # Validation plan
 
-Status: test design; **all module runtime and physical acceptance cases are Not run**. Partial unfiltered Stage 1 baseline observations and retained diagnostic failures are in the [discovery checkpoint](discovery/reference-2026-11-04.md). The maintainer approved its sanitized publication; it is not a module acceptance pass. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
+Stage 2 has policy, identity and persistence host tests. **All module runtime and physical acceptance cases are Not run.** The [discovery checkpoint](discovery/reference-2026-11-04.md) contains unfiltered Stage 1 baseline observations and retained diagnostic failures. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 
@@ -10,7 +10,9 @@ For physical environments record variant, Android/API, full ROM, kernel release/
 
 An allowed event must cause its intended action exactly once without added action. A blocked event must not cause its targeted action in supported contexts. Audio, microphone, routing and unrelated controls need separate observations; silence does not prove preservation. Any wrong target, input loss, broken audio/microphone, unsafe policy or unreliable recovery blocks stable publication.
 
-## Host and packaging checks to implement
+## Host and packaging checks
+
+Stage 2 ran 12 tests on arm64 macOS with Rust 1.99.1. The synthetic cases exercise exact identity and post-open matching, duplicates, essential and virtual device exclusion, strict policy decoding, shared labels, generation conflicts, unsafe file rejection and recovery-state retention. They cover the host portions of T02 and T05 and policy/storage inputs from T21. Parser fuzzing, Android inventory and storage integration, and T23 migration and rollback remain later gates. [Host commands](build.md#stage-2-host-checks)
 
 Independent [synthetic protocol fixtures](../tests/fixtures/README.md) now provide expected summaries for six event-stream examples. They prepare future host tests; checking their internal consistency is not execution of a production parser/filter or a Stage 2/3 exit. The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
 

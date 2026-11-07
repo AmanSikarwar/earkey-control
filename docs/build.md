@@ -1,10 +1,22 @@
 # Build and reproducibility conventions
 
-Status: design only; no manifests, lockfiles, binaries or CI workflow exist. Do not run a fictional build command. Tool inventory is not a compatibility test or an approved pin set.
+Stage 2 has a Rust library and locked host checks. The Android executable, installable package and CI workflow are later gates.
+
+## Stage 2 host checks
+
+The workspace pins Rust 1.99.1 (rustc `58cf8f9c3`, Cargo `5f94df478`) with rustfmt and Clippy. Direct dependencies use exact versions and the [Cargo lockfile](../Cargo.lock) records registry checksums and transitive versions. Host checks used arm64 macOS 27.2 with Darwin 27.2.0. The [dependency inventory](../THIRD_PARTY_NOTICES.md) records package roles and license files.
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+```
+
+Use `--offline` for Clippy and tests after fetching the locked dependencies. These checks exercise the Rust model and the host filesystem. They establish no Android loading, SELinux access or input behavior.
 
 ## Pins and native target
 
-Before the first build select exact Rust toolchain, Cargo dependency versions/checksums and committed lockfile, Android NDK revision/download digest, TypeScript/compiler/bridge dependencies and WebUI lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.
+Before each corresponding build, pin the toolchain and inputs. Android and package builds still need the NDK revision/download digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.
 
 Start with the **measured** reference ABI and API 31 native minimum. Use Cargo and the Android NDK linker for Android targets; a desktop Linux executable is not an Android binary. Inspect ELF machine, interpreter, dynamic dependencies and imported API availability; then test actual loading. Add ABIs only with runtime demand and a test plan. [Rust Android target guidance](https://doc.rust-lang.org/rustc/platform-support/android.html) and [NDK API availability](https://developer.android.com/ndk/guides/using-newer-apis) govern the implementation.
 

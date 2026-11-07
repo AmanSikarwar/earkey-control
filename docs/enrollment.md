@@ -1,6 +1,6 @@
 # Enrollment and Stage 1 discovery
 
-Status: reference Stage 1 discovery is complete under D09–D20. The reference checkpoint records the measured candidate and evidence limits. Stage 2 host validation is next. [Reference checkpoint](discovery/reference-2026-11-04.md)
+Status: reference Stage 1 discovery is complete under D09–D20. The reference checkpoint records the measured candidate and evidence limits. Stage 2 uses this evidence for [host-side validation](policy.md#identity-and-target-selection). [Reference checkpoint](discovery/reference-2026-11-04.md)
 
 1. Record exact variant, Android/API, full PixelOS build, kernel build/release, executable ABIs, root implementation/fork and kernel/userspace/manager versions, SELinux enforcing state and intended module service context. Do not derive them from the phone name.
 2. Inventory candidate input capabilities before insertion, after insertion and after removal. Correlate USB enumeration if present, audio state, sysfs parentage and control collections; Type-C alone does not identify transport. Record any other remapping module.

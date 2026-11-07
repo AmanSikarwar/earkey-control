@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "generation": 0,
+  "enabled": true,
+  "preset": "custom",
+  "profiles": [
+    {
+      "evidence": "xiaomi_pixelos20261107",
+      "usb_serial": "SYNTHETIC-ENROLLMENT",
+      "enabled": true,
+      "blocked_groups": ["center"]
+    }
+  ],
+  "requested_backend": "evdev_uinput",
+  "unknown_accessory": "ignore",
+  "diagnostics": {"enabled": false, "seconds": 0, "max_bytes": 0},
+  "recovery": {"paused": false, "boot_disabled": false, "latch": "clear"}
+}

@@ -1,6 +1,6 @@
 # Contributing
 
-This is a Stage 0 documentation draft under MIT for the approved public repository `AmanSikarwar/earkey-control`. Begin with [AGENTS.md](AGENTS.md), the [contract](docs/project-contract.md), and the [backlog](docs/backlog.md).
+EarKey Control uses MIT in the public repository `AmanSikarwar/earkey-control`. Begin with [AGENTS.md](AGENTS.md), the [contract](docs/project-contract.md), and the [backlog](docs/backlog.md).
 
 ## Repository conventions
 

@@ -9,6 +9,7 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 
 const POLICY: &CStr = c"policy.json";
 const TEMP: &CStr = c"policy.tmp";
+const STAY_INACTIVE: &CStr = c"stay-inactive";
 const DIRECTORY: libc::c_int = libc::O_RDONLY | libc::O_DIRECTORY;
 
 #[derive(Debug)]
@@ -71,6 +72,12 @@ impl Store {
             return Err(StoreError::UnsafeStorage);
         }
         Ok(())
+    }
+
+    /// Checks the boot escape before any device open. An error must inhibit the operation.
+    pub fn has_inactive_marker(&self) -> Result<bool, StoreError> {
+        self.check_directory()?;
+        Ok(self.private_file(STAY_INACTIVE)?.is_some())
     }
 
     /// Missing policy yields generation zero and no targets. Other failures must leave input inactive.

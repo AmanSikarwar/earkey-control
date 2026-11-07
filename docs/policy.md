@@ -12,6 +12,8 @@ Keep Linux codes, HID usages (page and usage), and Android keycodes distinct. Bl
 
 Include the reported in-call mute toggle and incoming-call rejection in the potential effects shown before blocking the reference accessory’s Center control. An independent mute option requires evidence of a separately identifiable signal. The call-hold mapping and microphone behavior still need physical verification. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026), [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
 
+Before blocking either inline volume control on the reference accessory, disclose that the block may remove the reported ability to silence the ringtone. Verify the gesture mapping and call behavior before offering any separate ringtone action option. [D17](project-contract.md#reference-incoming-call-volume-hold-amendment--7-november-2026)
+
 ## Transaction and update behavior
 
 Validate a candidate completely before changing behavior; show capability/collateral effects. Serialize concurrent updates and assign an immutable generation. Use private same-directory temporary storage, validated file types/ownership, no symlink following, atomic replacement and durability operations appropriate to Android. Handle full storage, interruption and rollback without truncating the last good file. A failed save must not report success.

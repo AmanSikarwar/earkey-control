@@ -27,6 +27,8 @@ The maintainer reports that holding Center while an incoming call was ringing re
 
 The maintainer reports that double-pressing Center rejected a ringing call. The Stage 1 follow-up for that gesture is complete on maintainer verification. Per-tap behavior remains unmeasured. [D16](project-contract.md#reference-incoming-call-center-double-press-amendment--7-november-2026)
 
+The maintainer reports that holding either inline volume button during an incoming call silenced the ringtone. The Stage 1 follow-up is complete on maintainer verification. Volume indices and call state remain unmeasured. [D17](project-contract.md#reference-incoming-call-volume-hold-amendment--7-november-2026)
+
 ## Initial matrix
 
 | Entry | Android/API, ROM, kernel | Root implementation / manager | ABI / page size | Accessory / transport | Backend / groups | Level / evidence |

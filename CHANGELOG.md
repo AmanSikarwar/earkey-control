@@ -35,3 +35,4 @@
 - Closed the planned Stage 1 ongoing-call Center double-press follow-up under D14 on the reported call-end action of a Center press. Tap attribution remains unverified. Prepared the incoming-call Center-hold check.
 - Closed the Stage 1 incoming-call Center-hold follow-up under D15 on the maintainer’s report of call rejection. Added the reported effect to the Center disclosure and prepared the incoming Center double-press check.
 - Closed the Stage 1 incoming-call Center double-press follow-up under D16 on the maintainer’s report of call rejection. Prepared the incoming volume-hold check.
+- Closed the Stage 1 incoming-call volume-hold follow-up under D17 on the maintainer’s report that either button silenced the ringtone. Added the reported effect to the volume blocking disclosure and prepared the incoming volume double-press check.

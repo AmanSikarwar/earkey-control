@@ -1,6 +1,6 @@
 # Stage 4 Android preflight
 
-Stage 3 is merged. This increment provides a standalone capability probe for the measured arm64 Android target at API 31. It has no installer, boot hook, input reader, event injection, grab or virtual-device creation path. [Build and inspect the probe](build.md#stage-4-android-capability-probe)
+Stage 3 is merged. The standalone capability probe targets arm64 Android at API 31. A separate temporary diagnostic fixture runs its metadata-only command from the intended launcher. [Build and inspect the probe](build.md#stage-4-android-capability-probe)
 
 ## Probe commands
 
@@ -18,4 +18,25 @@ The inactive guard uses the existing root-owned 0700 storage directory and a reg
 3. Run the open-only `probe-uinput` in the intended service context after explicitly provisioning and validating the private guard. Measure denial or success as observed. Next implement and review a separately scoped evdev descriptor probe that uses verified accessory enrollment and revalidates the opened collection. Stop if the service lacks access. Any policy change needs a narrow justification and separate review.
 4. Before any grab, review the temporary worker and independent supervisor. Prove the no-grab pause and deadline paths first. Measure proxy readiness and mapping before enabling a supervised session. Verify neutral acquisition, single repeat ownership, independent pause, bounded release and the full preservation matrix. [Architecture](architecture.md), [Recovery requirements](recovery.md), [Validation](validation-plan.md)
 
-The initial load check needs no button presses, reconnect cycles, installation or reboot. Device loading, service permissions and preservation tests are pending.
+## Temporary service diagnostic
+
+The diagnostic has its own module ID, `earkey_control_preflight`. Its ZIP contains the exact verified ELF, a digest file, a boot-mode installer check, `service.sh`, `skip_mount`, module metadata and the license. The manager's native ZIP installer handles staging and normal boot activation. The fixture is for the measured ReSukiSU userspace 35257, kernel 35240, UAPI 6 and arm64 Android API 37 reference environment.
+
+The service reserves one attempt per installation in its own private `.preflight` directory, checks the ELF SHA-256 and calls only `self-check`. The hash check and probe each have a five-second kill deadline. The hook writes the artifact digest, probe output and exit code to `.preflight/result` through a private temporary file. An existing attempt, disable or remove marker inhibits execution. A nonzero probe exit is evidence to retain. An absent result after a bounded wait is an incomplete attempt.
+
+Build the ZIP with the verified preflight ELF and Python 3.15.2. The packager checks the ELF digest, writes a fixed archive inventory and refuses to overwrite an existing output.
+
+```sh
+python3 tools/package-service-probe.py \
+  target/stage4/1506082/earkey-probe-arm64-api31 \
+  target/stage4/earkey-control-service-preflight.zip
+```
+
+After explicit authorization for installation and both reboots, apply this sequence:
+
+1. Check the exact reference phone, live ReSukiSU versions, normal completed boot, a usable existing root shell, and absence of the diagnostic ID in both `modules` and `modules_update`. Check for pending manager operations and active metamodule delegation before staging. Stop if another pending install or removal could apply on reboot or if an active metamodule can intercept the installer or removal.
+2. Stage the ZIP at a temporary private phone path and check its full digest. Use the measured fork's `/data/adb/ksud module install <verified-zip>` command. Verify the exact diagnostic ID is staged and remove the temporary upload. The manager performs its normal installation and preinit bookkeeping. [Fork installer and module commands](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/module/mod.rs)
+3. Reboot normally and wait for the existing ADB root route. Read only `/data/adb/modules/earkey_control_preflight/.preflight/result` for this check. A successful test records the reviewed digest, `launcher=resukisu_service`, `probe=self_check_ok`, `service_probe_exit=0`, effective UID, SELinux context, enforcing state and ABI. Compare the actual context with the shell observation. Retain the sanitized record privately.
+4. Mark only `earkey_control_preflight` for removal with `/data/adb/ksud module uninstall earkey_control_preflight` and verify its `remove` marker. The exact fork skips removed modules and prunes them during the next normal boot. Reboot for cleanup and verify the active and staged paths, including the private result, are gone. [Fork boot and pruning sequence](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/init_event.rs)
+
+Use the diagnostic result to establish the service launcher context. Device-node permissions, independent worker supervision and physical passthrough require their own checks.

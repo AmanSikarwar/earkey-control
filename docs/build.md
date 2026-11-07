@@ -70,9 +70,11 @@ test "$(sed -n 's/^Pkg.Revision = //p' "$ANDROID_NDK_HOME/source.properties")" =
 shasum -a 256 "$earkey_prebuilt/bin/clang" "$earkey_prebuilt/bin/ld.lld" "$earkey_prebuilt/bin/llvm-readelf"
 export CARGO_TARGET_DIR="$(mktemp -d)"
 earkey_registry="${CARGO_HOME:-$HOME/.cargo}"
-earkey_flags=$(printf '%s\037%s\037%s\037%s' \
+earkey_sysroot="$(rustc --print sysroot)"
+earkey_flags=$(printf '%s\037%s\037%s\037%s\037%s' \
   '-Clink-arg=-Wl,-z,max-page-size=16384' '-Cstrip=symbols' \
-  "--remap-path-prefix=$(pwd -P)=/earkey-control" "--remap-path-prefix=$earkey_registry=/cargo")
+  "--remap-path-prefix=$(pwd -P)=/earkey-control" "--remap-path-prefix=$earkey_registry=/cargo" \
+  "--remap-path-prefix=$earkey_sysroot=/rust-sysroot")
 CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$earkey_prebuilt/bin/aarch64-linux-android31-clang" \
   CARGO_ENCODED_RUSTFLAGS="$earkey_flags" \
   cargo build --release --locked --target aarch64-linux-android -p earkey-probe
@@ -81,7 +83,7 @@ earkey_probe="$CARGO_TARGET_DIR/aarch64-linux-android/release/earkey-probe"
 shasum -a 256 "$earkey_probe"
 ```
 
-Compare the recorded tool hashes before building. Expect an AArch64 Android PIE with API 31 identification, `/system/bin/linker64`, and load segments aligned to at least `0x4000`. Compare imported symbols against the NDK API 31 libraries. The probe reports the Rust binding's `input_event` size and field offset, checked against the r28c UAPI header for arm64. Static inspection establishes the ELF properties. Actual loading and service access require an authorized device run. [Other build systems](https://developer.android.com/ndk/guides/other_build_systems), [Android page sizes](https://developer.android.com/guide/practices/page-sizes)
+Compare the recorded tool hashes before building. Expect an AArch64 Android PIE with API 31 identification, `/system/bin/linker64`, and load segments aligned to at least `0x4000`. Compare imported symbols against the NDK API 31 libraries and scan the binary for host paths. The sysroot remap also covers source paths emitted when Rust specializes standard-library code. The probe reports the Rust binding's `input_event` size and field offset, checked against the r28c UAPI header for arm64. Static inspection establishes the ELF properties. Actual loading and service access require an authorized device run. [Other build systems](https://developer.android.com/ndk/guides/other_build_systems), [Android page sizes](https://developer.android.com/guide/practices/page-sizes)
 
 ## Pins and native target
 

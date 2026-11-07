@@ -37,3 +37,4 @@
 - Closed the Stage 1 incoming-call Center double-press follow-up under D16 on the maintainer’s report of call rejection. Prepared the incoming volume-hold check.
 - Closed the Stage 1 incoming-call volume-hold follow-up under D17 on the maintainer’s report that either button silenced the ringtone. Added the reported effect to the volume blocking disclosure and prepared the incoming volume double-press check.
 - Closed the Stage 1 incoming-call volume double-press follow-up under D18 on the maintainer’s report of ringtone silencing and slider display. Prepared the unrelated-input baseline check.
+- Recorded the D19 waiver of the reference Stage 1 unrelated-input baseline at the maintainer’s request. The metadata inventory passed and the functional result is Not run. T11 remains a physical module acceptance check.

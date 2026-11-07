@@ -68,6 +68,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D16 | Reference Stage 1 incoming-call Center double presses | Closed on 7 November on the maintainer’s report that double-pressing Center rejected the ringing call. The planned capture is waived. Tap timing, attribution and module acceptance remain unverified |
 | D17 | Reference Stage 1 incoming-call volume holds | Closed on 7 November on the maintainer’s report that holding either inline volume button silenced the ringtone. The planned capture is waived. Timing, event mapping and module acceptance remain unverified |
 | D18 | Reference Stage 1 incoming-call volume double presses | Closed on 7 November on the maintainer’s report that double-pressing an inline volume button silenced the ringtone and showed the slider. The planned capture is waived. Per-tap effects and module acceptance remain unverified |
+| D19 | Reference Stage 1 unrelated-input baseline | Waived on 7 November at the maintainer’s request because a separate device was unavailable. Functional result is Not run. T11 remains required for module acceptance |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -132,6 +133,12 @@ The report supplies a qualitative ringtone observation. Trial count, hold timing
 The maintainer reported that double-pressing an inline volume button during an incoming call silenced the ringtone and displayed the volume slider. They said a test call was unavailable and asked to record the behavior and move on. D18 closes the Stage 1 follow-up and waives its planned capture repetitions.
 
 The report supplies a qualitative outcome for the gesture. Button direction, trial count, tap timing, raw mapping, index changes and whether the call stayed incoming remain unmeasured. Isolated incoming volume taps and the module call and release gates retain their own evidence requirements.
+
+## Reference unrelated-input baseline amendment — 7 November 2026
+
+When asked whether a keyboard or controller was available for the separate-device baseline, the maintainer replied “Unavailable, skip these tests”. D19 waives that functional baseline for reference Stage 1 discovery. Record the result as **Not run**.
+
+The read-only inventory verified the reference earphone candidate and counted 10 input collections. Separate-device identity and actions remain unmeasured. Essential-device exclusions and T11 module isolation remain required, including media keys on an unrelated device when qualifying the module.
 
 ## Stage 0 acceptance
 

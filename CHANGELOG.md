@@ -39,3 +39,4 @@
 - Closed the Stage 1 incoming-call volume double-press follow-up under D18 on the maintainer’s report of ringtone silencing and slider display. Prepared the unrelated-input baseline check.
 - Recorded the D19 waiver of the reference Stage 1 unrelated-input baseline at the maintainer’s request. The metadata inventory passed and the functional result is Not run. T11 remains a physical module acceptance check.
 - Recorded the reference backend eligibility decision and measured three-control candidate. The native design remains the candidate for supervised passthrough and current runtime behavior stays inactive. The sealed call snapshot review leaves isolated incoming volume taps and the telephony microphone source open for Stage 1.
+- Recorded the D20 waiver of the remaining reference Stage 1 call checks and verified the scoped discovery exit. Stage 2 host validation is eligible. Isolated incoming volume taps and the telephony microphone source remain unmeasured.

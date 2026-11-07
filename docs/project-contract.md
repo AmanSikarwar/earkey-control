@@ -1,6 +1,6 @@
 # Project contract
 
-Date: 4 November 2026. Status: **Stage 0 exit verified; read-only Stage 1 discovery is authorized and incomplete. The maintainer explicitly approved publication of the reviewed sanitized checkpoint on 4 November.**
+Date: 4 November 2026. **Stage 0 and scoped Stage 1 exits verified as of 7 November 2026. Stage 2 host-side policy and identity work is eligible.** [Stage 1 exit review](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026)
 
 ## Requirements and authority
 
@@ -54,7 +54,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D02 | GitHub account/organization and selected remote | Confirmed 4 November: AmanSikarwar, public earkey-control; supplied repository and origin verified; published main contains baseline 9c1e00a19f0f74032be75bb85899ca8554e116b3 |
 | D03 | Release/publication policy and who may approve publication | Confirmed 4 November: public source repository, release when everything is implemented; full physical, recovery and release acceptance gates still apply; no release now |
 | D04 | Exact reference environment, accessory, transport, mapping, permissions | Root UID/context, userspace/kernel versions and USB/input/audio separation are measured in the checkpoint; remaining gesture/context/preservation and actual module-service evidence are pending. Reference reconnect repetition is waived by D09 |
-| D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | 7 November decision retains the measured native candidate for later supervised passthrough. Active interception is ineligible pending service, mapping and recovery evidence. Stage 1 call evidence remains open. [Backend decision](decisions/0001-initial-design.md#reference-backend-eligibility-decision--7-november-2026) |
+| D05 | Native backend eligibility, proxy mapping, repeat owner, measured timeouts | 7 November decision retains the measured native candidate for later supervised passthrough. Active interception is ineligible pending service, mapping and recovery evidence. D20 scopes the remaining Stage 1 call checks. [Backend decision](decisions/0001-initial-design.md#reference-backend-eligibility-decision--7-november-2026) |
 | D06 | Private security route | Enabled, verified by GitHub API on 4 November; SECURITY.md and issue chooser use the private reporting form. Earlier denied setup attempts remain historical evidence |
 | D07 | Exact build pins, distributed ABIs, action revisions | Select and record before first corresponding build/workflow; installed tools are inventory only |
 | D08 | Merge policy, account capabilities, available reviewers, signing/attestation identity | Active default-branch ruleset 26527076 requires PRs, blocks deletion/force pushes, has no bypass actors and zero required approving reviews. Merge/squash/rebase allowed; required CI rules will follow real jobs. Signing/attestation remains a later release gate |
@@ -69,6 +69,7 @@ Do not reopen these approvals without a concrete conflict or measured reason and
 | D17 | Reference Stage 1 incoming-call volume holds | Closed on 7 November on the maintainer’s report that holding either inline volume button silenced the ringtone. The planned capture is waived. Timing, event mapping and module acceptance remain unverified |
 | D18 | Reference Stage 1 incoming-call volume double presses | Closed on 7 November on the maintainer’s report that double-pressing an inline volume button silenced the ringtone and showed the slider. The planned capture is waived. Per-tap effects and module acceptance remain unverified |
 | D19 | Reference Stage 1 unrelated-input baseline | Waived on 7 November at the maintainer’s request because a separate device was unavailable. Functional result is Not run. T11 remains required for module acceptance |
+| D20 | Remaining reference Stage 1 call baseline checks | Waived on 7 November at the maintainer’s request because a test call was unavailable. The planned isolated incoming volume-tap capture and connected-call microphone-route follow-up are Not run. T08 remains a physical module gate |
 
 The maintainer resolved D01–D03 in this chat; no further Stage 0 product decision is requested. Other items have later explicit gates. Research ambiguity concerning APatch metamodules is recorded in [research](research.md); it does not justify altering the baseline.
 
@@ -140,6 +141,12 @@ When asked whether a keyboard or controller was available for the separate-devic
 
 The read-only inventory verified the reference earphone candidate and counted 10 input collections. Separate-device identity and actions remain unmeasured. Essential-device exclusions and T11 module isolation remain required, including media keys on an unrelated device when qualifying the module.
 
+## Reference call-baseline amendment — 7 November 2026
+
+Asked about the combined isolated incoming volume-tap check and connected-call microphone-route follow-up, the maintainer replied “unavailable, skip this”. D20 waives that planned check for the reference Stage 1 setup. Both observations are **Not run**. Isolated ringing-volume actions and the exact telephony microphone hardware source remain unmeasured.
+
+The captured short answer/end and ongoing short-volume calls, call-mode and output-patch snapshots, and qualitative two-way audio observations remain the call baseline. The local USB microphone recording supplies separate microphone evidence. T08 and release qualification still require physical call and microphone preservation evidence.
+
 ## Stage 0 acceptance
 
 - [x] Read the entire v1.1 specification and inspect selected workspace, instructions, Git state, and available tools before creating files.
@@ -150,4 +157,4 @@ The read-only inventory verified the reference earphone candidate and counted 10
 - [x] Verify the supplied public repository, published baseline and remote, and prepare an issue-linked documentation PR without rewriting published history. [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2) is merged at 7c577198bf6db0c692e9064c064e8271f296c5e5; [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1) is closed.
 - [x] Verify private reporting is enabled and the active ruleset applies to main with a suitable solo-maintainer PR gate and deletion/force-push protection. No in-repository CI jobs or required status checks are claimed.
 
-This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. Read-only Stage 1 is authorized and in progress; its [checkpoint](discovery/reference-2026-11-04.md) does not close the stage or authorize a prototype. Independent host planning may continue, but hardware-dependent stages may not bypass discovery.
+This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. Stage 1 is complete within D09–D20. Stage 2 is the next eligible step, with host-side policy and conservative identity validation. A physical prototype still requires the Stage 4 prerequisites and explicit authorization.

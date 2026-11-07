@@ -2,11 +2,11 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 0 contract and repository setup verified; Stage 1 discovery awaits phone-access authorization. No module, installer, daemon, UI, or device profile exists. Nothing here is installable.**
+**Stage 1 discovery is complete within the maintainer-approved reference scope. Stage 2 host-side policy and identity validation is next.** [Discovery checkpoint](docs/discovery/reference-2026-11-04.md)
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 
-KernelSU is the first design target, followed by Magisk and APatch. Android 12 / API 31 and later is the design range. **No Android version, root manager, or accessory is verified.** The reference setup is a Redmi Note 10 Pro, PixelOS, KernelSU, and Xiaomi Type-C wired earphones; exact versions, transport, ABI, and mappings remain unmeasured.
+KernelSU is the first design target, followed by Magisk and APatch. Android 12 / API 31 and later is the design range. **No Android version, root manager, or accessory is verified.** The measured reference setup uses a Redmi Note 10 Pro, PixelOS, ReSukiSU, and Xiaomi Type-C wired earphones with a separate USB HID button collection.
 
 ## Installation and recovery
 

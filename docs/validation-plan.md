@@ -1,6 +1,6 @@
 # Validation plan
 
-Status: test design; **all runtime and physical cases are Not run**. The unchanged specification §§4, 7, 16–17, 20 controls acceptance. Documentation checks are reported separately in the [stage review](stage-0-review.md).
+Status: test design; **all module runtime and physical acceptance cases are Not run**. Partial unfiltered Stage 1 baseline observations and retained diagnostic failures are in the [discovery checkpoint](discovery/reference-2026-11-04.md). The maintainer approved its sanitized publication; it is not a module acceptance pass. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 
@@ -12,11 +12,13 @@ An allowed event must cause its intended action exactly once without added actio
 
 ## Host and packaging checks to implement
 
+Independent [synthetic protocol fixtures](../tests/fixtures/README.md) now provide expected summaries for six event-stream examples. They prepare future host tests; checking their internal consistency is not execution of a production parser/filter or a Stage 2/3 exit. The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
+
 | Area | Meaningful cases / gate |
 | --- | --- |
 | Policy/parser | Valid Block all/Custom, missing/unknown/duplicate/future fields, corrupt and oversized text, bounded depth/lists, namespace errors, unsupported splits, duplicate profiles, capability widening; fuzz corpus and regressions |
 | Identity | Measured valid candidate, same names/different parent or capabilities, changing event number, symlink/node reuse, ambiguous duplicates, composite collections, mixed switches/touch/phone keys, keyboard with media keys, own proxy |
-| Event state | Whole press/repeat/release sequences, overlaps and multiple keys per frame, scan ownership, held-key generation change, single repeat owner, interrupted/short reads and writes, malformed values, overload, disconnect, SYN_DROPPED state query/reconciliation and safe fault |
+| Event state | Whole press/repeat/release sequences, variable frame length and scan-free releases, overlaps and multiple keys per frame, scan ownership, preserved uninterpreted SYN_REPORT values including nonzero values, held-key generation change, single repeat owner, interrupted/short reads and writes, malformed key values, overload, disconnect, SYN_DROPPED state query/reconciliation and safe fault |
 | Lifecycle/security | Single worker/descriptor ownership, progress-based hang detection, pause/kill deadline, three-failure latch, boot escape, migration interruption/full storage/concurrent commands, peer credentials, path/owner/type validation, hostile metadata |
 | Manager adapters | Explicit supported/missing/conflicting environment fixtures; actual service behavior remains a device test; preserve pause/update data, verified-process cleanup |
 | UI | TypeScript/static build, defined bridge operations/arguments, text-only metadata, blocked remote content/navigation, offline resources; screen reader, focus, contrast, touch targets and ≥200% text scaling |
@@ -28,7 +30,7 @@ A final required CI status must fail when a mandatory dependency fails or is une
 
 ## Physical T01–T28 matrix
 
-All rows below are **Not run; no phone access or runtime artifact**. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
+All rows below are **Not run for a module; no runtime artifact exists**. Authorized baseline observation does not change those outcomes. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
 
 | ID | Case | Acceptance | Earliest stage |
 | --- | --- | --- | --- |
@@ -63,8 +65,19 @@ All rows below are **Not run; no phone access or runtime artifact**. Stage numbe
 
 ## Required counts and environments
 
-- Discovery: at least five observations of each mapping and three insertion cycles, preserving complete event/action evidence.
-- Release qualification: at least 20 press/release cycles per supported independent group, 20 reconnect cycles, and three boots in **each** tested boot configuration (with and without earphones). Document tested combinations; add stress for a regression or timing concern.
+- Discovery: at least five observations of each mapping. The original three-insertion reference count is waived under the [4 November amendment](project-contract.md#reference-validation-amendment--4-november-2026); retain one observed reconnect and perform no further physical reconnect-cycle repetitions for this reference setup. The confirmed seven Center presses match seven recorded pairs.
+- Reference short Center answer/end repetition: the five-trial follow-up is closed on maintainer verification under [D10](project-contract.md#reference-center-call-validation-amendment--5-november-2026). Keep one instrumented answer/end trial and the separate attestation; four additional instrumented calls are waived. Do not report five captured trials. Other call gestures, module preservation and release qualification remain unproven.
+- The reference Stage 1 ongoing-call inline volume-hold item is complete on maintainer verification that only volume changed while held. The five-observation capture requirement is waived for this item. Record the report separately from the instrumented short-press fixture. T08 and release qualification still require physical evidence. [D11](project-contract.md#reference-ongoing-call-volume-hold-amendment--7-november-2026)
+- The reference Stage 1 ongoing-call inline volume double-press item is complete on maintainer verification that only the slider appeared. Planned capture repetitions are waived for this item. Record the qualitative outcome separately from the instrumented short-press fixture. T08 and release qualification still require physical evidence. [D12](project-contract.md#reference-ongoing-call-volume-double-press-amendment--7-november-2026)
+- The reference Stage 1 ongoing-call Center-hold item is complete on the maintainer’s report of toggling call mute. Planned capture repetitions are waived for this item. T08 still needs physical verification of call behavior and microphone preservation. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026)
+- The planned reference Stage 1 ongoing-call Center double-press follow-up is closed after the maintainer reported that pressing Center ended the call. The report leaves tap count and a distinct double-press outcome unverified. T08 and release qualification still require physical evidence. [D14](project-contract.md#reference-ongoing-call-center-double-press-amendment--7-november-2026)
+- The reference Stage 1 incoming-call Center-hold item is complete on the maintainer’s report of call rejection. Planned capture repetitions are waived for this item. T08 still needs physical verification. [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
+- The reference Stage 1 incoming-call Center double-press item is complete on the maintainer’s report of call rejection. Planned capture repetitions are waived for this item. T08 still needs physical verification. [D16](project-contract.md#reference-incoming-call-center-double-press-amendment--7-november-2026)
+- The reference Stage 1 incoming-call volume-hold item is complete on the maintainer’s report that either inline volume button silenced the ringtone. Planned capture repetitions are waived for this item. T08 still needs physical verification. [D17](project-contract.md#reference-incoming-call-volume-hold-amendment--7-november-2026)
+- The reference Stage 1 incoming-call volume double-press item is complete on the maintainer’s report of ringtone silencing and slider display. Planned capture repetitions are waived for this item. T08 still needs physical verification. [D18](project-contract.md#reference-incoming-call-volume-double-press-amendment--7-november-2026)
+- The reference Stage 1 unrelated-input baseline is waived because a separate device was unavailable and the maintainer asked to skip it. The functional result is Not run. T11 still requires physical evidence for module isolation. [D19](project-contract.md#reference-unrelated-input-baseline-amendment--7-november-2026)
+- The planned reference Stage 1 isolated incoming volume-tap capture and connected-call microphone-route follow-up are waived. Both results are Not run. T08 still requires physical call and microphone preservation evidence. [D20](project-contract.md#reference-call-baseline-amendment--7-november-2026)
+- Release qualification: retain at least 20 press/release cycles per supported independent group and three boots in **each** tested boot configuration (with and without earphones), when separately authorized. The original 20-reconnect reference count is also covered by the maintainer's no-further-cycles instruction; report that repetition coverage as waived, never passed. Other environments retain their original cycle counts unless explicitly amended. Runtime/host reconnect handling and safe identity revalidation remain required.
 - First evidence is the user's exact KernelSU implementation on the reference setup. Upstream KernelSU and each fork need separate rows. Magisk and APatch each require real event, lifecycle and preservation evidence on their own environments.
 - API 31 must be physically tested before claiming the minimum. Test the newest stable release being claimed and state intermediate coverage. Additional digital headsets, USB adapters, and any analog backend each need their own enrollment and preservation evidence.
 - Verify phone controls and an unrelated keyboard/other available input, including media keys; expand Bluetooth isolation separately. Do not change the primary phone's root method/kernel to fill a matrix.

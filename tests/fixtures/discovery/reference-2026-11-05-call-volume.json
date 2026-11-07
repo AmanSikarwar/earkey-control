@@ -1,0 +1,471 @@
+{
+  "format": "earkey.discovery-events.v1",
+  "environment": {
+    "model": "M2101K6P",
+    "device_property": "sweetin",
+    "rom": "PixelOS_sweet-17.0-20261030-2116",
+    "android_reported": "17",
+    "api_reported": 37,
+    "kernel_release": "4.14.357-openela-VantomKernel",
+    "selinux": "Enforcing",
+    "adb_uid": 0
+  },
+  "input_identity_observed": {
+    "bus_hex": "0003",
+    "vendor_hex": "0020",
+    "product_hex": "0b21",
+    "version_hex": "0201",
+    "name": "Generic Xiaomi Type-C Earphones 1",
+    "usb_interface": "1.3",
+    "note": "diagnostic observations only; not an enrollment profile; event number and unique serial omitted"
+  },
+  "event_columns": [
+    "relative_timestamp_us",
+    "linux_event_type_hex",
+    "linux_event_code_hex",
+    "value_hex"
+  ],
+  "evidence_kind": "Physical unfiltered inline-volume observations during one user-confirmed uninterrupted consenting cellular call; not enrollment or module acceptance",
+  "source_commit": "9ecf672a429ce9656e7596007cf35b3ac56c9be1",
+  "observations": {
+    "physical_sequence": "User confirmed five Down and five Up presses; trace has five Down pairs followed by five Up pairs; paired alternation was prompted but not observed",
+    "volume": "User reported volume changed; before/after stored USB voice-call index and streamVolume were both 14, unmuted; no per-press volume index or acoustic gain trace",
+    "call": "User confirmed the same call stayed connected through all ten presses and both sides remained clear",
+    "metadata": "AudioService actual mode MODE_IN_CALL and audio-policy AUDIO_MODE_IN_CALL before/after; keyguard not showing before recording; no continuous state trace or complete telephony microphone-path proof",
+    "limits": "No audio collected; one call baseline, not repeated call qualification or module preservation; interrupted attempts retained privately and excluded from this fixture"
+  },
+  "records": [
+    {
+      "label": "ongoing-call-volume-35",
+      "collection_started_utc": "2026-11-05T03:16:24.144200+00:00",
+      "source_commit": "9ecf672a429ce9656e7596007cf35b3ac56c9be1",
+      "raw_sha256": "e63f193fe4b2efb00ab90742bc4e300e9a58ba278c841de92f5e85114c310d6d",
+      "reader_sha256": "a6964a883b12fe7e861b27b5dbf60be815faef8d1b401fbbbac9594e1c715f13",
+      "gesture": "Five short Down presses, then five short Up presses during an ongoing cellular call",
+      "physical_presses_user_reported": {
+        "volume_down": 5,
+        "volume_up": 5
+      },
+      "user_observed_action": "Volume changed; same call remained connected; both sides remained clear",
+      "call_continuity_user_confirmed": true,
+      "call_quality_both_sides_user_confirmed": true,
+      "call_mode_before": "MODE_IN_CALL",
+      "call_mode_after": "MODE_IN_CALL",
+      "voice_call_before": {
+        "stored_usb_headset_index": 14,
+        "stream_volume": 14,
+        "muted": false
+      },
+      "voice_call_after": {
+        "stored_usb_headset_index": 14,
+        "stream_volume": 14,
+        "muted": false
+      },
+      "stop_reason": "remote_timeout_or_exit",
+      "selection": {
+        "kind": "All complete candidate input frames from the completed volume-only window; diagnostic process metadata omitted; interrupted attempts excluded",
+        "frame_indices_zero_based": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      },
+      "counts_linux_hex": {
+        "0072": {
+          "press": 5,
+          "release": 5,
+          "repeat": 0
+        },
+        "0073": {
+          "press": 5,
+          "release": 5,
+          "repeat": 0
+        }
+      },
+      "scan_values_hex": [
+        "000c00e9",
+        "000c00ea"
+      ],
+      "syn_report_frames": 20,
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          0,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          22683,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          22683,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          22683,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          4191705,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          4191705,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          4191705,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          4214845,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          4214845,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          4214845,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          8319693,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          8319693,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          8319693,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          8343708,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          8343708,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          8343708,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          13607921,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          13607921,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          13607921,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          13631932,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          13631932,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          13631932,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18143713,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          18143713,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          18143713,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          18167902,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          18167902,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          18167902,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          25024648,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          25024648,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          25024648,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          25049647,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          25049647,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          25049647,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29088704,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          29088704,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          29088704,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          29111643,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          29111643,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          29111643,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          33529663,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          33529663,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          33529663,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          33552866,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          33552866,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          33552866,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          38177652,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          38177652,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          38177652,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          38200672,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          38200672,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          38200672,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          43162655,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          43162655,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          43162655,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          43185640,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          43185640,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          43185640,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ]
+    }
+  ]
+}

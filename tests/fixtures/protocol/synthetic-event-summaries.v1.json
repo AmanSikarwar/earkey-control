@@ -1,0 +1,402 @@
+{
+  "format": "earkey.synthetic-event-summaries.v1",
+  "evidence_kind": "Hand-authored synthetic host fixture design; no physical measurements, device identity, policy, enrollment or runtime implementation",
+  "prepared_from_source_commit": "e782887426e24d7f19e31c812904910dcb573318",
+  "research_date": "2026-11-05",
+  "sources": [
+    {
+      "url": "https://docs.kernel.org/input/event-codes.html",
+      "revision_scope": "Rolling kernel protocol documentation; consulted 2026-11-05"
+    },
+    {
+      "url": "https://github.com/torvalds/linux/blob/v4.14/include/uapi/linux/input-event-codes.h",
+      "revision_scope": "Upstream Linux v4.14 ABI constants; not exact reference custom-kernel provenance"
+    }
+  ],
+  "event_columns": [
+    "synthetic_relative_timestamp_us",
+    "linux_event_type_hex",
+    "linux_event_code_hex",
+    "value_hex"
+  ],
+  "initial_pressed_keys_hex": [],
+  "summary_rules": {
+    "report_segments": "Raw events partitioned through each SYN_REPORT, including its original value. A segment containing SYN_DROPPED is not a trusted forwarding frame",
+    "counts": "Raw key-value and scan counts include events ignored for state after an overrun",
+    "state": "The stream begins from the declared neutral state. Overrun makes the final pressed-key set unknown until an external state query",
+    "limits": "No output policy, Android action, gesture timing threshold, deadline or physical support is asserted"
+  },
+  "cases": [
+    {
+      "id": "scan-bearing-cycle",
+      "purpose": "Preserve scan/key/sync order in both press and release segments",
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          1000000,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          3,
+          3
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000000"
+        ],
+        "raw_scan_event_count": 2,
+        "raw_key_value_counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        },
+        "state_known_after": true,
+        "pressed_keys_hex_after": [],
+        "state_query_required": false,
+        "event_indices_ignored_after_drop": []
+      }
+    },
+    {
+      "id": "nonzero-sync-scan-free-release",
+      "purpose": "A release segment may omit MSC_SCAN and end with SYN_REPORT value 1; retain both facts",
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00cd"
+        ],
+        [
+          0,
+          "0001",
+          "00a4",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0001",
+          "00a4",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0000",
+          "0000",
+          "00000001"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          3,
+          2
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000001"
+        ],
+        "raw_scan_event_count": 1,
+        "raw_key_value_counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        },
+        "state_known_after": true,
+        "pressed_keys_hex_after": [],
+        "state_query_required": false,
+        "event_indices_ignored_after_drop": []
+      }
+    },
+    {
+      "id": "key-only-cycle",
+      "purpose": "Scan metadata is absent; do not invent it",
+      "events": [
+        [
+          0,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          2,
+          2
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000000"
+        ],
+        "raw_scan_event_count": 0,
+        "raw_key_value_counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        },
+        "state_known_after": true,
+        "pressed_keys_hex_after": [],
+        "state_query_required": false,
+        "event_indices_ignored_after_drop": []
+      }
+    },
+    {
+      "id": "repeat-is-not-another-press",
+      "purpose": "Value 2 is a repeat of a held key, not another physical press or a new independent group",
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          0,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          500000,
+          "0001",
+          "0073",
+          "00000002"
+        ],
+        [
+          500000,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0000",
+          "0000",
+          "00000001"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          3,
+          2,
+          2
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000000",
+          "00000001"
+        ],
+        "raw_scan_event_count": 1,
+        "raw_key_value_counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 1
+        },
+        "state_known_after": true,
+        "pressed_keys_hex_after": [],
+        "state_query_required": false,
+        "event_indices_ignored_after_drop": []
+      }
+    },
+    {
+      "id": "two-keys-in-one-segment",
+      "purpose": "Multiple keys and their scan metadata share a report boundary; release state is tracked per key",
+      "events": [
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00e9"
+        ],
+        [
+          0,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          0,
+          "0004",
+          "0004",
+          "000c00ea"
+        ],
+        [
+          0,
+          "0001",
+          "0072",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0001",
+          "0072",
+          "00000000"
+        ],
+        [
+          1000000,
+          "0000",
+          "0000",
+          "00000001"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          5,
+          3
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000001"
+        ],
+        "raw_scan_event_count": 2,
+        "raw_key_value_counts": {
+          "press": 2,
+          "release": 2,
+          "repeat": 0
+        },
+        "state_known_after": true,
+        "pressed_keys_hex_after": [],
+        "state_query_required": false,
+        "event_indices_ignored_after_drop": []
+      }
+    },
+    {
+      "id": "dropped-events-invalidate-state",
+      "purpose": "Ignore the suffix through the next report after SYN_DROPPED; a visible release does not replace a state query",
+      "events": [
+        [
+          0,
+          "0001",
+          "0073",
+          "00000001"
+        ],
+        [
+          0,
+          "0000",
+          "0000",
+          "00000000"
+        ],
+        [
+          500000,
+          "0000",
+          "0003",
+          "00000000"
+        ],
+        [
+          600000,
+          "0001",
+          "0073",
+          "00000000"
+        ],
+        [
+          600000,
+          "0000",
+          "0000",
+          "00000000"
+        ]
+      ],
+      "expected": {
+        "report_segment_event_counts": [
+          2,
+          3
+        ],
+        "syn_report_values_hex": [
+          "00000000",
+          "00000000"
+        ],
+        "raw_scan_event_count": 0,
+        "raw_key_value_counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0
+        },
+        "state_known_after": false,
+        "pressed_keys_hex_after": null,
+        "state_query_required": true,
+        "event_indices_ignored_after_drop": [
+          3,
+          4
+        ]
+      }
+    }
+  ]
+}

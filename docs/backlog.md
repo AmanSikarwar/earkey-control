@@ -5,7 +5,7 @@ Local EK IDs identify acceptance scope; they are not GitHub issue numbers. Creat
 | Stage / local ID | Reviewable work and prerequisites | Exit criterion / evidence |
 | --- | --- | --- |
 | 0 / EK-000 Contract | Read specification; inspect workspace/tools; record approved identity/stack; conventions, initial decisions, failure/threat model, compatibility, recovery, backlog and tests; confirm license/owner/release policy | Requirements and safe initial architecture reviewable, D01–D03 resolved, documentation checked; no interception enabled; see stage review |
-| 1 / EK-001 Discovery | Stage 0 plus explicit read-only phone authorization; exact reference environment, transport, candidates, complete event/action mapping, permissions and preservation baseline | ≥5 observations per mapping and ≥3 insertions; measured profile candidate; eligibility decision for native backend or evidence-backed scoped alternative; no blocking prototype |
+| 1 / EK-001 Discovery | Stage 0 plus explicit read-only phone authorization; exact reference environment, transport, candidates, complete event/action mapping, permissions and preservation baseline | Scoped exit verified on 7 November under D09–D20. The three-control profile candidate is measured and the backend decision selects inactivity pending later service and passthrough gates |
 | 2 / EK-002 Policy/identity | Discovery evidence for real profiles; implement strict versioned parser, capabilities, secure persistence/migrations, conservative matcher; synthetic fixtures may be prepared independently | Invalid data cannot widen target, unknowns untouched, shared effects truthful; fixtures cover legitimate, duplicate, mixed, keyboard-media and own-proxy cases; focused model/test PR |
 | 3 / EK-003 Host engine | Validated model; testable source/sink event-state logic, bounded resources and small audited syscall interfaces | Deterministic press/frame/scan/repeat/policy-change/malformed/output/SYN_DROPPED tests, parser fuzzing and applicable sanitizers pass; host evidence only |
 | 4 / EK-004 Passthrough | Stages 1–3, pinned Android build for measured ABI, authorization for temporary prototype, reviewed recovery guide; independent supervisor, pause, pre-open escape and short session deadline already present | On only verified key-only collection, no suppression: each allowed action once, proxy readiness/mapping/repeat ownership correct, audio/mic/routing/phone/unrelated input preserved; cleanup and immediate pause proven |
@@ -20,6 +20,30 @@ Local EK IDs identify acceptance scope; they are not GitHub issue numbers. Creat
 
 ## Independent work and stop conditions
 
-Without hardware, continue research, review, synthetic fixture design, test planning, build convention and release preparation appropriate to the current gate. Do not enroll guessed reference identities, commit to an active backend, call a synthetic test physical, or mark dependent stages complete. The current request ends with Stage 0; it does not authorize Stage 1 access or Stage 4 installation.
+Continue independent research, review, fixture design and test planning appropriate to the current gate when measurements are missing. Do not enroll guessed reference identities, commit to an active backend, call a synthetic test physical, or mark dependent stages complete. The maintainer has authorized read-only wireless ADB access for Stage 1 and publication of the reviewed sanitized [discovery checkpoint](discovery/reference-2026-11-04.md). Stage 1 is complete within D09–D20. Stage 2 host-side policy and identity validation is eligible. Stage 4 requires separate authorization. Raw diagnostics remain private.
 
 Before Stage 4, define finite neutral/readiness/pause/output/supervisor bounds, repeat ownership, real service permissions and a tested independent recovery route. Stage 6/7 integration and hardening do not permit omitting these protections in an earlier prototype. If a platform cannot preserve input within constraints, remain inactive and record Unsupported rather than silently choosing an unsafe fallback.
+
+For this reference setup, perform no further physical reconnect-cycle repetitions under [D09](project-contract.md#reference-validation-amendment--4-november-2026). This is a maintainer-approved coverage reduction, not evidence of additional passed cycles. The confirmed seven intentional Center presses resolve the earlier count question.
+
+The reference Stage 1 short Center answer/end repetition follow-up is closed under [D10](project-contract.md#reference-center-call-validation-amendment--5-november-2026). Do not request four more instrumented repeat calls or expand the one recorded trial into five. Other call contexts and actual module/release evidence remain open.
+
+Ongoing-call inline volume holds are complete for Stage 1 on the maintainer’s report of volume changes while held. The instrumented follow-up is waived for this item. Other call gestures and module acceptance retain their own gates. [D11](project-contract.md#reference-ongoing-call-volume-hold-amendment--7-november-2026)
+
+Ongoing-call inline volume double presses are complete for Stage 1 on the maintainer’s report that only the volume slider appeared. The instrumented follow-up is waived for this item. [D12](project-contract.md#reference-ongoing-call-volume-double-press-amendment--7-november-2026)
+
+Ongoing-call Center holds are complete for Stage 1 on the maintainer’s report of toggling call mute. The instrumented follow-up is waived for this item. [D13](project-contract.md#reference-ongoing-call-center-hold-amendment--7-november-2026)
+
+The planned ongoing-call Center double-press follow-up is closed for Stage 1 after the maintainer reported that pressing Center ended the call. Distinct double-press behavior remains unverified. [D14](project-contract.md#reference-ongoing-call-center-double-press-amendment--7-november-2026)
+
+Incoming-call Center holds are complete for Stage 1 on the maintainer’s report that holding Center rejected the call. The instrumented follow-up is waived for this item. [D15](project-contract.md#reference-incoming-call-center-hold-amendment--7-november-2026)
+
+Incoming-call Center double presses are complete for Stage 1 on the maintainer’s report of call rejection. The instrumented follow-up is waived for this item. [D16](project-contract.md#reference-incoming-call-center-double-press-amendment--7-november-2026)
+
+Incoming-call inline volume holds are complete for Stage 1 on the maintainer’s report that either button silenced the ringtone while held. The instrumented follow-up is waived for this item. [D17](project-contract.md#reference-incoming-call-volume-hold-amendment--7-november-2026)
+
+Incoming-call inline volume double presses are complete for Stage 1 on the maintainer’s report of ringtone silencing and slider display. The instrumented follow-up is waived for this item. [D18](project-contract.md#reference-incoming-call-volume-double-press-amendment--7-november-2026)
+
+The reference Stage 1 unrelated-input baseline is waived at the maintainer’s request because a separate device was unavailable. The functional result is Not run. T11 still requires a physical module isolation check. [D19](project-contract.md#reference-unrelated-input-baseline-amendment--7-november-2026)
+
+The remaining reference Stage 1 call baseline follow-up is waived because the test call was unavailable. The isolated incoming volume tap and connected-call microphone-route observations are Not run. T08 remains a physical module acceptance check. [D20](project-contract.md#reference-call-baseline-amendment--7-november-2026)

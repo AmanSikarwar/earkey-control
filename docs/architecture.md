@@ -1,6 +1,6 @@
 # Initial architecture
 
-Status: proposed safe architecture, not implemented or physically proven. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
+The policy model and host event engine are implemented. Android acquisition, service supervision and physical passthrough still need validation. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
 
 ## Candidate and boundaries
 
@@ -36,6 +36,16 @@ Permission probes must run in the intended module service domain with SELinux en
 8. On pause/fault/removal, clear forwarded pressed state where possible, destroy proxies, close/ungrab the physical node, and acknowledge the resulting inactive state. If orderly pause stalls, independent supervision must bound release.
 
 Linux input is stateful; press/release/repeat and overrun rules come from [kernel event documentation](https://docs.kernel.org/input/event-codes.html). Android virtual-device equivalence is a separate physical gate because layout selection depends on identity ([AOSP layouts](https://source.android.com/docs/core/interaction/input/key-layout-files)).
+
+## Host event engine
+
+[earkey-engine](../crates/earkey-engine) consumes normalized Linux event records from a nonblocking source and writes complete-record prefixes to a nonblocking sink. The caller supplies the session clock and starts only after verifying neutral physical and proxy states. Native adapters will use the Linux UAPI layout for the target ABI and reject partial native records. The host engine does not open or grab devices.
+
+The engine buffers one input batch and one output frame, up to 64 records each. It validates the whole frame before writing its first record. It retains each allowed key record, its preceding scan if present, and the original report record. A fully suppressed frame emits no report. A new generation is selected at the next frame boundary, and each held key retains its press decision through repeat and release. The engine forwards source repeats as received and synthesizes none. Android and the proxy still need a physical repeat-ownership check.
+
+The session exposes an incomplete-frame or output deadline to its caller and fails after eight consecutive interrupted operations. It advances past each accepted output prefix and waits for sink readiness on backpressure. The caller must wake it by the deadline even if the descriptor stays quiet. Tests use a 100 ms stall limit. Stage 4 must select and verify the production deadline together with independent supervision.
+
+On `SYN_DROPPED`, the engine discards the partial frame and consumes through the next report within the frame and deadline bounds. It queries current key state, then returns a terminal fault. A snapshot alone cannot reconstruct lost press decisions or scan association. The engine reports which keys may be down on the proxy for cleanup. The worker must destroy the proxy and release the physical node, then start any retry from a fresh verified neutral session. [Linux input protocol](https://docs.kernel.org/input/event-codes.html)
 
 ## Failure and state reporting
 

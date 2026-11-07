@@ -1,0 +1,29 @@
+[package]
+name = "earkey-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+earkey-engine = { path = "../crates/earkey-engine" }
+earkey-policy = { path = "../crates/earkey-policy" }
+libfuzzer-sys = "=0.4.13"
+
+[[bin]]
+name = "policy"
+path = "fuzz_targets/policy.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "events"
+path = "fuzz_targets/events.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 2 adds the Rust policy model, private storage and reference identity checks.** See the [policy contract](docs/policy.md) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
+**Stage 3 adds a host-tested Rust event engine.** Stage 2 policy and identity validation is merged. See the [host engine](docs/architecture.md#host-event-engine) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

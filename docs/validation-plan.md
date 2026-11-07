@@ -30,6 +30,10 @@ Stage 3 replays the six [synthetic protocol fixtures](../tests/fixtures/README.m
 
 A final required CI status must fail when a mandatory dependency fails or is unexpectedly skipped. Hardware evidence remains separate; no mock or CI label substitutes for the real suite.
 
+## Stage 4 preflight boundary
+
+The standalone probe adds host checks for its command surface, safe SELinux reporting and private inactive marker. An arm64 API 31 cross-build can establish the input-event ABI, ELF interpreter, linked symbols and segment alignment. Device loading, intended-service access, proxy behavior, pause and input preservation remain physical checks. Record the exact reviewed commit, ELF digest, launcher and observed probe result for each authorized invocation. [Preflight plan](prototype-preflight.md)
+
 ## Physical T01–T28 matrix
 
 All rows below are **Not run for a module; no runtime artifact exists**. Authorized baseline observation does not change those outcomes. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.

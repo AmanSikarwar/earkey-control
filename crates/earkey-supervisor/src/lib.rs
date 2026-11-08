@@ -11,7 +11,9 @@
 //!
 //! The adapter must re-read the recovery gate immediately before executing
 //! `Start`, and the worker must repeat the pre-open pause and `stay-inactive`
-//! marker check before opening any candidate device.
+//! marker check before opening any candidate device. Terminating only the
+//! direct child is insufficient; the adapter must stop the verified worker
+//! process group and confirm exit before treating a stop as complete.
 //!
 //! The deadlines here are configurable inputs, not measured production
 //! values. Stage 4 must select and physically validate them before any grab.

@@ -70,6 +70,56 @@ mkdir -m 0700 "$attempt" 2>/dev/null || exit 0
         esac
         printf '%s_namespace=%s\n' "$ns" "$ns_id"
     done
+    # Inspect only this hook shell; unrelated descriptor targets are never printed.
+    scan=complete; scanned=0
+    driver_yes=0; driver_no=0; driver_unknown=0
+    su_yes=0; su_no=0; su_unknown=0
+    for fd in "/proc/$$/fd/"*; do
+        scanned=$((scanned + 1))
+        if [ "$scanned" -gt 16 ]; then scan=incomplete; break; fi
+        if [ ! -L "$fd" ]; then scan=incomplete; continue; fi
+        target=$(timeout -s KILL 1 /system/bin/readlink "$fd" 2>/dev/null) || { scan=incomplete; continue; }
+        case "$target" in
+            'anon_inode:[ksu_driver]') kind=driver ;;
+            'anon_inode:[ksu_driver_su]') kind=su ;;
+            *) continue ;;
+        esac
+        number=${fd##*/}; flags=; flag_count=0
+        if [ -r "/proc/$$/fdinfo/$number" ]; then
+            while IFS= read -r line; do
+                case "$line" in
+                    flags:*)
+                        set -f
+                        # flags fields require word splitting; pathname expansion is disabled.
+                        # shellcheck disable=SC2086
+                        set -- $line
+                        set +f
+                        flag_count=$((flag_count + 1))
+                        [ "$#" = 2 ] && flags=$2 || flags=
+                        ;;
+                esac
+            done < "/proc/$$/fdinfo/$number"
+        fi
+        close=unknown
+        case "$flags" in
+            ''|*[!01234567]*) ;;
+            *)
+                if [ "$flag_count" = 1 ] && [ "${#flags}" -le 10 ]; then
+                    if [ $((0$flags & 02000000)) -ne 0 ]; then close=yes; else close=no; fi
+                fi
+                ;;
+        esac
+        case "$kind:$close" in
+            driver:yes) driver_yes=$((driver_yes + 1)) ;;
+            driver:no) driver_no=$((driver_no + 1)) ;;
+            driver:unknown) driver_unknown=$((driver_unknown + 1)) ;;
+            su:yes) su_yes=$((su_yes + 1)) ;;
+            su:no) su_no=$((su_no + 1)) ;;
+            su:unknown) su_unknown=$((su_unknown + 1)) ;;
+        esac
+    done
+    printf 'fd_scan=%s\ndriver_cloexec_yes=%s\ndriver_cloexec_no=%s\ndriver_cloexec_unknown=%s\n' "$scan" "$driver_yes" "$driver_no" "$driver_unknown"
+    printf 'driver_su_cloexec_yes=%s\ndriver_su_cloexec_no=%s\ndriver_su_cloexec_unknown=%s\n' "$su_yes" "$su_no" "$su_unknown"
 ) > "$attempt/context.tmp" 2>&1
 mv "$attempt/context.tmp" "$attempt/context"
 (

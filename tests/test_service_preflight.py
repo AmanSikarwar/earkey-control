@@ -29,10 +29,18 @@ class ServicePreflightTests(unittest.TestCase):
         self.context_input.write_text("u:r:test:s0")
         self.uptime_input = self.case / "uptime_input"
         self.uptime_input.write_text("123.45 678.9\n")
+        self.fd_root = self.root / "proc"
+        (self.fd_root / "fd").mkdir(parents=True)
+        (self.fd_root / "fdinfo").mkdir()
+        self.add_fd("3", "anon_inode:[ksu_driver]", "flags:\t02000000\n")
+        self.add_fd("4", "anon_inode:[ksu_driver_su]", "flags:\t00000002\n")
+        self.add_fd("5", "/private/unrelated", "flags:\t00000002\n")
         hook = self.case / "service.sh"
         hook.write_text(hook.read_text().replace("/data/adb/ksud", str(self.manager))
                         .replace('"/proc/$$/attr/current"', shlex.quote(str(self.context_input)))
-                        .replace("/proc/uptime", shlex.quote(str(self.uptime_input))))
+                        .replace("/proc/uptime", shlex.quote(str(self.uptime_input)))
+                        .replace("/proc/$$/fdinfo", str(self.fd_root / "fdinfo"))
+                        .replace("/proc/$$/fd", str(self.fd_root / "fd")))
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.mock("busybox", 'exec "$@"')
@@ -47,10 +55,12 @@ else
 fi''')
         self.mock(
             "timeout",
-            '''[ "$1" = -s ] && [ "$2" = KILL ] && [ "$3" = 5 ] || exit 96
+'''[ "$1" = -s ] && [ "$2" = KILL ] || exit 96
+[ "$3" = 5 ] || [ "$3" = 1 ] || exit 96
 shift 3
 case "$1" in
     /system/bin/readlink)
+        case "$2" in */fd/*) exec readlink "$2" ;; esac
         case "${2##*/}" in
             mnt) printf '%s\\n' "${TEST_MNT_NS:-mnt:[123]}" ;;
             uts) printf '%s\\n' "${TEST_UTS_NS:-uts:[456]}" ;;
@@ -86,6 +96,11 @@ exec "$@"''',
         path.write_text(f"#!/bin/sh\n{body}\n")
         path.chmod(0o700)
 
+    def add_fd(self, number, target, info):
+        (self.fd_root / "fd" / number).symlink_to(target)
+        if info is not None:
+            (self.fd_root / "fdinfo" / number).write_text(info)
+
     def run_hook(self, *, stage="service", **changes):
         env = self.env | {key: value for key, value in changes.items() if value is not None}
         for key, value in changes.items():
@@ -108,7 +123,9 @@ exec "$@"''',
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
         context = (self.case / ".preflight/context").read_text()
         self.assertEqual(context, "hook_uptime_seconds=123.45\nselinux_context=u:r:test:s0\n"
-                         "mnt_namespace=123\nuts_namespace=456\n")
+                         "mnt_namespace=123\nuts_namespace=456\nfd_scan=complete\n"
+                         "driver_cloexec_yes=1\ndriver_cloexec_no=0\ndriver_cloexec_unknown=0\n"
+                         "driver_su_cloexec_yes=0\ndriver_su_cloexec_no=1\ndriver_su_cloexec_unknown=0\n")
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/context").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".manager_calls").exists())
         self.assertEqual(self.run_hook().returncode, 0)
@@ -220,6 +237,24 @@ exec "$@"''',
         self.assertTrue(context.startswith("hook_uptime_seconds=unavailable\nselinux_context=invalid\n"))
         self.assertNotIn("bad label", context)
         self.assertNotIn("forged", context)
+
+    def test_descriptor_scan_limits_and_unknown_flags(self):
+        self.add_fd("6", "anon_inode:[ksu_driver]", "flags:\tbad\n")
+        self.add_fd("7", "anon_inode:[ksu_driver_su]", None)
+        for number in range(8, 21):
+            self.add_fd(str(number), "/private/unrelated", "flags:\t2\n")
+        self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+        context = (self.case / ".boot-preflight/context").read_text()
+        self.assertIn("fd_scan=incomplete\n", context)
+        self.assertNotIn("/private/unrelated", context)
+
+    def test_descriptor_scan_unknown_flags(self):
+        self.add_fd("6", "anon_inode:[ksu_driver]", "flags:\tbad\n")
+        self.add_fd("7", "anon_inode:[ksu_driver_su]", None)
+        self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+        context = (self.case / ".boot-preflight/context").read_text()
+        self.assertIn("driver_cloexec_unknown=1\n", context)
+        self.assertIn("driver_su_cloexec_unknown=1\n", context)
 
     def test_boot_completed_honors_disable_and_existing_attempt(self):
         for marker in ("disable", "remove", ".boot-preflight"):

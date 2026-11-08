@@ -25,10 +25,19 @@ class ServicePreflightTests(unittest.TestCase):
         self.manager = self.case / "manager"
         self.manager.write_text('#!/bin/sh\n[ "$*" = "debug version" ] || exit 98\nprintf "ran\\n" >> .manager_calls\nprintf "%s\\n" "${TEST_MANAGER_OUTPUT:-Kernel Version: 35240}"\n')
         self.manager.chmod(0o755)
+        self.context_input = self.case / "context_input"
+        self.context_input.write_text("u:r:test:s0")
+        self.uptime_input = self.case / "uptime_input"
+        self.uptime_input.write_text("123.45 678.9\n")
         hook = self.case / "service.sh"
-        hook.write_text(hook.read_text().replace("/data/adb/ksud", str(self.manager)))
+        hook.write_text(hook.read_text().replace("/data/adb/ksud", str(self.manager))
+                        .replace('"/proc/$$/attr/current"', shlex.quote(str(self.context_input)))
+                        .replace("/proc/uptime", shlex.quote(str(self.uptime_input))))
         self.bin = self.root / "bin"
         self.bin.mkdir()
+        self.mock("busybox", 'exec "$@"')
+        boot_hook = self.case / "boot-completed.sh"
+        boot_hook.write_text(boot_hook.read_text().replace("/data/adb/ksu/bin/busybox", str(self.bin / "busybox")))
         self.mock("id", '[ "$1" = -u ] && printf "%s\\n" "${TEST_UID:-0}"')
         real_stat = shlex.quote(shutil.which("stat"))
         self.mock("stat", f'''if [ "${{3:-}}" = "$TEST_MANAGER_PATH" ]; then
@@ -41,6 +50,13 @@ fi''')
             '''[ "$1" = -s ] && [ "$2" = KILL ] && [ "$3" = 5 ] || exit 96
 shift 3
 case "$1" in
+    /system/bin/readlink)
+        case "${2##*/}" in
+            mnt) printf '%s\\n' "${TEST_MNT_NS:-mnt:[123]}" ;;
+            uts) printf '%s\\n' "${TEST_UTS_NS:-uts:[456]}" ;;
+            *) exit 96 ;;
+        esac
+        exit 0 ;;
     /system/bin/sha256sum)
         shift
         if [ "$1" = "$TEST_MANAGER_PATH" ]; then
@@ -70,13 +86,13 @@ exec "$@"''',
         path.write_text(f"#!/bin/sh\n{body}\n")
         path.chmod(0o700)
 
-    def run_hook(self, **changes):
+    def run_hook(self, *, stage="service", **changes):
         env = self.env | {key: value for key, value in changes.items() if value is not None}
         for key, value in changes.items():
             if value is None:
                 env.pop(key, None)
         return subprocess.run(
-            ["dash", str(self.case / "service.sh")],
+            ["dash", str(self.case / ("boot-completed.sh" if stage == "boot_completed" else "service.sh"))],
             env=env, capture_output=True, text=True, timeout=8,
         )
 
@@ -90,6 +106,10 @@ exec "$@"''',
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
+        context = (self.case / ".preflight/context").read_text()
+        self.assertEqual(context, "hook_uptime_seconds=123.45\nselinux_context=u:r:test:s0\n"
+                         "mnt_namespace=123\nuts_namespace=456\n")
+        self.assertEqual(stat.S_IMODE((self.case / ".preflight/context").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".manager_calls").exists())
         self.assertEqual(self.run_hook().returncode, 0)
         self.assertEqual((self.case / ".calls").read_text(), "ran\n")
@@ -168,6 +188,48 @@ exec "$@"''',
         self.assertFalse((self.case / ".manager_calls").exists())
         self.assertFalse((self.case / ".calls").exists())
 
+    def test_boot_completed_compares_without_running_probe(self):
+        self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704", TEST_MANAGER_OUTPUT="Kernel Version: 32704").returncode, 0)
+        self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+        result = (self.case / ".boot-preflight/result").read_text()
+        self.assertEqual(result, "hook=entered\nkernel_version_state=numeric\n"
+                         "kernel_version_value=35240\nfresh_query=numeric\n"
+                         "fresh_query_value=35240\nguard_exit=0\n")
+        self.assertFalse((self.case / ".calls").exists())
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\nran\n")
+        self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\nran\n")
+        self.assertEqual(stat.S_IMODE((self.case / ".boot-preflight/context").stat().st_mode), 0o600)
+
+    def test_boot_completed_failure_and_untrusted_namespace(self):
+        self.assertEqual(self.run_hook(stage="boot_completed", KSU_KERNEL_VER_CODE="32704",
+                                      TEST_MNT_NS="mnt:[42]\nforged=1").returncode, 0)
+        result = (self.case / ".boot-preflight/result").read_text()
+        self.assertIn("guard_failure=kernel_version\n", result)
+        self.assertTrue(result.endswith("guard_exit=1\n"))
+        context = (self.case / ".boot-preflight/context").read_text()
+        self.assertIn("mnt_namespace=unavailable\n", context)
+        self.assertNotIn("forged", context)
+        self.assertFalse((self.case / ".calls").exists())
+
+    def test_context_rejects_untrusted_label(self):
+        self.context_input.write_text("u:r:bad label:s0")
+        self.uptime_input.write_text("12.3;forged 42\n")
+        self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+        context = (self.case / ".boot-preflight/context").read_text()
+        self.assertTrue(context.startswith("hook_uptime_seconds=unavailable\nselinux_context=invalid\n"))
+        self.assertNotIn("bad label", context)
+        self.assertNotIn("forged", context)
+
+    def test_boot_completed_honors_disable_and_existing_attempt(self):
+        for marker in ("disable", "remove", ".boot-preflight"):
+            with self.subTest(marker=marker):
+                path = self.case / marker
+                path.symlink_to("missing")
+                self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
+                self.assertFalse((self.case / ".manager_calls").exists())
+                path.unlink()
+
     def test_disable_remove_and_existing_attempt_prevent_execution(self):
         for marker in ("disable", "remove", ".preflight"):
             with self.subTest(marker=marker):
@@ -206,7 +268,7 @@ exec "$@"''',
         with zipfile.ZipFile(archives[0]) as archive:
             self.assertIsNone(archive.testzip())
             self.assertEqual(archive.namelist(), [
-                "LICENSE", "customize.sh", "earkey-probe", "module.prop",
+                "LICENSE", "boot-completed.sh", "customize.sh", "earkey-probe", "module.prop",
                 "probe.sha256", "service.sh", "skip_mount",
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-probe")).hexdigest(),

@@ -27,6 +27,7 @@ def main():
 
     files = {
         "LICENSE": ((ROOT / "LICENSE").read_bytes(), 0o644),
+        "boot-completed.sh": ((FIXTURE / "boot-completed.sh").read_bytes(), 0o755),
         "customize.sh": ((FIXTURE / "customize.sh").read_bytes(), 0o644),
         "earkey-probe": (probe, 0o500),
         "module.prop": ((FIXTURE / "module.prop").read_bytes(), 0o644),

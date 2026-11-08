@@ -4,7 +4,7 @@
 
 - Prepared the Stage 0 project contract, safety architecture, repository conventions, recovery outline, and validation plan against specification v1.1.
 - Recorded maintainer decisions: MIT license, public repository under AmanSikarwar, and releases only after implementation and acceptance gates are complete.
-- Runtime implementation and all physical compatibility tests remain unstarted.
+- At Stage 0, runtime implementation and all physical compatibility tests were unstarted.
 - Verified the supplied public repository and published baseline; prepared an issue-linked setup review, documented denied administration operations, and routed security inquiries to the reporting policy while private reporting is disabled.
 - Verified PR #2 merged and issue #1 closed, private reporting enabled, and an active default-branch ruleset requiring PRs and preventing deletion/force pushes without self-approval or bypasses. Stage 0 exit is verified; Stage 1 phone access remains unauthorized.
 - After PR #3 merged, began explicitly authorized read-only Stage 1 discovery. Prepared an environment/candidate report and sanitized physical event fixture, retaining an empty capture and the Center count discrepancy. The maintainer explicitly approved publication of this sanitized checkpoint; Stage 1 remains incomplete.
@@ -40,3 +40,4 @@
 - Recorded the D19 waiver of the reference Stage 1 unrelated-input baseline at the maintainer’s request. The metadata inventory passed and the functional result is Not run. T11 remains a physical module acceptance check.
 - Recorded the reference backend eligibility decision and measured three-control candidate. The native design remains the candidate for supervised passthrough and current runtime behavior stays inactive. The sealed call snapshot review leaves isolated incoming volume taps and the telephony microphone source open for Stage 1.
 - Recorded the D20 waiver of the remaining reference Stage 1 call checks and verified the scoped discovery exit. Stage 2 host validation is eligible. Isolated incoming volume taps and the telephony microphone source remain unmeasured.
+- Merged the Stage 2 policy/identity model (PR #7) and Stage 3 host event engine (PR #9). Prepared the Stage 4 Android capability probe (PR #11) and temporary ReSukiSU service-context diagnostic (draft PR #12). Host Rust tests, the service-fixture suite, formatting and Clippy pass; no device loading, service-context execution, evdev access, uinput forwarding, passthrough or suppression has run.

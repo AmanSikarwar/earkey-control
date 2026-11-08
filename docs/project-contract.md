@@ -1,6 +1,6 @@
 # Project contract
 
-Date: 4 November 2026. **Stage 0 and scoped Stage 1 exits verified as of 7 November 2026. Stage 2 host-side policy and identity work is eligible.** [Stage 1 exit review](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026)
+Date: 4 November 2026; status updated 8 November 2026. **Stage 0 and scoped Stage 1 exits are verified. Stage 2 policy/identity and Stage 3 host engine are merged. Stage 4 Android preflight is in review; no device loading, passthrough or suppression is authorized or claimed.** [Stage 1 exit review](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026)
 
 ## Requirements and authority
 
@@ -157,4 +157,4 @@ The captured short answer/end and ongoing short-volume calls, call-mode and outp
 - [x] Verify the supplied public repository, published baseline and remote, and prepare an issue-linked documentation PR without rewriting published history. [PR #2](https://github.com/AmanSikarwar/earkey-control/pull/2) is merged at 7c577198bf6db0c692e9064c064e8271f296c5e5; [issue #1](https://github.com/AmanSikarwar/earkey-control/issues/1) is closed.
 - [x] Verify private reporting is enabled and the active ruleset applies to main with a suitable solo-maintainer PR gate and deletion/force-push protection. No in-repository CI jobs or required status checks are claimed.
 
-This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. Stage 1 is complete within D09–D20. Stage 2 is the next eligible step, with host-side policy and conservative identity validation. A physical prototype still requires the Stage 4 prerequisites and explicit authorization.
+This checklist is not a stable-release definition. Specification Sections 17–20 remain the release gates. Stage 1 is complete within D09–D20. Stage 2 and Stage 3 are merged. Stage 4 is limited to the reviewed Android capability probe and temporary service-context diagnostic; device loading, evdev acquisition, uinput forwarding, physical passthrough and suppression remain unrun and require separate authorization.

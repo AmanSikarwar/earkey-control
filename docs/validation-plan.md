@@ -36,7 +36,7 @@ The standalone probe adds host checks for its command surface, safe SELinux repo
 
 ## Physical T01–T28 matrix
 
-All rows below are **Not run for a module; no runtime artifact exists**. Authorized baseline observation does not change those outcomes. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
+All rows below are **Not run for a module; no installable module runtime artifact exists**. The Stage 4 probe is a preflight diagnostic, not a filtering module. Authorized baseline observation does not change those outcomes. Stage numbers identify the earliest relevant evidence; later lifecycle/release qualification repeats affected cases on final bytes.
 
 | ID | Case | Acceptance | Earliest stage |
 | --- | --- | --- | --- |

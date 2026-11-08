@@ -6,7 +6,7 @@
 
 Record the exact root implementation/fork, manager, kernel and ROM, physical power/volume functionality, a verified way to disable only `earkey_control`, and a separate usable privileged debugging/recovery route if available. Verify USB debugging authorization, recovery access and data decryption capabilities only with permission. Do not assume encrypted `/data` is accessible or a bootloader/recovery offers a root shell.
 
-Provide a durable module-specific next-boot inactive marker and check it before opening input nodes. Planned location is `/data/adb/earkey_control/stay-inactive`, with root-only ownership; its exact file-handling semantics and documented control operation must be tested before Stage 4. The temporary prototype also needs a finite session deadline, independent supervisor, and an immediately usable pause path. Stage 6 integrates these protections; it does not defer them until after the prototype.
+Provide a durable module-specific next-boot inactive marker and check it before opening input nodes. Location is `/data/adb/earkey_control/stay-inactive`, with root-only ownership. The host store now validates the marker, creates or removes it with file and directory synchronization, and exposes generation-checked pause, boot-escape and restart-latch operations with synthetic tests. The root control surface, device behavior and the full recovery drill remain unmeasured. The temporary prototype also needs a finite session deadline and independent supervisor. Stage 6 integrates these protections; it does not defer them until after the prototype.
 
 ## Recovery layers and expected behavior
 

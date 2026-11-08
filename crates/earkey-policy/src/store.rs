@@ -1,5 +1,5 @@
 use crate::identity::VerifiedEnrollment;
-use crate::policy::{MAX_POLICY_BYTES, Policy, PolicyError};
+use crate::policy::{MAX_POLICY_BYTES, Policy, PolicyError, Recovery, RecoveryLatch};
 use std::ffi::CStr;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -9,6 +9,7 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 
 const POLICY: &CStr = c"policy.json";
 const TEMP: &CStr = c"policy.tmp";
+const STAY_INACTIVE: &CStr = c"stay-inactive";
 const DIRECTORY: libc::c_int = libc::O_RDONLY | libc::O_DIRECTORY;
 
 #[derive(Debug)]
@@ -16,10 +17,20 @@ pub enum StoreError {
     Io(io::Error),
     UnsafeStorage,
     Policy(PolicyError),
-    StaleGeneration { requested: u64, saved: u64 },
+    StaleGeneration {
+        requested: u64,
+        saved: u64,
+    },
     GenerationExhausted,
     RecoveryChange,
-    DurabilityUncertain { generation: u64, source: io::Error },
+    DurabilityUncertain {
+        generation: u64,
+        source: io::Error,
+    },
+    RecoveryIncomplete {
+        generation: u64,
+        source: Box<StoreError>,
+    },
 }
 
 impl From<io::Error> for StoreError {
@@ -31,6 +42,31 @@ impl From<io::Error> for StoreError {
 impl From<PolicyError> for StoreError {
     fn from(error: PolicyError) -> Self {
         Self::Policy(error)
+    }
+}
+
+/// A dedicated recovery mutation. Ordinary policy saves cannot change recovery state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RecoveryOperation {
+    Pause,
+    Resume,
+    DisableNextBoot,
+    EnableNextBoot,
+    LatchRestartLimit,
+    ClearRestartLimit,
+}
+
+impl RecoveryOperation {
+    fn apply(self, mut recovery: Recovery) -> Recovery {
+        match self {
+            Self::Pause => recovery.paused = true,
+            Self::Resume => recovery.paused = false,
+            Self::DisableNextBoot => recovery.boot_disabled = true,
+            Self::EnableNextBoot => recovery.boot_disabled = false,
+            Self::LatchRestartLimit => recovery.latch = RecoveryLatch::RestartLimit,
+            Self::ClearRestartLimit => recovery.latch = RecoveryLatch::Clear,
+        }
+        recovery
     }
 }
 
@@ -71,6 +107,12 @@ impl Store {
             return Err(StoreError::UnsafeStorage);
         }
         Ok(())
+    }
+
+    /// Checks the boot escape before any device open. An error must inhibit the operation.
+    pub fn has_inactive_marker(&self) -> Result<bool, StoreError> {
+        self.check_directory()?;
+        Ok(self.private_file(STAY_INACTIVE)?.is_some())
     }
 
     /// Missing policy yields generation zero and no targets. Other failures must leave input inactive.
@@ -131,6 +173,64 @@ impl Store {
             return Err(PolicyError::Oversized.into());
         }
 
+        self.write_policy(&canonical, generation)?;
+        Ok(requested)
+    }
+
+    /// Applies a dedicated pause, boot-escape or restart-latch operation.
+    ///
+    /// The request names the generation it edits. Boot disable creates and synchronizes
+    /// the pre-open marker before replacing the policy. Boot enable validates the marker,
+    /// replaces the policy, then removes and synchronizes the marker.
+    pub fn apply_recovery(
+        &self,
+        requested_generation: u64,
+        operation: RecoveryOperation,
+        enrollments: &[VerifiedEnrollment<'_>],
+    ) -> Result<Policy, StoreError> {
+        let lock = open_at(&self.directory, c".", DIRECTORY)?;
+        lock.lock()?;
+        let mut policy = self.load_locked(enrollments)?;
+        let saved = policy.generation();
+        if requested_generation != saved {
+            return Err(StoreError::StaleGeneration {
+                requested: requested_generation,
+                saved,
+            });
+        }
+        let generation = saved
+            .checked_add(1)
+            .ok_or(StoreError::GenerationExhausted)?;
+        policy.set_generation(generation);
+        policy.set_recovery(operation.apply(policy.recovery()));
+        let canonical = policy.to_json();
+        if canonical.len() > MAX_POLICY_BYTES {
+            return Err(PolicyError::Oversized.into());
+        }
+
+        // A boot disable must publish the pre-open escape before the policy relies on it.
+        // A boot enable validates an existing escape before changing the policy.
+        match operation {
+            RecoveryOperation::DisableNextBoot => self.set_inactive_marker(true)?,
+            RecoveryOperation::EnableNextBoot => {
+                self.has_inactive_marker()?;
+            }
+            _ => {}
+        }
+
+        self.write_policy(&canonical, generation)?;
+
+        if operation == RecoveryOperation::EnableNextBoot {
+            self.set_inactive_marker(false)
+                .map_err(|source| StoreError::RecoveryIncomplete {
+                    generation,
+                    source: Box::new(source),
+                })?;
+        }
+        Ok(policy)
+    }
+
+    fn write_policy(&self, canonical: &[u8], generation: u64) -> Result<(), StoreError> {
         if self.private_file(TEMP)?.is_some() {
             unlink_at(&self.directory, TEMP)?;
         }
@@ -141,7 +241,7 @@ impl Store {
         )?;
         let replaced = (|| -> Result<(), StoreError> {
             self.check_private_file(&temp)?;
-            temp.write_all(&canonical)?;
+            temp.write_all(canonical)?;
             temp.sync_all()?;
             // SAFETY: Both names are fixed components under a live directory descriptor.
             let status = unsafe {
@@ -163,8 +263,32 @@ impl Store {
         }
         self.directory
             .sync_all()
-            .map_err(|source| StoreError::DurabilityUncertain { generation, source })?;
-        Ok(requested)
+            .map_err(|source| StoreError::DurabilityUncertain { generation, source })
+    }
+
+    fn set_inactive_marker(&self, disabled: bool) -> Result<(), StoreError> {
+        self.check_directory()?;
+        if disabled {
+            if self.private_file(STAY_INACTIVE)?.is_none() {
+                let marker = open_at(
+                    &self.directory,
+                    STAY_INACTIVE,
+                    libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL,
+                )?;
+                if let Err(error) = self.check_private_file(&marker) {
+                    drop(marker);
+                    let _ = unlink_at(&self.directory, STAY_INACTIVE);
+                    return Err(error);
+                }
+                marker.sync_all()?;
+            }
+        } else if self.private_file(STAY_INACTIVE)?.is_some() {
+            unlink_at(&self.directory, STAY_INACTIVE)?;
+        } else {
+            return Ok(());
+        }
+        self.directory.sync_all()?;
+        Ok(())
     }
 
     fn private_file(&self, name: &CStr) -> Result<Option<File>, StoreError> {

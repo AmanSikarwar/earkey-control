@@ -16,6 +16,8 @@ Stage 2 ran 12 tests on arm64 macOS with Rust 1.99.1. The synthetic cases exerci
 
 Stage 3 replays the six [synthetic protocol fixtures](../tests/fixtures/README.md) and 1,530 captured records across 510 sanitized Stage 1 frames into a host sink. Eleven session tests cover the host portions of T06, T15 and T19. The full 23-test workspace passed on arm64 macOS with Rust 1.99.1 and under AddressSanitizer with the pinned nightly. The policy and event harnesses each completed 100,000 coverage-guided inputs under AddressSanitizer. [Reproduction commands](build.md#stage-3-host-fuzzing-and-sanitizer) The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
 
+Stage 4 host recovery work adds generation-checked pause, resume, next-boot disable/enable and restart-latch operations. Eight new store cases cover stale and exhausted generations, concurrent recovery requests, marker creation/removal, tampered markers, fail-safe partial writes, ordinary-edit rejection and enrollment revalidation. The workspace now has 31 passing tests. These are host portions of T24 and the boot-escape input to T28; physical pause, marker durability across reboot, root control exposure and the recovery drill remain Not run.
+
 | Area | Meaningful cases / gate |
 | --- | --- |
 | Policy/parser | Valid Block all/Custom, missing/unknown/duplicate/future fields, corrupt and oversized text, bounded depth/lists, namespace errors, unsupported splits, duplicate profiles, capability widening; fuzz corpus and regressions |

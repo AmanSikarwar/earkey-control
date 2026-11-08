@@ -227,6 +227,10 @@ impl Policy {
         self.0.generation = generation;
     }
 
+    pub(crate) fn set_recovery(&mut self, recovery: Recovery) {
+        self.0.recovery = recovery;
+    }
+
     /// Serializes private policy data, including enrolled accessory serials.
     pub fn to_json(&self) -> Vec<u8> {
         serde_json::to_vec(&self.0).expect("policy v1 only contains JSON data types")

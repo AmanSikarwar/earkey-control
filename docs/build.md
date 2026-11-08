@@ -1,6 +1,6 @@
 # Build and reproducibility conventions
 
-Stages 2 and 3 have Rust libraries and locked host checks. The Android executable, installable package and CI workflow are later gates.
+Stages 2–4 have Rust libraries and locked host checks: the policy/identity store, the event engine and the supervisor state machine. The Android executable, installable package and CI workflow are later gates.
 
 ## Stage 2 host checks
 
@@ -50,6 +50,16 @@ CARGO_NET_OFFLINE=true cargo +nightly-2026-11-06 fuzz run events "$earkey_corpus
 ```
 
 Check that the fuzz lockfile stays unchanged. Keep generated corpora and crash artifacts outside the tracked tree. The event harness checks output order, report boundaries and allowed press/repeat/release state.
+
+## Stage 4 host supervisor checks
+
+The supervisor crate is a pure state machine; its tests use synthetic monotonic timestamps and signals. They exercise start, progress, pause, kill and restart deadlines, the three-failure latch, explicit recovery and the pause/boot-escape gate. No process is spawned, no descriptor is opened and no deadline is measured.
+
+```sh
+cargo test -p earkey-supervisor --locked
+```
+
+The workspace-wide commands above also run these tests. A passing host suite does not establish process identity, descriptor release, Android service behavior or physical pause/recovery.
 
 ## Pins and native target
 

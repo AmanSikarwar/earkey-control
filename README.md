@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 3 adds a host-tested Rust event engine.** Stage 2 policy and identity validation is merged, and the policy store now has host-tested pause, next-boot escape and restart-latch operations. See the [host engine](docs/architecture.md#host-event-engine) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
+**A host-tested supervisor core now complements the Stage 2–3 libraries.** Stage 2 policy and identity validation is merged. The policy store has host-tested pause, next-boot escape and restart-latch operations, and the Stage 3 event engine is host-tested. The supervisor core defines startup, progress, pause, kill and restart deadlines, the three-failure latch and the pre-open recovery gate, but no process adapter, Android service or device behavior is implemented or measured. See the [host supervisor](docs/architecture.md#host-supervisor-core), [host engine](docs/architecture.md#host-event-engine) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

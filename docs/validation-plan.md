@@ -1,6 +1,6 @@
 # Validation plan
 
-Stages 2 and 3 have policy, identity, persistence and event-engine host tests. **All module runtime and physical acceptance cases are Not run.** The [discovery checkpoint](discovery/reference-2026-11-04.md) contains unfiltered Stage 1 baseline observations and retained diagnostic failures. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
+Host tests cover the Stage 2 policy, identity and persistence stores, the Stage 3 event engine and the Stage 4 supervisor state machine. **All module runtime and physical acceptance cases are Not run.** The [discovery checkpoint](discovery/reference-2026-11-04.md) contains unfiltered Stage 1 baseline observations and retained diagnostic failures. The unchanged specification §§4, 7, 16–17, 20 controls acceptance.
 
 ## Evidence rules
 
@@ -16,7 +16,9 @@ Stage 2 ran 12 tests on arm64 macOS with Rust 1.99.1. The synthetic cases exerci
 
 Stage 3 replays the six [synthetic protocol fixtures](../tests/fixtures/README.md) and 1,530 captured records across 510 sanitized Stage 1 frames into a host sink. Eleven session tests cover the host portions of T06, T15 and T19. The full 23-test workspace passed on arm64 macOS with Rust 1.99.1 and under AddressSanitizer with the pinned nightly. The policy and event harnesses each completed 100,000 coverage-guided inputs under AddressSanitizer. [Reproduction commands](build.md#stage-3-host-fuzzing-and-sanitizer) The [Stage 1 gap review](discovery/stage-1-gap-review-2026-11-05.md) separates missing discovery evidence from later prototype qualification.
 
-Stage 4 host recovery work adds generation-checked pause, resume, next-boot disable/enable and restart-latch operations. Eight new store cases cover stale and exhausted generations, concurrent recovery requests, marker creation/removal, tampered markers, fail-safe partial writes, ordinary-edit rejection and enrollment revalidation. The workspace now has 31 passing tests. These are host portions of T24 and the boot-escape input to T28; physical pause, marker durability across reboot, root control exposure and the recovery drill remain Not run.
+Stage 4 host recovery work adds generation-checked pause, resume, next-boot disable/enable and restart-latch operations. Eight new store cases cover stale and exhausted generations, concurrent recovery requests, marker creation/removal, tampered markers, fail-safe partial writes, ordinary-edit rejection and enrollment revalidation. At that point the workspace had 31 passing tests. These are host portions of T24 and the boot-escape input to T28; physical pause, marker durability across reboot, root control exposure and the recovery drill remain Not run.
+
+Stage 4 host supervision work adds a pure state machine with configurable start, progress, pause, kill and restart deadlines. Nineteen synthetic cases cover zero-deadline rejection, startup timeout, stalled and backward progress, equal and advancing counter samples, orderly pause within and beyond its deadline, unexpected exit, spawn failure, kill failure, unconfirmed termination, restart spacing, three-failure latching, explicit latch recovery, persisted and external latches, pause/boot-escape gating and restart cancellation. The workspace now has 50 passing tests. These are host portions of T16, T24 and the latch/boot-escape inputs to T28. No process adapter, progress transport, descriptor release, measured deadline, Android service behavior or physical drill is established.
 
 | Area | Meaningful cases / gate |
 | --- | --- |

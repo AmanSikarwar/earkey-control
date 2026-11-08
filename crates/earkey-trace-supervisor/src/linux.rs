@@ -217,4 +217,176 @@ mod tests {
         }
         assert!(unrelated.0.try_wait().unwrap().is_none());
     }
+
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    #[test]
+    fn traces_an_owned_child_info_ioctl_using_arm64_registers() {
+        use std::ffi::c_void;
+
+        const PTRACE_TRACEME: libc::c_int = 0;
+        const PTRACE_SYSCALL: libc::c_int = 24;
+        const PTRACE_SETOPTIONS: libc::c_int = 0x4200;
+        const PTRACE_GETREGSET: libc::c_int = 0x4204;
+        const PTRACE_O_TRACESYSGOOD: usize = 1;
+        const PTRACE_O_EXITKILL: usize = 1 << 20;
+        const NT_PRSTATUS: usize = 1;
+        const SYS_IOCTL: u64 = 29;
+        const GET_INFO: u64 = 0x80104b02;
+
+        struct Tracee(libc::pid_t);
+
+        impl Tracee {
+            fn wait(&self, deadline: Instant) -> io::Result<i32> {
+                loop {
+                    let mut status = 0;
+                    let result = unsafe { libc::waitpid(self.0, &mut status, libc::WNOHANG) };
+                    if result == self.0 {
+                        return Ok(status);
+                    }
+                    if result < 0 {
+                        let error = io::Error::last_os_error();
+                        if error.kind() != io::ErrorKind::Interrupted {
+                            return Err(error);
+                        }
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(io::Error::new(io::ErrorKind::TimedOut, "tracee deadline"));
+                    }
+                    thread::sleep(Duration::from_millis(1));
+                }
+            }
+
+            fn reaped(&mut self) {
+                self.0 = -1;
+            }
+        }
+
+        impl Drop for Tracee {
+            fn drop(&mut self) {
+                if self.0 <= 0 {
+                    return;
+                }
+                unsafe { libc::kill(self.0, libc::SIGKILL) };
+                loop {
+                    let mut status = 0;
+                    let result = unsafe { libc::waitpid(self.0, &mut status, 0) };
+                    if result == self.0
+                        || (result < 0
+                            && io::Error::last_os_error().raw_os_error() == Some(libc::ECHILD))
+                    {
+                        break;
+                    }
+                    if result < 0 && io::Error::last_os_error().kind() != io::ErrorKind::Interrupted
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        fn ptrace(
+            request: libc::c_int,
+            pid: libc::pid_t,
+            addr: usize,
+            data: usize,
+        ) -> io::Result<()> {
+            let result =
+                unsafe { libc::ptrace(request, pid, addr as *mut c_void, data as *mut c_void) };
+            if result == -1 {
+                Err(io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        }
+
+        fn arm64_regs(pid: libc::pid_t) -> io::Result<[u64; 34]> {
+            let mut regs = [0_u64; 34];
+            let mut iov = libc::iovec {
+                iov_base: regs.as_mut_ptr().cast(),
+                iov_len: std::mem::size_of_val(&regs),
+            };
+            ptrace(
+                PTRACE_GETREGSET,
+                pid,
+                NT_PRSTATUS,
+                (&mut iov as *mut libc::iovec) as usize,
+            )?;
+            if iov.iov_len != std::mem::size_of_val(&regs) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "short arm64 register set",
+                ));
+            }
+            Ok(regs)
+        }
+
+        let pid = unsafe { libc::fork() };
+        assert!(pid >= 0, "fork: {}", io::Error::last_os_error());
+        if pid == 0 {
+            unsafe {
+                if libc::ptrace(
+                    PTRACE_TRACEME,
+                    0,
+                    std::ptr::null_mut::<c_void>(),
+                    std::ptr::null_mut::<c_void>(),
+                ) == -1
+                {
+                    libc::_exit(120);
+                }
+                libc::raise(libc::SIGSTOP);
+                let result = libc::syscall(libc::SYS_ioctl, -1, GET_INFO as libc::c_ulong, 0);
+                let error = *libc::__errno_location();
+                libc::_exit(i32::from(!(result == -1 && error == libc::EBADF)));
+            }
+        }
+
+        let mut tracee = Tracee(pid);
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let initial = tracee.wait(deadline).unwrap();
+        assert!(libc::WIFSTOPPED(initial));
+        assert_eq!(libc::WSTOPSIG(initial), libc::SIGSTOP);
+        ptrace(
+            PTRACE_SETOPTIONS,
+            pid,
+            0,
+            PTRACE_O_TRACESYSGOOD | PTRACE_O_EXITKILL,
+        )
+        .unwrap();
+
+        let mut syscall_entry = true;
+        let mut pending_info = false;
+        let mut info_failures = 0;
+        loop {
+            ptrace(PTRACE_SYSCALL, pid, 0, 0).unwrap();
+            let status = tracee.wait(deadline).unwrap();
+            if libc::WIFEXITED(status) {
+                tracee.reaped();
+                assert_eq!(libc::WEXITSTATUS(status), 0);
+                break;
+            }
+            assert!(
+                libc::WIFSTOPPED(status),
+                "unexpected tracee status {status:#x}"
+            );
+            assert_eq!(
+                libc::WSTOPSIG(status),
+                libc::SIGTRAP | 0x80,
+                "unexpected signal stop {status:#x}"
+            );
+            let regs = arm64_regs(pid).unwrap();
+            if syscall_entry {
+                if regs[8] == SYS_IOCTL && regs[0] as i32 == -1 && regs[1] == GET_INFO {
+                    assert!(!pending_info, "overlapping query");
+                    pending_info = true;
+                }
+            } else if pending_info {
+                assert_eq!(regs[0] as i64, -(libc::EBADF as i64));
+                pending_info = false;
+                info_failures += 1;
+            }
+            syscall_entry = !syscall_entry;
+        }
+        assert!(!pending_info, "query had no matching syscall exit");
+        assert_eq!(info_failures, 1);
+    }
 }

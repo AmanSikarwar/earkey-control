@@ -32,7 +32,7 @@ A final required CI status must fail when a mandatory dependency fails or is une
 
 ## Stage 4 preflight boundary
 
-The standalone probe adds host checks for its command surface, safe SELinux reporting and private inactive marker. An arm64 API 31 cross-build can establish the input-event ABI, ELF interpreter, linked symbols and segment alignment. Device loading, intended-service access, proxy behavior, pause and input preservation remain physical checks. Record the exact reviewed commit, ELF digest, launcher and observed probe result for each authorized invocation. [Preflight plan](prototype-preflight.md)
+The standalone probe adds host checks for its command surface, safe SELinux reporting and private inactive marker. The supervisor crate now has a synthetic arm64 Linux ptrace smoke test for a child-owned info ioctl, with the exact environment and limits recorded in the [preflight plan](prototype-preflight.md); it is not a production tracer or Android evidence. An arm64 API 31 cross-build can establish the input-event ABI, ELF interpreter, linked symbols and segment alignment. Device loading, intended-service access, proxy behavior, pause and input preservation remain physical checks. Record the exact reviewed commit, ELF digest, launcher and observed probe result for each authorized invocation.
 
 ## Physical T01–T28 matrix
 

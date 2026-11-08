@@ -18,6 +18,23 @@ The inactive guard uses the existing root-owned 0700 storage directory and a reg
 3. Run the open-only `probe-uinput` in the intended service context after explicitly provisioning and validating the private guard. Measure denial or success as observed. Next implement and review a separately scoped evdev descriptor probe that uses verified accessory enrollment and revalidates the opened collection. Stop if the service lacks access. Any policy change needs a narrow justification and separate review.
 4. Before any grab, review the temporary worker and independent supervisor. Prove the no-grab pause and deadline paths first. Measure proxy readiness and mapping before enabling a supervised session. Verify neutral acquisition, single repeat ownership, independent pause, bounded release and the full preservation matrix. [Architecture](architecture.md), [Recovery requirements](recovery.md), [Validation](validation-plan.md)
 
+## Reference shell-context self-check — 8 November 2026
+
+The first authorized bounded check ran on the reference phone from the existing root shell. The reviewed arm64 ELF from review head `ea71cfa` (SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`) was copied to a private temporary directory. The on-device digest matched before execution, and only `self-check` ran. It exited 0 and reported:
+
+```text
+arch=aarch64
+page_size=4096
+input_event_size=24
+input_event_type_offset=16
+effective_uid=0
+selinux_context=u:r:ksu:s0
+selinux_enforcing=1
+probe=self_check_ok
+```
+
+The temporary copy was removed and its absence verified; no probe process was observed. An intermediate host orchestration attempt exited on a shell variable error after the probe returned and left its temporary directory behind; that directory was removed and verified. This record establishes only that the reviewed copy loaded and ran in the root shell context. It does not establish service-context execution, the `probe-uinput` guard, evdev access, grab, proxy behavior, passthrough, audio or microphone preservation, or Stage 4 exit.
+
 ## Temporary service diagnostic
 
 The diagnostic has its own module ID, `earkey_control_preflight`. Its ZIP contains the exact verified ELF, a digest file, a boot-mode installer check, `service.sh`, `skip_mount`, module metadata and the license. The manager's native ZIP installer handles staging and normal boot activation. The fixture guards for ReSukiSU userspace 35257, kernel version 35240, UAPI 6 and arm64 Android API 37. A matching installer or root-shell query does not establish that the service launcher reports the same kernel version.

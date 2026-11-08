@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 4 preflight is in review.** The Stage 3 host engine is merged. The arm64 Android capability probe and temporary service-context diagnostic are not yet merged, and device loading and physical passthrough remain pending. [Stage 4 preflight](docs/prototype-preflight.md), [host engine](docs/architecture.md#host-event-engine)
+**Stage 4 preflight is in review.** The Stage 3 host engine is merged. The arm64 Android capability probe passed a bounded reference shell-context self-check; the temporary service-context diagnostic is not yet merged, and module loading, service-context execution and physical passthrough remain pending. [Stage 4 preflight](docs/prototype-preflight.md), [host engine](docs/architecture.md#host-event-engine)
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

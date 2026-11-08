@@ -1,6 +1,6 @@
 # Project contract
 
-Date: 4 November 2026; status updated 8 November 2026. **Stage 0 and scoped Stage 1 exits are verified. Stage 2 policy/identity and Stage 3 host engine are merged. Stage 4 Android preflight is in review; no device loading, passthrough or suppression is authorized or claimed.** [Stage 1 exit review](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026)
+Date: 4 November 2026; status updated 8 November 2026. **Stage 0 and scoped Stage 1 exits are verified. Stage 2 policy/identity and Stage 3 host engine are merged. Stage 4 Android preflight is in review; the reference shell-context self-check passed, while module loading, service-context execution, evdev acquisition, uinput forwarding, passthrough and suppression remain unrun and require separate authorization.** [Stage 1 exit review](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026)
 
 ## Requirements and authority
 

@@ -1,6 +1,6 @@
 # Stage 4 Android preflight
 
-Stage 3 is merged. The standalone capability probe targets arm64 Android at API 31. A separate temporary diagnostic fixture runs its metadata-only command from the intended launcher. [Build and inspect the probe](build.md#stage-4-android-capability-probe)
+Stage 3 is merged. The standalone capability probe targets arm64 Android at API 31. A separate temporary diagnostic fixture was built to run its metadata-only command from the intended launcher; its first authorized service-hook run stopped at the kernel-version guard before executing the probe (see the [service-context result](#service-context-diagnostic-result--8-november-2026)). [Build and inspect the probe](build.md#stage-4-android-capability-probe)
 
 ## Probe commands
 
@@ -65,6 +65,55 @@ After explicit authorization for installation and both reboots, apply this seque
 4. Mark only `earkey_control_preflight` for removal with `/data/adb/ksud module uninstall earkey_control_preflight` and verify its `remove` marker. The exact fork skips removed modules and prunes them during the next normal boot. Reboot for cleanup and verify the active and staged paths, including the private result, are gone. [Fork boot and pruning sequence](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/init_event.rs)
 
 Use the diagnostic result to establish the service launcher context. Device-node permissions, independent worker supervision and physical passthrough require their own checks.
+
+## Service-context diagnostic result — 8 November 2026
+
+The services hook ran from the temporary module after one normal reboot. Installation used the separately authorized `magic_mount_rs/metainstall.sh` path. Its legacy-partition loop emitted same-file `cp` errors for `/system/{vendor,product,system_ext}` and the corresponding root paths; the staged tree contained no partition payload. The manager staged the module at `/data/adb/modules_update/earkey_control_preflight`, created the normal `update` marker, and activated it on the next boot. The reviewed package was `earkey-control-service-preflight-v6.zip`, 353,784 bytes, SHA-256 `1c74e236dfca9a03bf3c9ca890f865600a9518f0022fb1470f683d4a6f7c8eaa`; the on-device digest matched before installation and the embedded probe matched `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`.
+
+The services hook entered at `hook_uptime_seconds=13.60` and stopped at the kernel-version guard. Its sanitized result was:
+
+```text
+hook=entered
+guard_failure=kernel_version
+kernel_version_state=numeric
+kernel_version_value=32704
+fresh_query=numeric
+fresh_query_value=32704
+service_probe_exit=1
+```
+
+`service_probe_exit=1` is the hook status after the failed guard; `earkey-probe self-check` did not run. A fresh `ksud debug version` invocation from the same hook also returned `32704`, so the failure was not limited to the manager's inherited environment value. The hook context was:
+
+```text
+hook_uptime_seconds=13.60
+selinux_context=u:r:ksu:s0
+mnt_namespace=4026533853
+uts_namespace=4026531838
+fd_scan=complete
+driver_cloexec_yes=0
+driver_cloexec_no=0
+driver_cloexec_unknown=0
+driver_su_cloexec_yes=0
+driver_su_cloexec_no=0
+driver_su_cloexec_unknown=0
+```
+
+The later boot-completed hook entered at `hook_uptime_seconds=27.78` and reported:
+
+```text
+hook=entered
+kernel_version_state=numeric
+kernel_version_value=35240
+fresh_query=numeric
+fresh_query_value=35240
+guard_exit=0
+```
+
+Its context matched the services hook in the recorded SELinux label, mount namespace and UTS namespace, and its descriptor scan was also complete with zero counted KSU driver descriptors. `guard_exit=0` reports guard success; this hook does not invoke the probe. The two hook records are separate processes, and the matching fields do not establish complete context equivalence.
+
+The service-context launcher check is **Not passed**. The services hook did not execute the probe, and the kernel-version values differ by stage: `32704` at 13.60 s and `35240` at 27.78 s. The cause is unresolved. Do not weaken the guard or substitute the later boot-completed pass for the services hook. A follow-up must establish why the services-stage query returns a different value and whether the intended service context can satisfy the guard before the probe runs. The hook context records `selinux_context` but not enforcing state; the separate shell-context observation reported Enforcing, but that is not a service-hook record. The complete zero-count descriptor scan describes only the hook shell, not the manager process. No service-context probe, evdev access, uinput operation, grab, passthrough, suppression, audio, microphone or physical behavior is established.
+
+The bounded raw records are retained privately. The temporary upload was removed after installation. `/data/adb/ksud module uninstall earkey_control_preflight` created the `remove` marker; after the authorized cleanup reboot, the active and staged module paths, both private record directories, the temporary upload and all pending markers were absent. The module set returned to the original six and the `magic_mount_rs` metamodule symlink was unchanged. No phone serial or temporary ADB detail is recorded here.
 
 ## Descriptor comparison design
 

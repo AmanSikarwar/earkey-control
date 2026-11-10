@@ -34,6 +34,8 @@ The forwarding session has 3 end-to-end tests between two real uinput devices in
 
 The supervised session has 4 Linux tests with real shell workers. A worker that starts and keeps reporting progress passes with exactly `[Start, Stop(Paused)]` and an orderly stop under 300 ms. A worker that never starts is a `StartTimeout` fault, not a pass. An unreadable gate starts nothing. The worker child stops at a closed gate, a gate error or a failed acquisition before sending any frame. The workspace passed 114 tests in the pinned container. On the reference phone, the v15 boot-completed session passed with `[Start, Stop(Paused)]`, 0 failures and an orderly stop in 366 ms, and the maintainer reported short Center and volume presses acting once each ([result](prototype-preflight.md#supervised-passthrough-session-result-v15--10-november-2026)). That is partial evidence toward T04, T06 and T10, not their acceptance.
 
+Suppression selection has host tests. The parser accepts only `passthrough`, `block-all` and distinct `center`/`volume-up`/`volume-down` lists. `block-all` resolves to all three measured groups. Blocking Center discloses play/pause, track change, assistant and wake, and call answer/end/reject/mute effects. A real-uinput test shows a blocked Center press read but not forwarded, while an unblocked Volume Up passes exactly. The workspace passed 118 tests in the pinned container on 11 November 2026.
+
 | Area | Meaningful cases / gate |
 | --- | --- |
 | Policy/parser | Valid Block all/Custom, missing/unknown/duplicate/future fields, corrupt and oversized text, bounded depth/lists, namespace errors, unsupported splits, duplicate profiles, capability widening; fuzz corpus and regressions |

@@ -550,6 +550,28 @@ This is the first counted evidence of passthrough on the phone. Every key record
 
 The session was ended by the cleanup reboot rather than its deadline, so no final supervisor report was written; partial records were read from `result.tmp`. Cleanup removed the marker, uninstalled the diagnostic, and rebooted. It then removed the supervisor's leftover `supervisor.lock`, which the reboot had prevented the supervisor from removing, and the empty guard directory. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy or worker. Raw records remain private.
 
+## Stage 5 suppression session plan — 11 November 2026
+
+Stage 5 checks Block all, then each separable group alone. The engine already implements per-press suppression, and the worker now takes a selection. To test several selections without a module install and reboot for each, these sessions run `earkey-worker supervise <seconds> <selection>` from the existing root ADB shell. That shell is the same `u:r:ksu:s0` domain the hooks recorded, with the same supervisor, worker, gate, lock, proxy and counting code. The services-hook launcher context was already established by v9–v17. The binary is the pinned ELF built twice from `f660d90`: 781,600 bytes, SHA-256 `ad1c3be5b51f4ff957222077341802c02a29d52e6863953e51102206243c5dba`. It passes the same NDK pins and ELF checks (API 31, 16 KiB-aligned segments, only `libc`/`libdl`, all 90 imports in API 31, no host paths), and is kept at `target/stage5/f660d90/earkey-worker-arm64-api31`.
+
+**Procedure, after authorization and with the earphones connected:**
+1. Repeat the reforge pre-checks.
+2. Create the empty `0:0` `0700` guard directory.
+3. Copy the ELF to a private root-owned temporary directory with mode `0500`, and check its digest on the phone.
+4. For each selection below, run `supervise 60 <selection>` in the foreground. The session pauses itself at 60 s, prints the worker's tally and blocked effects, and removes its lock. Closing ADB kills it through the parent-death chain.
+5. Afterwards, remove the temporary binary and directory, then the empty guard directory, and verify that no worker or proxy remains.
+
+During each 60 s window, with music playing, the maintainer presses each earphone button once (Center, Volume Up, Volume Down) and one phone volume key, then reports what acted. The pass criteria are: blocked keys appear in `worker_read_keys` but not in `worker_forwarded_keys`, unblocked keys appear in both with equal counts, no repeat records, 0 cleanup releases, `supervise=pass`, and the maintainer reports that only the unblocked earphone buttons acted while the phone keys always worked.
+
+| Run | Selection | Expected maintainer observation |
+| --- | --- | --- |
+| S1 | `block-all` | no earphone button acts; phone keys work |
+| S2 | `center` | Center does nothing (no pause or assistant); volume buttons work |
+| S3 | `volume-up` | only earphone Volume Up does nothing |
+| S4 | `volume-down` | only earphone Volume Down does nothing |
+
+Call-context effects of blocking Center (answer, end, reject, mute) are disclosed in the report but not exercised. Combinations and policy changes during a held key are later cases.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

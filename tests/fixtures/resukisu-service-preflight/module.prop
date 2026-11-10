@@ -1,6 +1,6 @@
 id=earkey_control_preflight
 name=EarKey Control Service Preflight
-version=0.0.9-preflight
-versionCode=9
+version=0.0.10-preflight
+versionCode=10
 author=Aman Sikarwar
 description=Temporary one-shot service-context diagnostic for the reference ReSukiSU setup.

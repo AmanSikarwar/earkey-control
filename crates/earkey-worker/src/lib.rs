@@ -6,3 +6,4 @@ pub mod check;
 pub mod device;
 pub mod environment;
 pub mod inventory;
+pub mod layout;

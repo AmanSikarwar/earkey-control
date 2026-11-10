@@ -328,7 +328,7 @@ It prints no serial, device name or key code, reads no event, takes no grab and 
 
 After authorization, follow the v11 procedure with the earphones connected throughout, from before the reboot until the record read, and without pressing a button. Use wireless ADB, because the earphones occupy the USB-C port. Success is `check=pass` with `service_probe_exit=0`.
 
-The digest is computed by the reviewed hook, not the worker. The production worker still needs its own layout resolution and digest, either through a pinned hashing dependency or a reviewed implementation, which is a pending decision. This run does not test the uinput proxy, grabs, passthrough or suppression.
+In v12 the digest is computed by the reviewed hook, not the worker. After v12 the maintainer chose the pinned `sha2` crate, and `earkey-worker check` now takes no argument and hashes `Generic.kl` itself. The v12 fixture still pins the earlier reviewed ELF, which takes the digest argument; the next fixture must use a rebuilt worker. This run does not test the uinput proxy, grabs, passthrough or suppression.
 
 ## Service-context worker check result — 10 November 2026
 

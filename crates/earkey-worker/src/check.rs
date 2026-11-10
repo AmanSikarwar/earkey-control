@@ -1,13 +1,14 @@
 //! Read-only acquisition check for one enrolled accessory.
 //!
-//! It runs environment matching, inventory, enrollment from the live
-//! observation, layout-override detection, targeting, open, revalidation and
+//! It runs layout hashing, environment matching, inventory, layout-override
+//! detection, enrollment from the live observation, targeting, open, revalidation and
 //! the neutral-state query. It never reads events, grabs or writes anything.
 //! The report carries only counts and outcomes, never serials or other names.
 
 use crate::device::Opened;
 use crate::environment::Observed;
 use crate::inventory::{self, Observation};
+use crate::layout;
 use earkey_policy::identity::{Evidence, VerifiedEnrollment};
 use earkey_policy::policy::Policy;
 use std::path::Path;
@@ -17,18 +18,8 @@ pub const EVIDENCE: [Evidence; 2] = [
     Evidence::XiaomiPixelos20261107,
     Evidence::XiaomiPixelosReforge20261110,
 ];
-const LAYOUT_DIRS: [&str; 4] = [
-    "odm/usr/keylayout",
-    "vendor/usr/keylayout",
-    "system/usr/keylayout",
-    "data/system/devices/keylayout",
-];
-const IDC_DIRS: [&str; 4] = [
-    "odm/usr/idc",
-    "vendor/usr/idc",
-    "system/usr/idc",
-    "data/system/devices/idc",
-];
+/// Digest given to a node whose layout is overridden; it matches no evidence.
+const OVERRIDDEN: &str = "override";
 
 /// Ordered `key=value` lines and the overall result.
 #[derive(Debug, Default)]
@@ -49,16 +40,18 @@ impl Report {
     }
 }
 
-/// Runs the check under `root` (`/` on the phone) with the digest of the layout Android selects.
-pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
-    let mut report = Report::default();
-    if layout_sha256.len() != 64
-        || !layout_sha256
-            .bytes()
-            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
-    {
-        return report.fail("layout", "invalid_digest");
+/// Runs the check under `root` (`/` on the phone), hashing the layout itself.
+pub fn run(root: &Path, environment: &Observed) -> Report {
+    match layout::generic_digest(root) {
+        Ok(digest) => evaluate(root, environment, &digest),
+        Err(error) => Report::default().fail("layout", format!("unavailable:{:?}", error.kind())),
     }
+}
+
+/// Runs every step after layout hashing with the given `Generic.kl` digest.
+pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
+    let mut report = Report::default();
+    report.note("layout_sha256", layout_sha256);
     let env = environment.as_environment();
     let Some(evidence) = EVIDENCE.into_iter().find(|e| e.matches_environment(&env)) else {
         return report.fail("evidence", "none");
@@ -78,10 +71,19 @@ pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
     };
     report.note("inventory_nodes", inventory.len());
 
+    let digests = node_digests(root, &inventory, layout_sha256);
+    let overrides = digests
+        .iter()
+        .filter(|&&digest| digest == OVERRIDDEN)
+        .count();
+    if overrides > 0 {
+        report.note("layout_overrides", overrides);
+    }
     let enrolled: Vec<(&Observation, VerifiedEnrollment<'_>)> = inventory
         .iter()
-        .filter_map(|observed| {
-            VerifiedEnrollment::from_observation(evidence, &env, &observed.candidate(layout_sha256))
+        .zip(&digests)
+        .filter_map(|(observed, digest)| {
+            VerifiedEnrollment::from_observation(evidence, &env, &observed.candidate(digest))
                 .map(|enrollment| (observed, enrollment))
         })
         .collect();
@@ -96,11 +98,6 @@ pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
         );
     };
     report.note("enrollment", "observed");
-
-    if let Some(kind) = layout_override(root, observed) {
-        return report.fail("layout", format!("override_present:{kind}"));
-    }
-    report.note("layout", "generic");
 
     let request = serde_json::json!({
         "schema_version": 1,
@@ -127,7 +124,8 @@ pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
     };
     let candidates: Vec<_> = inventory
         .iter()
-        .map(|o| o.candidate(layout_sha256))
+        .zip(&digests)
+        .map(|(observed, digest)| observed.candidate(digest))
         .collect();
     let targets = match policy.targets(&env, &candidates) {
         Ok(targets) => targets,
@@ -151,7 +149,12 @@ pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
         Ok(fresh) => fresh,
         Err(error) => return report.fail("rescan", format!("error:{:?}", error.kind())),
     };
-    let fresh: Vec<_> = fresh.iter().map(|o| o.candidate(layout_sha256)).collect();
+    let fresh_digests = node_digests(root, &fresh, layout_sha256);
+    let fresh: Vec<_> = fresh
+        .iter()
+        .zip(&fresh_digests)
+        .map(|(observed, digest)| observed.candidate(digest))
+        .collect();
     match policy.revalidate(
         target,
         &opened.candidate(observed, layout_sha256),
@@ -173,38 +176,16 @@ pub fn run(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
     report
 }
 
-/// A device-specific key layout or input configuration would replace `Generic.kl`.
-fn layout_override(root: &Path, observed: &Observation) -> Option<&'static str> {
-    let [_, vendor, product, version] = observed.input_id;
-    let canonical: String = observed
-        .name
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.') {
-                c
+/// The `Generic.kl` digest for each node, or a non-matching marker where a device-specific layout applies.
+fn node_digests<'a>(root: &Path, nodes: &[Observation], generic: &'a str) -> Vec<&'a str> {
+    nodes
+        .iter()
+        .map(|node| {
+            if layout::has_override(root, node) {
+                OVERRIDDEN
             } else {
-                '_'
+                generic
             }
         })
-        .collect();
-    let stems = [
-        format!("Vendor_{vendor:04x}_Product_{product:04x}_Version_{version:04x}"),
-        format!("Vendor_{vendor:04x}_Product_{product:04x}"),
-        canonical,
-    ];
-    for (dirs, extension, kind) in [(LAYOUT_DIRS, "kl", "kl"), (IDC_DIRS, "idc", "idc")] {
-        for dir in dirs {
-            for stem in &stems {
-                if root
-                    .join(dir)
-                    .join(format!("{stem}.{extension}"))
-                    .symlink_metadata()
-                    .is_ok()
-                {
-                    return Some(kind);
-                }
-            }
-        }
-    }
-    None
+        .collect()
 }

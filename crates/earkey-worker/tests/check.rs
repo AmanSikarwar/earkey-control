@@ -1,6 +1,6 @@
 #![cfg(any(target_os = "linux", target_os = "android"))]
 
-use earkey_worker::check::run;
+use earkey_worker::check::{evaluate, run};
 use earkey_worker::environment::{Observed, parse};
 use std::ffi::CString;
 use std::fs;
@@ -122,8 +122,7 @@ fn reforge() -> Observed {
     )
 }
 
-fn lines(root: &Root, environment: &Observed, layout: &str) -> (Vec<String>, bool) {
-    let report = run(&root.0, environment, layout);
+fn text(report: earkey_worker::check::Report) -> (Vec<String>, bool) {
     (
         report
             .lines
@@ -134,21 +133,25 @@ fn lines(root: &Root, environment: &Observed, layout: &str) -> (Vec<String>, boo
     )
 }
 
+fn lines(root: &Root, environment: &Observed, layout: &str) -> (Vec<String>, bool) {
+    text(evaluate(&root.0, environment, layout))
+}
+
 #[test]
 fn reference_earphones_reach_the_open_step() {
     let root = Root::new();
     root.earphones("1-1", "event9", 73);
     let (lines, passed) = lines(&root, &reforge(), LAYOUT);
     assert!(!passed);
+    let layout = format!("layout_sha256={LAYOUT}");
     assert_eq!(
-        lines[..6],
+        lines[..5],
         [
+            layout.as_str(),
             "evidence=xiaomi_pixelos_reforge20261110",
             "inventory_nodes=1",
             "enrollment=observed",
-            "layout=generic",
             "targets=1",
-            lines[5].as_str(),
         ]
     );
     assert!(lines[5].starts_with("open=error:"), "{lines:?}");
@@ -157,7 +160,7 @@ fn reference_earphones_reach_the_open_step() {
 }
 
 #[test]
-fn device_specific_layout_or_configuration_stops_the_check() {
+fn device_specific_layout_or_configuration_prevents_enrollment() {
     for file in [
         "vendor/usr/keylayout/Vendor_0020_Product_0b21.kl",
         "odm/usr/keylayout/Vendor_0020_Product_0b21_Version_0201.kl",
@@ -170,16 +173,18 @@ fn device_specific_layout_or_configuration_stops_the_check() {
         let (lines, passed) = lines(&root, &reforge(), LAYOUT);
         assert!(!passed);
         assert!(
-            lines
-                .iter()
-                .any(|line| line.starts_with("layout=override_present")),
+            lines.contains(&"layout_overrides=1".to_owned()),
+            "{file}: {lines:?}"
+        );
+        assert!(
+            lines.contains(&"enrollment=none".to_owned()),
             "{file}: {lines:?}"
         );
     }
 }
 
 #[test]
-fn missing_duplicate_wrong_kernel_or_bad_digest_stops_the_check() {
+fn missing_duplicate_or_wrong_kernel_stops_the_check() {
     let root = Root::new();
     assert!(
         lines(&root, &reforge(), LAYOUT)
@@ -199,18 +204,29 @@ fn missing_duplicate_wrong_kernel_or_bad_digest_stops_the_check() {
         environment("Linux version 4.14.357-other (b@h) (c) #3 SMP PREEMPT Tue Nov 10 2026");
     assert_eq!(
         lines(&root, &other, LAYOUT).0,
-        ["evidence=none", "check=fail"]
+        [
+            format!("layout_sha256={LAYOUT}"),
+            "evidence=none".into(),
+            "check=fail".into()
+        ]
     );
+}
 
-    for bad in ["", "abc", &LAYOUT.to_uppercase(), &format!("{LAYOUT}0")] {
-        assert_eq!(
-            lines(&root, &reforge(), bad).0,
-            ["layout=invalid_digest", "check=fail"]
-        );
-    }
-    assert!(
-        lines(&root, &reforge(), &"0".repeat(64))
-            .0
-            .contains(&"enrollment=none".to_owned())
+#[test]
+fn run_hashes_the_live_layout_and_requires_it() {
+    let root = Root::new();
+    root.earphones("1-1", "event9", 73);
+    assert_eq!(
+        text(run(&root.0, &reforge())).0,
+        ["layout=unavailable:NotFound", "check=fail"]
     );
+    let generic = root.0.join("system/usr/keylayout/Generic.kl");
+    fs::create_dir_all(generic.parent().unwrap()).unwrap();
+    fs::write(&generic, b"abc").unwrap();
+    let (lines, _) = text(run(&root.0, &reforge()));
+    assert_eq!(
+        lines[0],
+        "layout_sha256=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    assert!(lines.contains(&"enrollment=none".to_owned()), "{lines:?}");
 }

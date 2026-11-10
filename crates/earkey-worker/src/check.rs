@@ -60,11 +60,30 @@ pub fn run(root: &Path, environment: &Observed) -> Report {
 
 /// Runs every step after layout hashing with the given `Generic.kl` digest.
 pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Report {
+    acquire_with(root, environment, layout_sha256).0
+}
+
+/// Like [`run`], but keeps the revalidated read-only descriptor when every step passed.
+pub fn acquire(root: &Path, environment: &Observed) -> (Report, Option<Opened>) {
+    match layout::generic_digest(root) {
+        Ok(digest) => acquire_with(root, environment, &digest),
+        Err(error) => (
+            Report::default().fail("layout", format!("unavailable:{:?}", error.kind())),
+            None,
+        ),
+    }
+}
+
+fn acquire_with(
+    root: &Path,
+    environment: &Observed,
+    layout_sha256: &str,
+) -> (Report, Option<Opened>) {
     let mut report = Report::default();
     report.note("layout_sha256", layout_sha256);
     let env = environment.as_environment();
     let Some(evidence) = EVIDENCE.into_iter().find(|e| e.matches_environment(&env)) else {
-        return report.fail("evidence", "none");
+        return (report.fail("evidence", "none"), None);
     };
     report.note(
         "evidence",
@@ -77,7 +96,12 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
     let (sys, dev) = (root.join("sys"), root.join("dev"));
     let inventory = match inventory::scan(&sys, &dev) {
         Ok(inventory) => inventory,
-        Err(error) => return report.fail("inventory", format!("error:{:?}", error.kind())),
+        Err(error) => {
+            return (
+                report.fail("inventory", format!("error:{:?}", error.kind())),
+                None,
+            );
+        }
     };
     report.note("inventory_nodes", inventory.len());
 
@@ -98,13 +122,16 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
         })
         .collect();
     let [(observed, enrollment)] = enrolled.as_slice() else {
-        return report.fail(
-            "enrollment",
-            if enrolled.is_empty() {
-                "none"
-            } else {
-                "ambiguous"
-            },
+        return (
+            report.fail(
+                "enrollment",
+                if enrolled.is_empty() {
+                    "none"
+                } else {
+                    "ambiguous"
+                },
+            ),
+            None,
         );
     };
     report.note("enrollment", "observed");
@@ -130,7 +157,7 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
         std::slice::from_ref(enrollment),
     ) {
         Ok(policy) => policy,
-        Err(error) => return report.fail("policy", format!("{error:?}")),
+        Err(error) => return (report.fail("policy", format!("{error:?}")), None),
     };
     let candidates: Vec<_> = inventory
         .iter()
@@ -139,25 +166,35 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
         .collect();
     let targets = match policy.targets(&env, &candidates) {
         Ok(targets) => targets,
-        Err(error) => return report.fail("targets", format!("{error:?}")),
+        Err(error) => return (report.fail("targets", format!("{error:?}")), None),
     };
     let [target] = targets.as_slice() else {
-        return report.fail("targets", targets.len());
+        return (report.fail("targets", targets.len()), None);
     };
     if target.instance() != observed.instance {
-        return report.fail("targets", "other_instance");
+        return (report.fail("targets", "other_instance"), None);
     }
     report.note("targets", 1);
 
     let opened = match Opened::open(&dev, observed) {
         Ok(opened) => opened,
-        Err(error) => return report.fail("open", format!("error:{:?}", error.kind())),
+        Err(error) => {
+            return (
+                report.fail("open", format!("error:{:?}", error.kind())),
+                None,
+            );
+        }
     };
     report.note("open", "ok");
 
     let fresh = match inventory::scan(&sys, &dev) {
         Ok(fresh) => fresh,
-        Err(error) => return report.fail("rescan", format!("error:{:?}", error.kind())),
+        Err(error) => {
+            return (
+                report.fail("rescan", format!("error:{:?}", error.kind())),
+                None,
+            );
+        }
     };
     let fresh_digests = node_digests(root, &fresh, layout_sha256);
     let fresh: Vec<_> = fresh
@@ -172,14 +209,19 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
         &fresh,
     ) {
         Ok(true) => report.note("revalidate", "ok"),
-        Ok(false) => return report.fail("revalidate", "mismatch"),
-        Err(error) => return report.fail("revalidate", format!("{error:?}")),
+        Ok(false) => return (report.fail("revalidate", "mismatch"), None),
+        Err(error) => return (report.fail("revalidate", format!("{error:?}")), None),
     }
 
     match opened.pressed_keys() {
         Ok(keys) if keys.is_empty() => report.note("neutral", "yes"),
-        Ok(keys) => return report.fail("neutral", format!("no:{}", keys.len())),
-        Err(error) => return report.fail("neutral", format!("error:{:?}", error.kind())),
+        Ok(keys) => return (report.fail("neutral", format!("no:{}", keys.len())), None),
+        Err(error) => {
+            return (
+                report.fail("neutral", format!("error:{:?}", error.kind())),
+                None,
+            );
+        }
     }
     report.note("check", "pass");
     report.passed = true;
@@ -187,7 +229,7 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
         evidence,
         input_id: opened.input_id,
     });
-    report
+    (report, Some(opened))
 }
 
 /// The `Generic.kl` digest for each node, or a non-matching marker where a device-specific layout applies.

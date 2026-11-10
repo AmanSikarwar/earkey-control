@@ -1,7 +1,8 @@
 //! Linux process adapter for [`Supervisor`].
 //!
 //! The worker runs in its own process group with a parent-death signal and
-//! reports fixed-size frames on stdout. Stop sends `SIGTERM` and kill sends
+//! reports fixed-size frames on stdout. Its stderr is the supervisor's, for a
+//! short human-readable report; stdin is closed. Stop sends `SIGTERM` and kill sends
 //! `SIGKILL` to the whole group. Exit is confirmed only after the unreaped
 //! leader has exited and no live process remains in its group; the zombie
 //! leader keeps the group ID reserved until then. The worker must not leave
@@ -187,7 +188,7 @@ impl Worker {
         command
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::inherit())
             .process_group(0);
         // SAFETY: prctl and getppid are async-signal-safe and touch no memory.
         unsafe {

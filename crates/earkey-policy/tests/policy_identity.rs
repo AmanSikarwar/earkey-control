@@ -440,3 +440,48 @@ fn enrollment_from_observation_requires_the_reviewed_environment_identity_and_ca
         assert!(VerifiedEnrollment::from_observation(EVIDENCE, &ENVIRONMENT, candidate).is_none());
     }
 }
+
+#[test]
+fn reforge_evidence_matches_only_the_reforge_kernel() {
+    const REFORGE: Evidence = Evidence::XiaomiPixelosReforge20261110;
+    let reforge = Environment {
+        kernel_release: "4.14.357-reforge-g9b21e3df6c0a",
+        kernel_build: "#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026",
+        ..ENVIRONMENT
+    };
+    assert!(REFORGE.matches_environment(&reforge));
+    assert!(!REFORGE.matches_environment(&ENVIRONMENT));
+    assert!(!EVIDENCE.matches_environment(&reforge));
+    assert_eq!(REFORGE.advertised_keys(), EVIDENCE.advertised_keys());
+    assert_eq!(REFORGE.controls().len(), EVIDENCE.controls().len());
+    for spoofed in [
+        Environment {
+            kernel_release: "4.14.357-openela-VantomKernel",
+            ..reforge
+        },
+        Environment {
+            kernel_build: "#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026",
+            ..reforge
+        },
+    ] {
+        assert!(!REFORGE.matches_environment(&spoofed));
+    }
+
+    let device = earphones(9);
+    let enrolled = VerifiedEnrollment::from_observation(REFORGE, &reforge, &device).unwrap();
+    assert!(VerifiedEnrollment::from_observation(REFORGE, &ENVIRONMENT, &device).is_none());
+    let request = with_edit(|value| {
+        value["profiles"][0]["evidence"] = "xiaomi_pixelos_reforge20261110".into();
+    });
+    let policy = Policy::parse(&request, &[enrolled]).unwrap();
+    assert_eq!(policy.targets(&reforge, &[earphones(9)]).unwrap().len(), 1);
+    assert!(
+        policy
+            .targets(&ENVIRONMENT, &[earphones(9)])
+            .unwrap()
+            .is_empty()
+    );
+
+    let old = VerifiedEnrollment::from_reviewed_measurement(EVIDENCE, SERIAL).unwrap();
+    assert!(Policy::parse(&request, &[old]).is_err());
+}

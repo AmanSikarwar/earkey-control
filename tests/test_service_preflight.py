@@ -102,7 +102,9 @@ esac
 exec "$@"''',
         )
         probe = self.case / "earkey-probe"
-        probe.write_text('#!/bin/sh\n[ "$*" = self-check ] || exit 97\nprintf "ran\\n" >> .calls\nprintf "probe=self_check_ok\\n"\n')
+        probe.write_text('#!/bin/sh\n[ "$*" = probe-uinput ] || exit 97\nprintf "ran\\n" >> .calls\n'
+                         '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "probe=uinput_open\\nerrno=13\\n" >&2; exit 1; }\n'
+                         'printf "probe=uinput_open_ok\\n"\n')
         probe.chmod(0o500)
         (self.case / "probe.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
         self.env = os.environ | {
@@ -162,7 +164,7 @@ exec "$@"''',
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertIn("launcher=resukisu_service\n", result)
-        self.assertIn("probe=self_check_ok\nservice_probe_exit=0\n", result)
+        self.assertIn("probe=uinput_open_ok\nservice_probe_exit=0\n", result)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
@@ -470,6 +472,12 @@ exec "$@"''',
         self.assertTrue(self.result().endswith("service_probe_exit=137\n"))
         self.assertFalse((self.case / ".calls").exists())
 
+    def test_probe_denial_is_recorded(self):
+        self.assertEqual(self.run_hook(TEST_PROBE_DENIED="1").returncode, 0)
+        self.assertTrue(self.result().endswith(
+            "probe=uinput_open\nerrno=13\nservice_probe_exit=1\n"))
+        self.assertEqual((self.case / ".calls").read_text(), "ran\n")
+
     def test_symlink_probe_is_rejected(self):
         (self.case / "earkey-probe").rename(self.case / "payload")
         (self.case / "earkey-probe").symlink_to("payload")
@@ -522,7 +530,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-probe")).hexdigest(),
                              (FIXTURE / "probe.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.9-preflight\nversionCode=9\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.10-preflight\nversionCode=10\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

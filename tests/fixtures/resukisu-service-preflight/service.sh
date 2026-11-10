@@ -405,7 +405,7 @@ mv "$attempt/context.tmp" "$attempt/context"
             printf 'launcher=resukisu_service\n'
             printf 'artifact_sha256=%s\n' "$expected"
             status=0
-            timeout -s KILL 5 ./earkey-probe self-check || status=$?
+            timeout -s KILL 5 ./earkey-probe probe-uinput || status=$?
         else
             printf 'preflight=digest_mismatch\n'
         fi

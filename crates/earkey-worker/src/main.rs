@@ -8,10 +8,10 @@ fn main() -> ExitCode {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let command = match args.as_slice() {
-        [command @ ("check" | "proxy-check" | "run")] => Command::Plain(command),
+        [command @ ("check" | "proxy-check" | "run" | "daemon")] => Command::Plain(command),
         [
             command @ ("enroll" | "status" | "enable" | "disable" | "pause" | "resume"
-            | "disable-next-boot" | "enable-next-boot"),
+            | "disable-next-boot" | "enable-next-boot" | "clear-latch"),
         ] => Command::Control(command, None, false),
         ["apply", selection] => Command::Control("apply", Some(selection), false),
         ["apply", selection, "enable"] => Command::Control("apply", Some(selection), true),
@@ -40,7 +40,7 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage: earkey-worker check | proxy-check | run | passthrough [selection] | supervise <10-600> [selection]\n       \
          earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume\n       \
-         earkey-worker disable-next-boot | enable-next-boot"
+         earkey-worker disable-next-boot | enable-next-boot | clear-latch | daemon"
     );
     ExitCode::from(2)
 }
@@ -139,6 +139,59 @@ fn run(command: Command<'_>) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    if command == "daemon" {
+        // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
+        unsafe {
+            libc::signal(
+                libc::SIGTERM,
+                on_terminate as *const () as libc::sighandler_t,
+            )
+        };
+        let lock = match Lock::acquire(Path::new(LOCK)) {
+            Ok(lock) => lock,
+            Err(error) => {
+                eprintln!("daemon_lock=error:{:?}", error.kind());
+                return ExitCode::FAILURE;
+            }
+        };
+        let (store, exe) = match (Store::open(), std::env::current_exe()) {
+            (Ok(store), Ok(exe)) => (store, exe),
+            _ => {
+                eprintln!("daemon=error:storage_or_exe");
+                return ExitCode::FAILURE;
+            }
+        };
+        // SAFETY: This process reaps children only through the adapter.
+        let result = unsafe {
+            earkey_worker::session::daemon(
+                exe,
+                vec!["run".into()],
+                earkey_worker::session::LIMITS,
+                || earkey_supervisor::store::read_gate(&store),
+                || earkey_supervisor::store::persist_latch(&store),
+                &STOP,
+                |text| {
+                    let _ = store.write_runtime(earkey_policy::store::Runtime::Supervisor, text);
+                },
+            )
+        };
+        drop(lock);
+        let _ = std::fs::remove_file(LOCK);
+        return match result {
+            Ok(earkey_supervisor::Phase::Unsafe(fault)) => {
+                eprintln!("daemon=unsafe:{fault:?}");
+                ExitCode::FAILURE
+            }
+            Ok(phase) => {
+                eprintln!("daemon=stopped:{phase:?}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("daemon=error:{:?}", error.kind());
+                ExitCode::FAILURE
+            }
+        };
+    }
     if command == "run" {
         // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
         unsafe {
@@ -271,6 +324,7 @@ fn control(name: &str, selection: Option<&str>, enable: bool) -> ExitCode {
                     "pause" => RecoveryOperation::Pause,
                     "resume" => RecoveryOperation::Resume,
                     "disable-next-boot" => RecoveryOperation::DisableNextBoot,
+                    "clear-latch" => RecoveryOperation::ClearRestartLimit,
                     _ => RecoveryOperation::EnableNextBoot,
                 };
                 control::recovery(&store, operation).map(|g| format!("saved_generation:{g}"))

@@ -243,3 +243,141 @@ fn blocking_center_discloses_its_shared_effects() {
     assert_eq!(blocked_effects(evidence, &[]), "none");
     assert!(blocked_effects(evidence, &[Group::VolumeUp]).contains("Raise volume"));
 }
+
+mod daemon {
+    use super::*;
+    use earkey_supervisor::Phase;
+    use earkey_worker::session::daemon;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+    use std::time::Instant;
+
+    const FAST: Limits = Limits {
+        start: Duration::from_millis(500),
+        progress: Duration::from_millis(300),
+        pause: Duration::from_millis(300),
+        kill: Duration::from_millis(500),
+        restart: Duration::from_millis(50),
+    };
+
+    fn wait(what: &str, done: impl Fn() -> bool) {
+        let end = Instant::now() + Duration::from_secs(10);
+        while !done() {
+            assert!(Instant::now() < end, "timed out waiting for {what}");
+            thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    #[test]
+    fn a_running_worker_is_supervised_until_stop() {
+        let (exe, args) = sh(&format!("{STARTED}; {PROGRESS}"));
+        let stop = AtomicBool::new(false);
+        let statuses = Mutex::new(Vec::<String>::new());
+        let phase = thread::scope(|scope| {
+            let daemon = scope.spawn(|| {
+                // SAFETY: This test thread reaps children only through the adapter.
+                unsafe {
+                    daemon(
+                        exe,
+                        args,
+                        FAST,
+                        || Ok(Gate::OPEN),
+                        || Ok(()),
+                        &stop,
+                        |s| statuses.lock().unwrap().push(s.to_owned()),
+                    )
+                }
+            });
+            wait("running", || {
+                statuses
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .any(|s| s.starts_with("phase=Running"))
+            });
+            thread::sleep(Duration::from_millis(500));
+            stop.store(true, Ordering::SeqCst);
+            daemon.join().unwrap()
+        });
+        assert_eq!(
+            phase.unwrap(),
+            Phase::Inactive(earkey_supervisor::InactiveReason::Paused)
+        );
+        let statuses = statuses.into_inner().unwrap();
+        assert!(
+            statuses.iter().all(|s| s.contains("failures=0")),
+            "{statuses:?}"
+        );
+    }
+
+    #[test]
+    fn repeated_failures_persist_the_latch_and_clearing_it_restarts() {
+        let (exe, args) = sh("exit 1");
+        let stop = AtomicBool::new(false);
+        let latched = Arc::new(AtomicBool::new(false));
+        let writes = AtomicU32::new(0);
+        let statuses = Mutex::new(Vec::<String>::new());
+        let phase = thread::scope(|scope| {
+            let daemon = scope.spawn(|| {
+                // SAFETY: As above.
+                unsafe {
+                    daemon(
+                        exe,
+                        args,
+                        FAST,
+                        || {
+                            Ok(Gate {
+                                latched: latched.load(Ordering::SeqCst),
+                                ..Gate::OPEN
+                            })
+                        },
+                        || {
+                            writes.fetch_add(1, Ordering::SeqCst);
+                            latched.store(true, Ordering::SeqCst);
+                            Ok(())
+                        },
+                        &stop,
+                        |s| statuses.lock().unwrap().push(s.to_owned()),
+                    )
+                }
+            });
+            wait("first latch", || writes.load(Ordering::SeqCst) == 1);
+            thread::sleep(Duration::from_millis(300));
+            assert_eq!(writes.load(Ordering::SeqCst), 1, "no restart while latched");
+            latched.store(false, Ordering::SeqCst);
+            wait("second latch after clearing", || {
+                writes.load(Ordering::SeqCst) == 2
+            });
+            stop.store(true, Ordering::SeqCst);
+            daemon.join().unwrap()
+        });
+        assert_eq!(phase.unwrap(), Phase::Latched);
+        let statuses = statuses.into_inner().unwrap();
+        assert!(
+            statuses
+                .iter()
+                .any(|s| s.starts_with("phase=Latched\nfailures=3")),
+            "{statuses:?}"
+        );
+    }
+
+    #[test]
+    fn a_failed_latch_write_stops_the_daemon() {
+        let (exe, args) = sh("exit 1");
+        let stop = AtomicBool::new(false);
+        // SAFETY: As above.
+        let result = unsafe {
+            daemon(
+                exe,
+                args,
+                FAST,
+                || Ok(Gate::OPEN),
+                || Err(io::ErrorKind::PermissionDenied.into()),
+                &stop,
+                |_| {},
+            )
+        };
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::PermissionDenied);
+    }
+}

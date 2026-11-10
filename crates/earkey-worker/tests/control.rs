@@ -95,6 +95,28 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     assert_eq!(get(&lines, "stay_inactive"), ["false"]);
     assert_eq!(get(&lines, "paused"), ["false"]);
     assert!(!lines.iter().any(|(_, v)| v.contains(SERIAL)));
+    assert_eq!(get(&lines, "worker"), ["none"]);
+    store
+        .write_runtime(
+            earkey_policy::store::Runtime::Worker,
+            "state=waiting_accessory\nactive_generation=0\n",
+        )
+        .unwrap();
+    store
+        .write_runtime(
+            earkey_policy::store::Runtime::Supervisor,
+            "phase=Running\nfailures=0\nlast_fault=none\n",
+        )
+        .unwrap();
+    let lines = status(&store);
+    assert_eq!(
+        get(&lines, "worker"),
+        ["state=waiting_accessory", "active_generation=0"]
+    );
+    assert_eq!(
+        get(&lines, "supervisor"),
+        ["phase=Running", "failures=0", "last_fault=none"]
+    );
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]

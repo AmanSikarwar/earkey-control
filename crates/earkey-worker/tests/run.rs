@@ -464,6 +464,17 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
         "{}",
         report.text()
     );
+    assert_eq!(
+        store
+            .read_runtime(earkey_policy::store::Runtime::Worker)
+            .unwrap()
+            .as_deref(),
+        Some("state=stopped\nactive_generation=0\n")
+    );
+    assert_eq!(
+        earkey_worker::run::status_text("active:generation=2:blocked=Center"),
+        "state=active:generation=2:blocked=Center\nactive_generation=2\n"
+    );
     let bytes = frames.0.lock().unwrap();
     assert!(bytes.len() > 9 && bytes[0] == 1, "started frame first");
     drop(bytes);

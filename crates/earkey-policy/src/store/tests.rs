@@ -662,3 +662,48 @@ fn enrollment_capacity_and_unsafe_files_are_enforced() {
         Err(StoreError::UnsafeStorage)
     ));
 }
+
+#[test]
+fn runtime_status_files_are_bounded_private_and_separate() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    assert_eq!(store.read_runtime(Runtime::Worker).unwrap(), None);
+    store
+        .write_runtime(Runtime::Worker, "state=waiting_accessory\n")
+        .unwrap();
+    store
+        .write_runtime(Runtime::Supervisor, "phase=Running\n")
+        .unwrap();
+    store
+        .write_runtime(Runtime::Worker, "state=active\n")
+        .unwrap();
+    assert_eq!(
+        store.read_runtime(Runtime::Worker).unwrap().as_deref(),
+        Some("state=active\n")
+    );
+    assert_eq!(
+        store.read_runtime(Runtime::Supervisor).unwrap().as_deref(),
+        Some("phase=Running\n")
+    );
+    let metadata = fs::metadata(scratch.0.join("worker.status")).unwrap();
+    assert_eq!(metadata.mode() & 0o7777, 0o600);
+    assert!(!scratch.0.join("worker.status.tmp").exists());
+    assert_eq!(store.load(&[]).unwrap().generation(), 0);
+
+    assert!(matches!(
+        store.write_runtime(Runtime::Worker, &"x".repeat(MAX_RUNTIME_BYTES + 1)),
+        Err(StoreError::InvalidRuntime)
+    ));
+    fs::set_permissions(
+        scratch.0.join("supervisor.status"),
+        fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
+    assert!(matches!(
+        store.read_runtime(Runtime::Supervisor),
+        Err(StoreError::UnsafeStorage)
+    ));
+    fs::remove_file(scratch.0.join("supervisor.status")).unwrap();
+    symlink("worker.status", scratch.0.join("supervisor.status")).unwrap();
+    assert!(store.read_runtime(Runtime::Supervisor).is_err());
+}

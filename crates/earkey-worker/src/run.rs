@@ -18,7 +18,7 @@ use crate::proxy_check::proxy_keys;
 use earkey_engine::Fault;
 use earkey_policy::identity::{Evidence, Group};
 use earkey_policy::policy::{Policy, RecoveryLatch};
-use earkey_policy::store::{EnrollmentRecord, Store};
+use earkey_policy::store::{EnrollmentRecord, Runtime, Store};
 use earkey_supervisor::process::{progress_frame, started_frame};
 use std::io::{self, Write};
 use std::path::Path;
@@ -139,6 +139,15 @@ fn acquire(ctx: &Context<'_>) -> Result<Acquired, String> {
     })
 }
 
+/// `worker.status` text: the state and the generation actually in force (0 when none).
+pub fn status_text(state: &str) -> String {
+    let active = state
+        .strip_prefix("active:generation=")
+        .and_then(|rest| rest.split(':').next())
+        .unwrap_or("0");
+    format!("state={state}\nactive_generation={active}\n")
+}
+
 /// Runs until the stop flag ends a session or an unrecoverable fault occurs.
 pub fn run(
     ctx: &Context<'_>,
@@ -187,6 +196,9 @@ fn pump(
     let mut note = |report: &mut dyn Write, value: String| {
         if value != state {
             let _ = writeln!(report, "worker_state={value}");
+            let _ = ctx
+                .store
+                .write_runtime(Runtime::Worker, &status_text(&value));
             state = value;
         }
     };

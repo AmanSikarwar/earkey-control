@@ -31,7 +31,7 @@ The trusted computing base includes the reviewed binaries, minimal syscall wrapp
 
 ## Unresolved safety parameters
 
-Before physical interception, choose and test finite neutral acquisition, readiness, output stall, pause, supervisor heartbeat/termination and cleanup deadlines; bounded queue/log/file limits; and process identity checks. A proposal alone does not prove resource release. An uninterruptible kernel task may exceed userspace termination bounds: the prototype needs an independently tested module-disable/boot recovery plan, or it must not activate.
+Before physical interception, choose and test finite neutral acquisition, readiness, output stall, pause, supervisor heartbeat/termination and cleanup deadlines; bounded queue/log/file limits; and process identity checks. The host supervisor core supplies configurable gate and deadline transitions, but the real adapter and measured values remain open. A proposal alone does not prove resource release. An uninterruptible kernel task may exceed userspace termination bounds: the prototype needs an independently tested module-disable/boot recovery plan, or it must not activate.
 
 Fault recovery prioritizes restoring normal physical input over maintaining suppression. Normal buttons may reach Android while inactive, during startup/hotplug or after failure. Measure these windows; do not claim zero leakage. Stuck virtual state must be cleared or the proxy destroyed and the physical path restored, with the observed outcome recorded. Successful suppression cannot compensate for a preservation failure.
 

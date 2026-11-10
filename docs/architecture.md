@@ -1,6 +1,6 @@
 # Initial architecture
 
-The policy model, host event engine and [Android capability probe](prototype-preflight.md) are implemented. Android acquisition, service supervision and physical passthrough still need validation. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
+The policy model, host event engine, supervisor state machine and [Android capability probe](prototype-preflight.md) are implemented. Android acquisition, the real process adapter, service wiring and physical passthrough still need validation. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
 
 ## Candidate and boundaries
 
@@ -46,6 +46,16 @@ The engine buffers one input batch and one output frame, up to 64 records each. 
 The session exposes an incomplete-frame or output deadline to its caller and fails after eight consecutive interrupted operations. It advances past each accepted output prefix and waits for sink readiness on backpressure. The caller must wake it by the deadline even if the descriptor stays quiet. Tests use a 100 ms stall limit. Stage 4 must select and verify the production deadline together with independent supervision.
 
 On `SYN_DROPPED`, the engine discards the partial frame and consumes through the next report within the frame and deadline bounds. It queries current key state, then returns a terminal fault. A snapshot alone cannot reconstruct lost press decisions or scan association. The engine reports which keys may be down on the proxy for cleanup. The worker must destroy the proxy and release the physical node, then start any retry from a fresh verified neutral session. [Linux input protocol](https://docs.kernel.org/input/event-codes.html)
+
+## Host supervisor core
+
+[earkey-supervisor](../crates/earkey-supervisor) is a host-tested state machine, not a process supervisor. It performs no process, clock, file, policy or device I/O. The service adapter supplies monotonic time, a gate built from durable pause, the pre-open `stay-inactive` marker and the restart latch, plus worker signals. It executes the returned actions.
+
+The state machine starts only through an open gate. It requires an explicit startup acknowledgment and then a progressing event-loop counter; an unchanged counter past the progress deadline stops the worker. Orderly stop gets the pause deadline, then a forced termination gets the kill deadline. Failures are spaced by the restart deadline and counted within one supervisor session. The third failure requires a durable `PersistLatch` and forbids restart until explicit `clear_latch` after policy revalidation. If termination cannot be delivered or confirmed, the state is Unsafe: the adapter must persist the latch and never start another worker from that supervisor session.
+
+The supervisor never starts or signals a child itself and never receives a grabbed descriptor. The adapter must enforce single-instance ownership, close-on-exec, verified process identity, and a progress channel updated by the actual worker loop rather than a separate thread. It must re-read the gate immediately before executing `Start`, and the worker must repeat the pre-open pause and marker check before opening a candidate. It must also terminate the verified worker process group, not merely the direct child, and confirm exit before treating a stop as complete. The core does not persist recovery state or report Active; it exposes phase, failure count and last fault for the service.
+
+Start, progress, pause, kill and restart deadlines are constructor inputs and must be non-zero. They are not measured production values; Stage 4 must select and fault-test them with the real process adapter. The adapter, progress transport, Android service wiring, descriptor-release proof and physical pause/recovery drill are not implemented or measured.
 
 ## Failure and state reporting
 

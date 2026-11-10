@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 4 is in progress.** The Stage 3 host engine and the Stage 4 Android capability probe are merged. On the reference phone the probe's `self-check` passed from both a root shell and the ReSukiSU services hook. The policy store has host-tested pause, next-boot escape and restart-latch operations. `/dev/uinput` access, EarKey Control module loading and physical passthrough remain pending. See the [Stage 4 preflight](docs/prototype-preflight.md) and [host engine](docs/architecture.md#host-event-engine).
+**Stage 4 is in progress.** The Stage 3 host engine and the Stage 4 Android capability probe are merged. On the reference phone the probe's `self-check` passed from both a root shell and the ReSukiSU services hook. The policy store has host-tested pause, next-boot escape and restart-latch operations. A host-tested supervisor state machine defines startup, progress, pause, kill and restart deadlines, the three-failure latch and the pre-open recovery gate; its process adapter is unimplemented. `/dev/uinput` access, EarKey Control module loading and physical passthrough remain pending. See the [Stage 4 preflight](docs/prototype-preflight.md), [host supervisor](docs/architecture.md#host-supervisor-core) and [host engine](docs/architecture.md#host-event-engine).
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

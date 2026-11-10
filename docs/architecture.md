@@ -75,6 +75,7 @@ An `Observation` lends itself to the policy matcher as a `Candidate`. The caller
 - `run` takes the `EVIOCGRAB` grab only once the proxy exists. It discards the descriptor's pre-grab queue, because those records already reached Android, and returns `NotNeutral` if that queue held a key event or any key is down.
 - It then drives the engine with `poll`, bounded by the engine deadline, a tick and the total session limit. It calls `progress` with a strictly increasing counter from the loop itself, including idle waits, and stops as soon as the stop flag is set.
 - On every exit, it writes key-up and report records for every key the engine may have forwarded, then releases the grab.
+- It fills a `Tally` with the key records read from the physical node and written to the proxy, by code and value, and the number of keys released at cleanup. The passthrough worker reports these counts; it never logs individual events or timestamps.
 
 `earkey_worker::session` connects the pieces. `earkey-worker passthrough` is the supervised child:
 1. It repeats the pause and `stay-inactive` gate check before opening anything.

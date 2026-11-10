@@ -128,8 +128,11 @@ mv "$attempt/context.tmp" "$attempt/context"
 
     manager_path=/data/adb/ksud
     manager_sha=fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50
-    expected_release='4.14.357-openela-VantomKernel'
-    expected_build='#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026'
+    expected_release='4.14.357-reforge-g9b21e3df6c0a'
+    expected_build='#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026'
+    expected_full_version='v4.2.0-35201-backslashxx'
+    expected_flags='0x160'
+    expected_features='0x7'
 
     guard() {
         if [ "$2" != "$3" ]; then
@@ -203,21 +206,25 @@ mv "$attempt/context.tmp" "$attempt/context"
         info_version=; info_version_count=0
         info_full_version=; info_full_version_count=0
         info_flags=; info_flags_count=0
+        info_features=; info_features_count=0
         info_uapi_version=; info_uapi_version_count=0
         info_lkm=; info_lkm_count=0
         info_bundled=; info_bundled_count=0
         info_late_load=; info_late_load_count=0
         info_runtime_mode=; info_runtime_mode_count=0
+        info_pr_build=; info_pr_build_count=0
         while IFS= read -r info_line; do
             case "$info_line" in
                 'version: '*) info_version=${info_line#version: }; info_version_count=$((info_version_count + 1)) ;;
                 'full_version: '*) info_full_version=${info_line#full_version: }; info_full_version_count=$((info_full_version_count + 1)) ;;
                 'flags: '*) info_flags=${info_line#flags: }; info_flags_count=$((info_flags_count + 1)) ;;
+                'features: '*) info_features=${info_line#features: }; info_features_count=$((info_features_count + 1)) ;;
                 'uapi_version: '*) info_uapi_version=${info_line#uapi_version: }; info_uapi_version_count=$((info_uapi_version_count + 1)) ;;
                 'lkm: '*) info_lkm=${info_line#lkm: }; info_lkm_count=$((info_lkm_count + 1)) ;;
                 'bundled: '*) info_bundled=${info_line#bundled: }; info_bundled_count=$((info_bundled_count + 1)) ;;
                 'late_load: '*) info_late_load=${info_line#late_load: }; info_late_load_count=$((info_late_load_count + 1)) ;;
                 'runtime_mode: '*) info_runtime_mode=${info_line#runtime_mode: }; info_runtime_mode_count=$((info_runtime_mode_count + 1)) ;;
+                'pr_build: '*) info_pr_build=${info_line#pr_build: }; info_pr_build_count=$((info_pr_build_count + 1)) ;;
             esac
         done < "$info_file"
 
@@ -225,11 +232,13 @@ mv "$attempt/context.tmp" "$attempt/context"
         emit_info_field info_version "$info_version" "$info_version_count" number
         emit_info_field info_full_version "$info_full_version" "$info_full_version_count" full
         emit_info_field info_flags "$info_flags" "$info_flags_count" flags
+        emit_info_field info_features "$info_features" "$info_features_count" flags
         emit_info_field info_uapi_version "$info_uapi_version" "$info_uapi_version_count" number
         emit_info_field info_lkm "$info_lkm" "$info_lkm_count" bool
         emit_info_field info_bundled "$info_bundled" "$info_bundled_count" bool
         emit_info_field info_late_load "$info_late_load" "$info_late_load_count" bool
         emit_info_field info_runtime_mode "$info_runtime_mode" "$info_runtime_mode_count" token
+        emit_info_field info_pr_build "$info_pr_build" "$info_pr_build_count" bool
         printf 'info_status=%s\n' "$info_status"
     }
 
@@ -333,8 +342,12 @@ mv "$attempt/context.tmp" "$attempt/context"
                 driver_identity=unavailable
             elif [ "$info_status" != complete ]; then
                 driver_identity=invalid
-            elif [ "$info_flags" != 0x20 ]; then
+            elif [ "$info_full_version" != "$expected_full_version" ]; then
+                driver_identity=mismatch; driver_reason=full_version
+            elif [ "$info_flags" != "$expected_flags" ]; then
                 driver_identity=mismatch; driver_reason=flags
+            elif [ "$info_features" != "$expected_features" ]; then
+                driver_identity=mismatch; driver_reason=features
             elif [ "$info_uapi_version" != 6 ]; then
                 driver_identity=mismatch; driver_reason=uapi_version
             elif [ "$info_lkm" != false ]; then
@@ -345,6 +358,8 @@ mv "$attempt/context.tmp" "$attempt/context"
                 driver_identity=mismatch; driver_reason=late_load
             elif [ "$info_runtime_mode" != built-in ]; then
                 driver_identity=mismatch; driver_reason=runtime_mode
+            elif [ "$info_pr_build" != false ]; then
+                driver_identity=mismatch; driver_reason=pr_build
             else
                 driver_identity=verified
             fi

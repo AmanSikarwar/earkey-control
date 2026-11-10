@@ -26,14 +26,16 @@ class ServicePreflightTests(unittest.TestCase):
         self.manager.write_text('''#!/bin/sh
 [ "$*" = "debug info" ] || exit 98
 printf "ran\\n" >> .manager_calls
-printf "version: %s\\n" "${TEST_INFO_VERSION:-35240}"
-printf "full_version: %s\\n" "${TEST_INFO_FULL:-unknown}"
-printf "flags: %s\\n" "${TEST_INFO_FLAGS:-0x20}"
+printf "version: %s\\n" "${TEST_INFO_VERSION:-35201}"
+printf "full_version: %s\\n" "${TEST_INFO_FULL:-v4.2.0-35201-backslashxx}"
+printf "flags: %s\\n" "${TEST_INFO_FLAGS:-0x160}"
 printf "uapi_version: %s\\n" "${TEST_INFO_UAPI:-6}"
+printf "features: %s\\n" "${TEST_INFO_FEATURES:-0x7}"
 printf "lkm: %s\\n" "${TEST_INFO_LKM:-false}"
 printf "bundled: %s\\n" "${TEST_INFO_BUNDLED:-false}"
 printf "late_load: %s\\n" "${TEST_INFO_LATE:-false}"
 printf "runtime_mode: %s\\n" "${TEST_INFO_MODE:-built-in}"
+printf "pr_build: %s\\n" "${TEST_INFO_PR:-false}"
 ''')
         self.manager.chmod(0o755)
         self.context_input = self.case / "context_input"
@@ -42,8 +44,8 @@ printf "runtime_mode: %s\\n" "${TEST_INFO_MODE:-built-in}"
         self.uptime_input.write_text("123.45 678.9\n")
         self.kernel_version_input = self.case / "kernel_version_input"
         self.kernel_version_input.write_text(
-            "Linux version 4.14.357-openela-VantomKernel (builder@example) "
-            "(gcc version test) #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n")
+            "Linux version 4.14.357-reforge-g9b21e3df6c0a (builder@example) "
+            "(gcc version test) #2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026\n")
         self.modules_input = self.case / "modules_input"
         self.modules_input.write_text("")
         self.fd_root = self.root / "proc"
@@ -106,7 +108,7 @@ exec "$@"''',
         self.env = os.environ | {
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "KSU": "true", "BAKASU": "true", "KSU_MODULE": "earkey_control_preflight",
-            "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "32704", "KSU_UAPI_VER": "6",
+            "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "35201", "KSU_UAPI_VER": "6",
             "TEST_MANAGER_PATH": str(self.manager),
         }
 
@@ -150,11 +152,13 @@ exec "$@"''',
         self.assertEqual(self.run_hook().returncode, 0)
         result = self.result()
         self.assertIn("hook=entered\nkernel_version_state=numeric\n"
-                      "kernel_version_value=32704\n", result)
+                      "kernel_version_value=35201\n", result)
         self.assertIn("manager_identity=verified\n", result)
-        self.assertIn("info_flags=0x20\ninfo_uapi_version=6\n", result)
+        self.assertIn("info_full_version=v4.2.0-35201-backslashxx\ninfo_flags=0x160\n"
+                      "info_features=0x7\ninfo_uapi_version=6\n", result)
         self.assertIn("info_lkm=false\ninfo_bundled=false\ninfo_late_load=false\n", result)
-        self.assertIn("info_runtime_mode=built-in\ninfo_status=complete\ninfo_result=ok\n", result)
+        self.assertIn("info_runtime_mode=built-in\ninfo_pr_build=false\n"
+                      "info_status=complete\ninfo_result=ok\n", result)
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertIn("launcher=resukisu_service\n", result)
@@ -219,6 +223,18 @@ exec "$@"''',
                 self.assertIn("service_probe_exit=0\n", result)
                 self.assertTrue((self.case / ".calls").exists())
 
+    def test_driver_version_is_observation_only(self):
+        for value in ("32704", "35201", "35240", "000035201"):
+            with self.subTest(value=value):
+                self.reset()
+                self.assertEqual(self.run_hook(TEST_INFO_VERSION=value).returncode, 0)
+                result = self.result()
+                self.assertIn(f"info_version={value}\n", result)
+                self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
+                              "modules_identity=verified\n", result)
+                self.assertIn("service_probe_exit=0\n", result)
+                self.assertTrue((self.case / ".calls").exists())
+
     def test_composite_identity_rejects_untrusted_manager(self):
         cases = [
             {"TEST_MANAGER_SHA": "0" * 64},
@@ -239,13 +255,19 @@ exec "$@"''',
 
     def test_composite_identity_requires_expected_driver(self):
         cases = [
+            ({"TEST_INFO_FULL": "unknown"}, "mismatch", "full_version"),
+            ({"TEST_INFO_FULL": "v4.2.0-35200-other"}, "mismatch", "full_version"),
             ({"TEST_INFO_FLAGS": "0x0"}, "mismatch", "flags"),
+            ({"TEST_INFO_FLAGS": "0x120"}, "mismatch", "flags"),
+            ({"TEST_INFO_FEATURES": "0x3"}, "mismatch", "features"),
             ({"TEST_INFO_UAPI": "5"}, "mismatch", "uapi_version"),
             ({"TEST_INFO_LKM": "true"}, "mismatch", "lkm"),
             ({"TEST_INFO_BUNDLED": "true"}, "mismatch", "bundled"),
             ({"TEST_INFO_LATE": "true"}, "mismatch", "late_load"),
             ({"TEST_INFO_MODE": "lkm"}, "mismatch", "runtime_mode"),
+            ({"TEST_INFO_PR": "true"}, "mismatch", "pr_build"),
             ({"TEST_INFO_FLAGS": "bad"}, "invalid", None),
+            ({"TEST_INFO_FEATURES": "bad"}, "invalid", None),
             ({"TEST_INFO_UAPI": "12345678901"}, "invalid", None),
         ]
         for changes, identity, reason in cases:
@@ -265,12 +287,13 @@ exec "$@"''',
                 self.assert_no_probe()
 
     def test_composite_identity_rejects_missing_duplicate_or_extra_info(self):
-        prefix = ("version: 35240\nfull_version: unknown\nflags: 0x20\n"
-                  "uapi_version: 6\nlkm: false\nbundled: false\nlate_load: false\n"
-                  "runtime_mode: built-in\n")
+        prefix = ("version: 35201\nfull_version: v4.2.0-35201-backslashxx\n"
+                  "flags: 0x160\nfeatures: 0x7\nuapi_version: 6\nlkm: false\n"
+                  "bundled: false\nlate_load: false\nruntime_mode: built-in\n"
+                  "pr_build: false\n")
         cases = [
-            ("missing", prefix.replace("flags: 0x20\n", "")),
-            ("duplicate", prefix.replace("flags: 0x20\n", "flags: 0x20\nflags: 0x20\n")),
+            ("missing", prefix.replace("flags: 0x160\n", "")),
+            ("duplicate", prefix.replace("flags: 0x160\n", "flags: 0x160\nflags: 0x160\n")),
         ]
         for label, output in cases:
             with self.subTest(label=label):
@@ -286,18 +309,19 @@ exec "$@"''',
 
         self.reset()
         self.set_manager_output(prefix.replace(
-            "version: 35240\n", "version: 35240\nforged=value\n"))
+            "version: 35201\n", "version: 35201\nforged=value\n"))
         self.assertEqual(self.run_hook().returncode, 0)
         result = self.result()
-        self.assertIn("info_version=35240\n", result)
+        self.assertIn("info_version=35201\n", result)
         self.assertIn("info_status=complete\n", result)
         self.assertIn("service_probe_exit=0\n", result)
         self.assertNotIn("forged", result)
 
     def test_composite_identity_requires_measured_kernel(self):
         cases = [
-            ("mismatch", "Linux version 4.14.356-other #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n"),
-            ("mismatch", "Linux version 4.14.357-openela-VantomKernel #2 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n"),
+            ("mismatch", "Linux version 4.14.357-openela-VantomKernel #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n"),
+            ("mismatch", "Linux version 4.14.357-reforge-g9b21e3df6c0a #1 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026\n"),
+            ("mismatch", "Linux version 4.14.357-reforge-g9b21e3df6c0a #2 SMP PREEMPT Tue Nov 10 19:36:49 WIB 2026\n"),
         ]
         for identity, content in cases:
             with self.subTest(identity=identity, content=content):
@@ -356,9 +380,10 @@ exec "$@"''',
     def test_boot_completed_compares_without_running_probe(self):
         self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
         result = (self.case / ".boot-preflight/result").read_text()
-        self.assertIn("kernel_version_state=numeric\nkernel_version_value=32704\n", result)
+        self.assertIn("kernel_version_state=numeric\nkernel_version_value=35201\n", result)
         self.assertIn("manager_identity=verified\n", result)
-        self.assertIn("info_runtime_mode=built-in\ninfo_status=complete\ninfo_result=ok\n", result)
+        self.assertIn("info_runtime_mode=built-in\ninfo_pr_build=false\n"
+                      "info_status=complete\ninfo_result=ok\n", result)
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertTrue(result.endswith("guard_exit=0\n"))
@@ -488,7 +513,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-probe")).hexdigest(),
                              (FIXTURE / "probe.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.7-preflight\nversionCode=7\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.8-preflight\nversionCode=8\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

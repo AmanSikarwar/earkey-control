@@ -7,7 +7,7 @@ Date: 11 November 2026. Stage 6 turns the Stage 4 and 5 diagnostics into the ins
 | 6.1 Root control commands | `enroll`, `status`, `apply <selection> [enable]`, `enable`, `disable`, `pause`, `resume`, `disable-next-boot`, `enable-next-boot` over the private store. Enrollment only from a unique live observation, policy writes that keep recovery state, and status without serials | implemented, host-tested |
 | 6.2 Production worker loop | `earkey-worker run`: load enrollments and the verified policy each pass. Wait without failing while disabled, recovery-inactive, unreadable, accessory-absent, not neutral or grab-conflicted. Forward with the policy's blocked groups, reacquire on a new saved generation, and return to waiting on unplug | implemented, end-to-end container test |
 | 6.3 Supervisor daemon | `earkey-worker daemon`: unbounded supervision of `run` with the real persisted restart latch, `clear-latch` to resume, `worker.status`/`supervisor.status` runtime files, and `status` reporting saved and active generations separately | implemented, container-tested |
-| 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | 0.1.0-alpha.1 install plan passed on the reference phone; 0.1.0-alpha.2 (readiness-progress fix) host-tested, not installed |
+| 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | 0.1.0-alpha.1 install plan passed on the reference phone; 0.1.0-alpha.2 (readiness-progress fix) passed its boot check on the reference phone |
 | 6.5 Offline WebUI | TypeScript/HTML/CSS through the KernelSU WebUI bridge, calling only the fixed control commands. Accessible and offline | planned |
 | 6.6 Reference evidence | The Stage 6 physical cases on the reference phone | planned |
 
@@ -62,4 +62,18 @@ This was an authorized run on the reference phone with the reforge kernel `4.14.
 
 The first removal attempt did not run because wireless ADB was offline; the retry ran and passed.
 
-Step 7's failure came from the worker loop sending no progress frames while it waited for `system_server` to open the proxy. Early in boot that wait can exceed the 1 s progress deadline. One such failure only restarts the worker, but three in a row would latch blocking off. Alpha.2 fixes this, and the run test now holds Android back for 1.6 s and requires progress throughout. The fix has not yet run on the phone.
+Step 7's failure came from the worker loop sending no progress frames while it waited for `system_server` to open the proxy. Early in boot that wait can exceed the 1 s progress deadline. One such failure only restarts the worker, but three in a row would latch blocking off. Alpha.2 fixes this, and the run test now holds Android back for 1.6 s and requires progress throughout.
+
+## Alpha.2 boot check (11 November 2026)
+
+This was an authorized run with the same phone and kernel, using ZIP `05371b5eb6a8fbb4d9f3db8415e527d4fe7d42ce2060830ff91db3fc26ec41ad` and worker `2179496b26d866d9b73c824658db45ee2961b9db58276aca81b83ac9f8f74dca`. The store was empty, because the alpha.1 removal had deleted it.
+
+| Step | Result |
+| --- | --- |
+| Install | Staged with the pinned digest; the installer printed `/data/adb/modules/earkey_control/bin/earkey-worker` |
+| Reboot | Inactive: `worker.status` `disabled`; supervisor `failures=0` |
+| Enroll, Center | `enrolled:xiaomi_pixelos_reforge20261110`; generation 1 active with Center blocked |
+| Reboot, earphones absent | The maintainer plugged them in only after boot. The worker waited as `waiting_accessory` and acquired them on plug-in without restarting; `failures=0` |
+| Reboot, earphones connected | Generation 1 active at 87 s uptime with the original `run` process; supervisor `failures=0`, `last_fault=none`. The maintainer confirmed that Center did nothing and Volume Up worked. SELinux is enforcing |
+
+The `ProgressStalled` failure seen with alpha.1 did not recur. This is one boot, not a measured rate. The module is still installed with Center blocked.

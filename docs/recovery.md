@@ -17,7 +17,7 @@ Provide a durable module-specific next-boot inactive marker and check it before 
 | Worker crash or hang | Independent supervisor stops verified worker instance, releases resources and records fault; after three failures latch inactive |
 | Prevent next-boot activation | Set durable inactive state; boot checks it before candidate opens; preserve it across update/reboot |
 | Manager disable | Disable only this module, verify actual immediate/next-boot timing; pause first when accessible |
-| Uninstall | Stop only verified module processes, release grabs/proxies, remove only module-owned files; selected settings-retention behavior must be disclosed and tested |
+| Uninstall | Stop only verified module processes, release grabs/proxies, remove only module-owned files. `uninstall.sh` (0.1.0-alpha.1) removes the private store, including settings and the enrollment serial; settings are not retained. Physical uninstall test pending |
 | Android not usable | Apply exact installed manager's verified rescue procedure or prevalidated privileged disable route; no universal recipe is asserted |
 
 KernelSU's official rescue guidance includes volume-down input with timing/integration qualifications; it is not proof for the user's unmeasured fork. Magisk and APatch have their own mechanisms. Consult and verify the installed implementation before an experiment:

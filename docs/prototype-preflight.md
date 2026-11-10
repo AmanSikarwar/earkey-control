@@ -356,6 +356,22 @@ The diagnostic was marked for removal, and cleanup was verified after the reboot
 
 This establishes that, from the `u:r:ksu:s0` services hook on the reforge kernel, the worker's inventory, environment, live enrollment, layout-override check, targeting, read-only open, `EVIOCG*` revalidation and `EVIOCGKEY` neutral check all succeeded against the real earphone node. It does not test the uinput proxy, grabs, passthrough, suppression, button mappings or preservation behavior.
 
+## Service-context proxy check plan — 10 November 2026
+
+The next check creates the uinput proxy described in [decision record 0004](decisions/0004-proxy-identity.md) from the services hook and observes Android's view of it, before any grab. After the composite gate and the binary digest check, the v13 hook runs `./earkey-worker proxy-check` under a 75 s deadline. The worker hashes `Generic.kl` itself, so the hook no longer computes a digest.
+
+`proxy-check` first runs every `check` step. Only if they all pass does it:
+
+1. Create the proxy from the descriptor-verified input ID and the evidence's three control keys.
+2. Wait up to 45 s for its `/dev/input` node and for `system_server` to hold it open, reporting `proxy_ready_ms` and `proxy_event`.
+3. Rescan the inventory and require the proxy to be virtual with no USB identity, the fixed name, the copied ID, event types `[0, 1, 4]`, the three keys and `MSC_SCAN`, and no possible enrollment (`proxy_excluded=yes`).
+4. Run `/system/bin/dumpsys input` under a 10 s deadline with a 4 MiB limit, and print only the proxy's Event Hub classes, layout, key character map and configuration. It requires `KEYBOARD` and `EXTERNAL`, `/system/usr/keylayout/Generic.kl`, `ConfigurationFile: <none>` and the observed node path.
+5. Destroy the proxy and require its node to disappear within 2 s (`proxy_teardown=ok`).
+
+It ends with `proxy_check=pass`. A failed `check` creates no proxy. The proxy is destroyed on every exit path. Nothing grabs the physical node or writes an event to the proxy. The fixture is `0.0.13-preflight` (version code 13). The host suite has 23 passing tests. `earkey-control-service-preflight-v13.zip` is 692,644 bytes with SHA-256 `a524f1651fb97285abaeeeb92fa1cb13a04dc2156b56ab151f4344ac734c1b88`; two builds were byte-identical. It embeds the worker ELF `57178e5f0431f85ac0214505381a460b3cdb0a6953191f51bfea9aa085b4e895` ([build record](build.md#stage-4-android-worker-check)).
+
+After authorization, follow the v12 procedure with the earphones connected from before the reboot until the record read, and no button pressed. Whether the `u:r:ksu:s0` domain may read `system_server`'s descriptors and run `dumpsys` from the services hook is unverified. A denial there is a recorded failure, not a reason to change policy.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

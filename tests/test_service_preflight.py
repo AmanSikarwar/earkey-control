@@ -11,8 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/resukisu-service-preflight"
-ELF = ROOT / "target/stage4/a0f45ee/earkey-worker-arm64-api31"
-LAYOUT = "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
+ELF = ROOT / "target/stage4/8035136/earkey-worker-arm64-api31"
 PACKAGER = ROOT / "tools/package-service-probe.py"
 
 
@@ -78,7 +77,7 @@ fi''')
         self.mock(
             "timeout",
 '''[ "$1" = -s ] && [ "$2" = KILL ] || exit 96
-[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 10 ] || exit 96
+[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 75 ] || exit 96
 shift 3
 case "$1" in
     /system/bin/readlink)
@@ -91,11 +90,6 @@ case "$1" in
         exit 0 ;;
     /system/bin/sha256sum)
         shift
-        if [ "$1" = /system/usr/keylayout/Generic.kl ]; then
-            [ -n "${TEST_LAYOUT_SHA:-}" ] || exit 1
-            printf '%s  %s\\n' "$TEST_LAYOUT_SHA" "$1"
-            exit 0
-        fi
         if [ "$1" = "$TEST_MANAGER_PATH" ]; then
             printf '%s  %s\\n' "${TEST_MANAGER_SHA:-fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50}" "$1"
             exit 0
@@ -108,16 +102,16 @@ esac
 exec "$@"''',
         )
         probe = self.case / "earkey-worker"
-        probe.write_text('#!/bin/sh\n[ "$1 $2 $#" = "check $TEST_LAYOUT_SHA 2" ] || exit 97\nprintf "ran\\n" >> .calls\n'
+        probe.write_text('#!/bin/sh\n[ "$*" = proxy-check ] || exit 97\nprintf "ran\\n" >> .calls\n'
                          '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "open=error:PermissionDenied\\ncheck=fail\\n"; exit 1; }\n'
-                         'printf "check=pass\\n"\n')
+                         'printf "check=pass\\nproxy_check=pass\\n"\n')
         probe.chmod(0o500)
         (self.case / "worker.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
         self.env = os.environ | {
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "KSU": "true", "BAKASU": "true", "KSU_MODULE": "earkey_control_preflight",
             "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "35201", "KSU_UAPI_VER": "6",
-            "TEST_MANAGER_PATH": str(self.manager), "TEST_LAYOUT_SHA": LAYOUT,
+            "TEST_MANAGER_PATH": str(self.manager),
         }
 
     def mock(self, name, body):
@@ -170,7 +164,7 @@ exec "$@"''',
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertIn("launcher=resukisu_service\n", result)
-        self.assertIn(f"layout_sha256={LAYOUT}\ncheck=pass\nservice_probe_exit=0\n", result)
+        self.assertIn("check=pass\nproxy_check=pass\nservice_probe_exit=0\n", result)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
@@ -484,15 +478,6 @@ exec "$@"''',
             "open=error:PermissionDenied\ncheck=fail\nservice_probe_exit=1\n"))
         self.assertEqual((self.case / ".calls").read_text(), "ran\n")
 
-    def test_unavailable_or_malformed_layout_digest_skips_the_worker(self):
-        for value in ("", LAYOUT.upper(), LAYOUT[:63], LAYOUT + "0", "z" * 64):
-            with self.subTest(value=value):
-                self.reset()
-                self.assertEqual(self.run_hook(TEST_LAYOUT_SHA=value).returncode, 0)
-                self.assertTrue(self.result().endswith(
-                    "layout_digest=unavailable\nservice_probe_exit=1\n"))
-                self.assert_no_probe()
-
     def test_symlink_probe_is_rejected(self):
         (self.case / "earkey-worker").rename(self.case / "payload")
         (self.case / "earkey-worker").symlink_to("payload")
@@ -545,7 +530,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-worker")).hexdigest(),
                              (FIXTURE / "worker.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.12-preflight\nversionCode=12\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.13-preflight\nversionCode=13\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

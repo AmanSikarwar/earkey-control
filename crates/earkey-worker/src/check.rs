@@ -26,10 +26,20 @@ const OVERRIDDEN: &str = "override";
 pub struct Report {
     pub lines: Vec<(&'static str, String)>,
     pub passed: bool,
+    /// Set only when every step passed.
+    pub checked: Option<Checked>,
+}
+
+/// What a passing check verified, for later acquisition steps.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Checked {
+    pub evidence: Evidence,
+    /// Input ID read from the opened descriptor.
+    pub input_id: [u16; 4],
 }
 
 impl Report {
-    fn note(&mut self, key: &'static str, value: impl ToString) {
+    pub(crate) fn note(&mut self, key: &'static str, value: impl ToString) {
         self.lines.push((key, value.to_string()));
     }
 
@@ -173,6 +183,10 @@ pub fn evaluate(root: &Path, environment: &Observed, layout_sha256: &str) -> Rep
     }
     report.note("check", "pass");
     report.passed = true;
+    report.checked = Some(Checked {
+        evidence,
+        input_id: opened.input_id,
+    });
     report
 }
 

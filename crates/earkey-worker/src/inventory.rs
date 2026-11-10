@@ -192,7 +192,7 @@ fn node(path: &Path, major: u32, minor: u32) -> io::Result<NodeInstance> {
 }
 
 /// Linux `makedev` encoding.
-fn linux_dev(major: u32, minor: u32) -> u64 {
+pub(crate) fn linux_dev(major: u32, minor: u32) -> u64 {
     let (major, minor) = (u64::from(major), u64::from(minor));
     ((major & 0xffff_f000) << 32)
         | ((major & 0xfff) << 8)

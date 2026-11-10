@@ -3,12 +3,12 @@
 //! It never grabs the physical node and never writes an event to the proxy.
 //! The proxy is destroyed on every return path.
 
-use crate::check::{self, Report};
+use crate::check::{self, Checked, Report};
 use crate::environment::Observed;
-use crate::inventory;
+use crate::inventory::{self, Observation};
 use crate::layout;
 use crate::proxy::{PROXY_NAME, Proxy, node_removed, wait_ready};
-use earkey_policy::identity::{LinuxKey, VerifiedEnrollment};
+use earkey_policy::identity::{Environment, Evidence, LinuxKey, VerifiedEnrollment};
 use std::io;
 use std::path::Path;
 use std::thread;
@@ -59,6 +59,35 @@ fn header(line: &str) -> Option<&str> {
     (!number.is_empty() && number.bytes().all(|b| b.is_ascii_digit())).then_some(rest)
 }
 
+/// The evidence's control keys in ascending order, matching how the inventory reports bitmaps.
+pub fn proxy_keys(evidence: Evidence) -> Vec<LinuxKey> {
+    let mut keys: Vec<LinuxKey> = evidence.controls().iter().map(|c| c.linux).collect();
+    keys.sort_by_key(|key| key.0);
+    keys
+}
+
+/// True if an inventoried node is the expected proxy and cannot be enrolled.
+pub fn excluded(
+    observed: &Observation,
+    checked: Checked,
+    environment: &Environment<'_>,
+    layout: &str,
+) -> bool {
+    observed.is_virtual
+        && observed.usb_hid.is_none()
+        && observed.name == PROXY_NAME
+        && observed.input_id == checked.input_id
+        && observed.event_types == [0, 1, 4]
+        && observed.keys == proxy_keys(checked.evidence)
+        && observed.misc == [4]
+        && VerifiedEnrollment::from_observation(
+            checked.evidence,
+            environment,
+            &observed.candidate(layout),
+        )
+        .is_none()
+}
+
 /// Runs the check, then creates, observes and destroys the proxy.
 pub fn run(
     root: &Path,
@@ -77,12 +106,7 @@ pub fn run(
         report.note("proxy_check", "fail");
         report
     };
-    let keys: Vec<LinuxKey> = checked
-        .evidence
-        .controls()
-        .iter()
-        .map(|c| c.linux)
-        .collect();
+    let keys = proxy_keys(checked.evidence);
     let (sys, dev) = (root.join("sys"), root.join("dev"));
     let proxy = match Proxy::create(&dev, checked.input_id, &keys) {
         Ok(proxy) => proxy,
@@ -114,21 +138,7 @@ pub fn run(
     let excluded = inventory
         .iter()
         .find(|o| o.event == ready.event)
-        .is_some_and(|o| {
-            o.is_virtual
-                && o.usb_hid.is_none()
-                && o.name == PROXY_NAME
-                && o.input_id == checked.input_id
-                && o.event_types == [0, 1, 4]
-                && o.keys == keys
-                && o.misc == [4]
-                && VerifiedEnrollment::from_observation(
-                    checked.evidence,
-                    &env,
-                    &o.candidate(&layout),
-                )
-                .is_none()
-        });
+        .is_some_and(|o| excluded(o, checked, &env, &layout));
     if !excluded {
         return fail(report, "proxy_excluded", "no".into());
     }

@@ -5,7 +5,7 @@
 use earkey_engine::Event;
 use earkey_policy::identity::{Evidence, LinuxKey, NodeInstance};
 use earkey_worker::device::Opened;
-use earkey_worker::forward::{End, Limits, emit, run};
+use earkey_worker::forward::{End, Limits, Tally, emit, run};
 use earkey_worker::inventory::Observation;
 use earkey_worker::proxy::Proxy;
 use std::ffi::CString;
@@ -156,12 +156,20 @@ fn passthrough_forwards_exactly_and_grab_hides_the_source() {
     let opened = Opened::open(&dev.0, &observation(&source_event, &source_path)).unwrap();
     let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
+    let mut tally = Tally::default();
 
     let end = thread::scope(|scope| {
         let session = scope.spawn(|| {
-            run(&opened, &proxy, EVIDENCE, &[], LIMITS, &stop, |c| {
-                counter.store(c, Ordering::SeqCst)
-            })
+            run(
+                &opened,
+                &proxy,
+                EVIDENCE,
+                &[],
+                LIMITS,
+                &stop,
+                &mut tally,
+                |c| counter.store(c, Ordering::SeqCst),
+            )
         });
         thread::sleep(Duration::from_millis(200));
         emit(&source, &press(1)).unwrap();
@@ -189,6 +197,9 @@ fn passthrough_forwards_exactly_and_grab_hides_the_source() {
         session.join().unwrap()
     });
     assert_eq!(end.unwrap(), End::Stopped);
+    assert_eq!(tally.read, tally.forwarded);
+    assert_eq!(tally.forwarded.summary(), "0xa4:down=1,repeat=0,up=1");
+    assert_eq!(tally.cleanup_releases, 0);
 
     emit(&source, &press(1)).unwrap();
     emit(&source, &press(0)).unwrap();
@@ -213,9 +224,21 @@ fn stop_during_a_held_key_releases_it_on_the_proxy() {
     let mut output = reader(&proxy_path);
     let opened = Opened::open(&dev.0, &observation(&source_event, &source_path)).unwrap();
     let stop = AtomicBool::new(false);
+    let mut tally = Tally::default();
 
     let end = thread::scope(|scope| {
-        let session = scope.spawn(|| run(&opened, &proxy, EVIDENCE, &[], LIMITS, &stop, |_| {}));
+        let session = scope.spawn(|| {
+            run(
+                &opened,
+                &proxy,
+                EVIDENCE,
+                &[],
+                LIMITS,
+                &stop,
+                &mut tally,
+                |_| {},
+            )
+        });
         thread::sleep(Duration::from_millis(200));
         emit(&source, &press(1)).unwrap();
         assert_eq!(
@@ -226,6 +249,8 @@ fn stop_during_a_held_key_releases_it_on_the_proxy() {
         session.join().unwrap()
     });
     assert_eq!(end.unwrap(), End::Stopped);
+    assert_eq!(tally.forwarded.summary(), "0xa4:down=1,repeat=0,up=0");
+    assert_eq!(tally.cleanup_releases, 1);
     assert_eq!(
         read_records(&mut output, 2, Duration::from_secs(1)),
         [(1, 0xa4, 0), (0, 0, 0)]
@@ -249,7 +274,17 @@ fn a_key_held_at_grab_time_abandons_the_session() {
     emit(&source, &press(1)).unwrap();
     let stop = AtomicBool::new(false);
     assert_eq!(
-        run(&opened, &proxy, EVIDENCE, &[], LIMITS, &stop, |_| {}).unwrap(),
+        run(
+            &opened,
+            &proxy,
+            EVIDENCE,
+            &[],
+            LIMITS,
+            &stop,
+            &mut Tally::default(),
+            |_| {}
+        )
+        .unwrap(),
         End::NotNeutral
     );
     assert!(read_records(&mut output, 1, Duration::from_millis(100)).is_empty());
@@ -280,7 +315,18 @@ fn a_removed_source_reports_its_fault_after_releasing_held_keys() {
     let opened = Opened::open(&dev.0, &observation(&source_event, &source_path)).unwrap();
     let stop = AtomicBool::new(false);
     let end = thread::scope(|scope| {
-        let session = scope.spawn(|| run(&opened, &proxy, EVIDENCE, &[], LIMITS, &stop, |_| {}));
+        let session = scope.spawn(|| {
+            run(
+                &opened,
+                &proxy,
+                EVIDENCE,
+                &[],
+                LIMITS,
+                &stop,
+                &mut Tally::default(),
+                |_| {},
+            )
+        });
         thread::sleep(Duration::from_millis(200));
         emit(&source, &press(1)).unwrap();
         assert_eq!(

@@ -9,7 +9,7 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "resukisu-service-preflight"
-WORKER_SIZE = 675_016
+WORKER_SIZE = 741_728
 
 
 def main():

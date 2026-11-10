@@ -76,7 +76,14 @@ An `Observation` lends itself to the policy matcher as a `Candidate`. The caller
 - It then drives the engine with `poll`, bounded by the engine deadline, a tick and the total session limit. It calls `progress` with a strictly increasing counter from the loop itself, including idle waits, and stops as soon as the stop flag is set.
 - On every exit, it writes key-up and report records for every key the engine may have forwarded, then releases the grab.
 
-Supervisor wiring, the stop signal, measured deadlines and the physical passthrough session are not implemented yet.
+`earkey_worker::session` connects the pieces. `earkey-worker passthrough` is the supervised child:
+1. It repeats the pause and `stay-inactive` gate check before opening anything.
+2. It acquires the revalidated read-only node through `check::acquire`.
+3. It creates the proxy, waits for Android readiness, and sends the started frame.
+4. It forwards with progress frames from the loop until `SIGTERM` sets its stop flag.
+5. It writes a short `worker_*` report to stderr.
+
+`earkey-worker supervise <10-600>` takes `supervisor.lock` in the private store and runs the state machine over the process adapter and the store-backed gate. The initial production deadlines are start 20 s, progress 1 s, pause 1 s, kill 2 s and restart 5 s, with a 250 ms engine stall limit and a 100 ms loop tick. These were chosen from the drill and v14 measurements and are not yet fault-tested on the phone. At the session deadline it closes the gate, measures the orderly stop, and reports the actions, phase and faults. A latch write is reported as a failure, never persisted. Because the gate is re-read on every step, creating the `stay-inactive` marker stops a running session. The process adapter passes the supervisor's stderr to the worker for its report.
 
 The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 
@@ -92,7 +99,7 @@ The supervisor never starts or signals a child itself and never receives a grabb
 
 `earkey_supervisor::process` (Linux and Android only) executes the state machine's actions for one worker:
 
-- **Spawn:** the worker runs in its own process group with stdin and stderr closed and stdout as the progress pipe. A parent-death `SIGKILL` is set before exec, and spawn fails if the supervising thread already exited. Standard library spawning keeps other descriptors close-on-exec.
+- **Spawn:** the worker runs in its own process group with stdin closed, stdout as the progress pipe, and the supervisor's stderr for a short report. A parent-death `SIGKILL` is set before exec, and spawn fails if the supervising thread already exited. Standard library spawning keeps other descriptors close-on-exec.
 - **Progress frames:** each frame is 9 bytes, a tag byte and a little-endian `u64`. Tag 1 with counter 0 is the startup acknowledgment, and tag 2 is a progress counter. Frames are delivered to the state machine one at a time, so a backwards counter is never hidden inside a batch. A malformed frame, end of stream or an oversized backlog stops reading the channel; the progress deadline then stops the worker.
 - **Stop and kill:** `Stop` sends `SIGTERM` to the group, and the worker must release its node and destroy its proxy on it. `Kill` sends `SIGKILL` to the group. A stop or kill with no worker is reported back as exited.
 - **Exit confirmation:** the adapter observes the leader with `waitid(WNOWAIT)`. The unreaped leader keeps its PID and group ID reserved. It then sends `SIGKILL` to the group and scans `/proc` until no readable, non-zombie member remains, and only then reaps the leader. `/proc` entries denied by SELinux are skipped. That assumes the worker stays in the supervisor's own SELinux domain, and it must not leave its process group.

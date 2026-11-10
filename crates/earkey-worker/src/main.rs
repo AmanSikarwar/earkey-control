@@ -1,27 +1,108 @@
-//! Diagnostic entry point: `earkey-worker check` or `earkey-worker proxy-check`.
+//! Diagnostic entry point:
+//! `earkey-worker check | proxy-check | passthrough | supervise <seconds>`.
 
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    match args
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>()
-        .as_slice()
-    {
-        [command @ ("check" | "proxy-check")] => run(command),
-        _ => {
-            eprintln!("usage: earkey-worker check | proxy-check");
-            ExitCode::from(2)
-        }
-    }
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let command = match args.as_slice() {
+        [command @ ("check" | "proxy-check" | "passthrough")] => Command::Plain(command),
+        ["supervise", seconds] => match seconds.parse::<u64>() {
+            Ok(seconds) if earkey_worker_sessions().contains(&seconds) => {
+                Command::Supervise(seconds)
+            }
+            _ => return usage(),
+        },
+        _ => return usage(),
+    };
+    run(command)
+}
+
+enum Command<'a> {
+    Plain(&'a str),
+    Supervise(u64),
+}
+
+fn usage() -> ExitCode {
+    eprintln!("usage: earkey-worker check | proxy-check | passthrough | supervise <10-600>");
+    ExitCode::from(2)
+}
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn earkey_worker_sessions() -> std::ops::RangeInclusive<u64> {
+    earkey_worker::session::SESSION_SECONDS
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
+fn earkey_worker_sessions() -> std::ops::RangeInclusive<u64> {
+    10..=600
 }
 
 #[cfg(target_os = "android")]
-fn run(command: &str) -> ExitCode {
+static STOP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(target_os = "android")]
+extern "C" fn on_terminate(_: libc::c_int) {
+    STOP.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[cfg(target_os = "android")]
+fn run(command: Command<'_>) -> ExitCode {
+    use earkey_policy::store::Store;
+    use earkey_supervisor::process::Lock;
     use std::path::Path;
     use std::time::Duration;
+
+    const LOCK: &str = "/data/adb/earkey_control/supervisor.lock";
+    let store_gate = || {
+        let store = Store::open().map_err(|error| std::io::Error::other(format!("{error:?}")))?;
+        earkey_supervisor::store::read_gate(&store)
+    };
+    let root = Path::new("/");
+    if let Command::Supervise(seconds) = command {
+        let lock = match Lock::acquire(Path::new(LOCK)) {
+            Ok(lock) => lock,
+            Err(error) => {
+                println!("supervise_lock=error:{:?}", error.kind());
+                println!("supervise=fail");
+                return ExitCode::FAILURE;
+            }
+        };
+        let exe = match std::env::current_exe() {
+            Ok(exe) => exe,
+            Err(error) => {
+                println!("supervise_exe=error:{:?}", error.kind());
+                return ExitCode::FAILURE;
+            }
+        };
+        // SAFETY: This single-threaded process reaps children only through the adapter.
+        let report = unsafe {
+            earkey_worker::session::supervise(
+                exe,
+                vec!["passthrough".into()],
+                Duration::from_secs(seconds),
+                earkey_worker::session::LIMITS,
+                store_gate,
+            )
+        };
+        for (key, value) in &report.lines {
+            println!("{key}={value}");
+        }
+        drop(lock);
+        println!(
+            "supervise_lock_removed={}",
+            std::fs::remove_file(LOCK).is_ok()
+        );
+        return if report.passed {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        };
+    }
+    let Command::Plain(command) = command else {
+        unreachable!()
+    };
 
     let environment = match earkey_worker::environment::read() {
         Ok(environment) => environment,
@@ -31,7 +112,28 @@ fn run(command: &str) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let root = Path::new("/");
+    if command == "passthrough" {
+        // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
+        unsafe {
+            libc::signal(
+                libc::SIGTERM,
+                on_terminate as *const () as libc::sighandler_t,
+            )
+        };
+        let passed = earkey_worker::session::worker(
+            root,
+            &environment,
+            store_gate,
+            &STOP,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        return if passed {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        };
+    }
     let report = if command == "check" {
         earkey_worker::check::run(root, &environment)
     } else {
@@ -90,7 +192,10 @@ fn dumpsys_input() -> std::io::Result<String> {
 }
 
 #[cfg(not(target_os = "android"))]
-fn run(_: &str) -> ExitCode {
-    println!("check=android_required");
+fn run(command: Command<'_>) -> ExitCode {
+    match command {
+        Command::Plain(command) => println!("{command}=android_required"),
+        Command::Supervise(seconds) => println!("supervise_{seconds}=android_required"),
+    }
     ExitCode::FAILURE
 }

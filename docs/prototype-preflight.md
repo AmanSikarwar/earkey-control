@@ -169,7 +169,7 @@ The maintainer accepted the composite identity check in [decision record 0002](d
 
 The host suite is `tests/test_service_preflight.py` with 21 passing tests. The fixture module version is `0.0.8-preflight` (version code 8). The deterministic package is `earkey-control-service-preflight-v8.zip`, 362,255 bytes, SHA-256 `3643317502ec07f7e140da6dff299c8395ddf334703acbb25646beae11d9c929`; it was built twice with identical bytes from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`.
 
-This acceptance covers only the metadata-only launcher check. It is not input readiness. The `/proc/version` string is not cryptographic and can be spoofed through the fork's uname path. The driver `version` remains mutable and the flags can be replaced through a toolkit override; the gate proves the observed state at query time, not provenance. The service-context launcher check remains **Not passed** because no re-baselined package has run on the phone. The next device step needs explicit authorization for one temporary install, one reboot, a bounded record read and one cleanup reboot. `probe-uinput`, evdev, uinput, grab, injection, passthrough, suppression and policy changes remain outside this scope.
+This acceptance covers only the metadata-only launcher check. It is not input readiness. The `/proc/version` string is not cryptographic and can be spoofed through the fork's uname path. The driver `version` remains mutable and the flags can be replaced through a toolkit override; the gate proves the observed state at query time, not provenance. The service-context launcher check remains **Not passed** because the authorized 10 November v8 run stopped at the services-hook `full_version` guard before the probe ran. The next device step needs explicit authorization for one temporary install, one reboot, a bounded record read and one cleanup reboot. `probe-uinput`, evdev, uinput, grab, injection, passthrough, suppression and policy changes remain outside this scope.
 
 ## Re-baseline to the measured reforge kernel — 10 November 2026
 
@@ -194,7 +194,24 @@ The service hook now requires the exact measured `full_version`, `flags=0x160`, 
 
 The read-only preflight also verified that the diagnostic active and staged paths were absent, no module was staged, the manager digest and ownership were unchanged, the six-module inventory contained no diagnostic ID, `/data/adb/ksu/.manager_version` and the `ksu_toolkit` paths were absent, and `/data/adb/modules/magic_mount_rs/metainstall.sh` was present but unused. The installer path needs separate authorization if the normal manager installer delegates to it. The kernel release, build, driver and flag values are measured observations; the interpretation of the high flag bits is informed inference. The version remains mutable through `ksuver_override`, and the flags can be replaced through `ksuflags_override` when toolkit support is compiled in; both symbols appeared in `/proc/kallsyms`. The kernel string can be spoofed through `CHANGE_SPOOF_UNAME`. None of these observations establishes service-context success.
 
-The service-context launcher check remains **Not passed** because no re-baselined package has run on the phone. A new device authorization is required for one temporary install, one reboot, a bounded record read and one cleanup reboot.
+The service-context launcher check remains **Not passed** because the authorized 10 November v8 run stopped at the services-hook `full_version` guard before the probe ran. A new device authorization is required for one temporary install, one reboot, a bounded record read and one cleanup reboot.
+
+## Re-baselined service-context result — 10 November 2026
+
+The maintainer authorized one temporary install of `earkey-control-service-preflight-v8.zip`, one reboot, a bounded record read and one cleanup reboot. Pre-checks matched the re-baselined profile in a root shell: `/proc/version` reported the reforge release/build, and `debug info` reported `full_version=v4.2.0-35201-backslashxx`, flags `0x160`, features `0x7`, UAPI 6, built-in mode and `pr_build=false`. The manager digest and ownership were unchanged, no module was pending and no diagnostic path existed. `uname -r` in the same shell reported `4.14.357-openela-VantomKernel`, consistent with uname spoofing; the gate reads `/proc/version`. The delegated `magic_mount_rs/metainstall.sh` and `metauninstall.sh` matched the previously reviewed SHA-256 values `c64ccfe7397a80fba8c6269ee854b854b68cd329cfd0d385574df0a524c7ef02` and `1cce72f2b303010a17695b6ccecbc066e7a8e4f7d2b0a44b0ec3ea6b0fe917d0`. The ZIP has no `system/` tree.
+
+The on-device ZIP digest matched `3643317502ec07f7e140da6dff299c8395ddf334703acbb25646beae11d9c929`. `ksud module install` staged the module through the metamodule installer with the same harmless same-file `cp` messages seen for v6, and the staged probe matched `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`. The upload was removed.
+
+| Hook | Uptime | Driver `version` | Driver `full_version` | Other `debug info` fields | Result |
+| --- | --- | --- | --- | --- | --- |
+| services | 25.34 s | `32726` | `v3.3.1-32726` | flags `0x160`, features `0x7`, UAPI 6, built-in, no LKM/bundled/late load, `pr_build=false` | `driver_identity=mismatch`, `driver_reason=full_version`, `guard_failure=driver_identity`; probe not run |
+| boot-completed | 45.16 s | `35201` | `v4.2.0-35201-backslashxx` | same | composite guard verified, `guard_exit=0` |
+
+Manager, kernel and module identities were verified in both hooks. Both hooks recorded `u:r:ksu:s0` with the same mount and UTS namespace identifiers, and neither saw a driver descriptor. The service-context launcher check remains **Not passed**.
+
+`full_version` is therefore mutable during boot together with the driver `version`, so pinning it reproduces the original temporal failure. The flags, features, UAPI and mode fields matched in both hooks. The pinned userspace `ksud` source contains no version writer, so the writer is still unidentified; it may be in-kernel or the manager app. That is an unverified hypothesis.
+
+The module was marked for removal with `ksud module uninstall`, and the `remove` marker was verified. After the cleanup reboot, the active and staged paths, records and upload were gone. The original six modules, the `magic_mount_rs` metamodule link, the manager digest and Enforcing mode remained. No `probe-uinput`, evdev, uinput, grab, passthrough, suppression, audio or microphone behavior was exercised. Raw records remain private.
 
 ## Descriptor comparison design
 

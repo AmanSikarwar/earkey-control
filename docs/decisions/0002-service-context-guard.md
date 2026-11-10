@@ -139,3 +139,5 @@ Host-side implementation is complete for the re-baselined accepted scope:
 - package: `earkey-control-service-preflight-v8.zip`, 362,255 bytes, SHA-256 `3643317502ec07f7e140da6dff299c8395ddf334703acbb25646beae11d9c929`, built twice with identical bytes from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`.
 
 No new device authorization is granted by this record. The service-context launcher check remains **Not passed** until the maintainer authorizes one temporary install, one reboot, a bounded record read and one cleanup reboot, and that run succeeds. The [preflight](../prototype-preflight.md) records that status.
+
+On 10 November 2026 the authorized v8 run stopped at the services-hook `full_version` guard. The services hook at 25.34 s saw `v3.3.1-32726` and boot-completed at 45.16 s saw `v4.2.0-35201-backslashxx`, so `full_version` is as mutable as the driver `version`. Flags, features, UAPI and mode fields matched in both hooks. See the [result](../prototype-preflight.md#re-baselined-service-context-result--10-november-2026). The gate needs a further maintainer decision before another run.

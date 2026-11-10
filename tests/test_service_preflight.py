@@ -11,7 +11,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/resukisu-service-preflight"
-ELF = ROOT / "target/stage4/6db695d/earkey-drill-arm64-api31"
+ELF = ROOT / "target/stage4/a0f45ee/earkey-worker-arm64-api31"
+LAYOUT = "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
 PACKAGER = ROOT / "tools/package-service-probe.py"
 
 
@@ -77,7 +78,7 @@ fi''')
         self.mock(
             "timeout",
 '''[ "$1" = -s ] && [ "$2" = KILL ] || exit 96
-[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 30 ] || exit 96
+[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 10 ] || exit 96
 shift 3
 case "$1" in
     /system/bin/readlink)
@@ -90,28 +91,33 @@ case "$1" in
         exit 0 ;;
     /system/bin/sha256sum)
         shift
+        if [ "$1" = /system/usr/keylayout/Generic.kl ]; then
+            [ -n "${TEST_LAYOUT_SHA:-}" ] || exit 1
+            printf '%s  %s\\n' "$TEST_LAYOUT_SHA" "$1"
+            exit 0
+        fi
         if [ "$1" = "$TEST_MANAGER_PATH" ]; then
             printf '%s  %s\\n' "${TEST_MANAGER_SHA:-fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50}" "$1"
             exit 0
         fi
         exec sha256sum "$@" ;;
     "$TEST_MANAGER_PATH") [ "${TEST_MANAGER_TIMEOUT:-0}" = 1 ] && exit 137 ;;
-    ./earkey-drill) [ "${TEST_TIMEOUT:-0}" = 1 ] && exit 137 ;;
+    ./earkey-worker) [ "${TEST_TIMEOUT:-0}" = 1 ] && exit 137 ;;
     *) exit 96 ;;
 esac
 exec "$@"''',
         )
-        probe = self.case / "earkey-drill"
-        probe.write_text('#!/bin/sh\n[ "$*" = drill ] || exit 97\nprintf "ran\\n" >> .calls\n'
-                         '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "drill=storage_unavailable\\n"; exit 1; }\n'
-                         'printf "drill=pass\\n"\n')
+        probe = self.case / "earkey-worker"
+        probe.write_text('#!/bin/sh\n[ "$1 $2 $#" = "check $TEST_LAYOUT_SHA 2" ] || exit 97\nprintf "ran\\n" >> .calls\n'
+                         '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "open=error:PermissionDenied\\ncheck=fail\\n"; exit 1; }\n'
+                         'printf "check=pass\\n"\n')
         probe.chmod(0o500)
-        (self.case / "drill.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
+        (self.case / "worker.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
         self.env = os.environ | {
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "KSU": "true", "BAKASU": "true", "KSU_MODULE": "earkey_control_preflight",
             "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "35201", "KSU_UAPI_VER": "6",
-            "TEST_MANAGER_PATH": str(self.manager),
+            "TEST_MANAGER_PATH": str(self.manager), "TEST_LAYOUT_SHA": LAYOUT,
         }
 
     def mock(self, name, body):
@@ -164,7 +170,7 @@ exec "$@"''',
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertIn("launcher=resukisu_service\n", result)
-        self.assertIn("drill=pass\nservice_probe_exit=0\n", result)
+        self.assertIn(f"layout_sha256={LAYOUT}\ncheck=pass\nservice_probe_exit=0\n", result)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
@@ -461,26 +467,35 @@ exec "$@"''',
                 path.unlink()
 
     def test_bad_digest_and_timeout_are_recorded(self):
-        (self.case / "drill.sha256").write_text("0" * 64 + "\n")
+        (self.case / "worker.sha256").write_text("0" * 64 + "\n")
         self.assertEqual(self.run_hook().returncode, 0)
         self.assertIn("preflight=digest_mismatch\nservice_probe_exit=1\n", self.result())
         self.assertFalse((self.case / ".calls").exists())
         shutil.rmtree(self.case / ".preflight")
-        probe = self.case / "earkey-drill"
-        (self.case / "drill.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
+        probe = self.case / "earkey-worker"
+        (self.case / "worker.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
         self.assertEqual(self.run_hook(TEST_TIMEOUT="1").returncode, 0)
         self.assertTrue(self.result().endswith("service_probe_exit=137\n"))
         self.assertFalse((self.case / ".calls").exists())
 
-    def test_drill_failure_is_recorded(self):
+    def test_worker_check_failure_is_recorded(self):
         self.assertEqual(self.run_hook(TEST_PROBE_DENIED="1").returncode, 0)
         self.assertTrue(self.result().endswith(
-            "drill=storage_unavailable\nservice_probe_exit=1\n"))
+            "open=error:PermissionDenied\ncheck=fail\nservice_probe_exit=1\n"))
         self.assertEqual((self.case / ".calls").read_text(), "ran\n")
 
+    def test_unavailable_or_malformed_layout_digest_skips_the_worker(self):
+        for value in ("", LAYOUT.upper(), LAYOUT[:63], LAYOUT + "0", "z" * 64):
+            with self.subTest(value=value):
+                self.reset()
+                self.assertEqual(self.run_hook(TEST_LAYOUT_SHA=value).returncode, 0)
+                self.assertTrue(self.result().endswith(
+                    "layout_digest=unavailable\nservice_probe_exit=1\n"))
+                self.assert_no_probe()
+
     def test_symlink_probe_is_rejected(self):
-        (self.case / "earkey-drill").rename(self.case / "payload")
-        (self.case / "earkey-drill").symlink_to("payload")
+        (self.case / "earkey-worker").rename(self.case / "payload")
+        (self.case / "earkey-worker").symlink_to("payload")
         self.assertEqual(self.run_hook().returncode, 0)
         self.assertIn("preflight=digest_mismatch", self.result())
         self.assertFalse((self.case / ".calls").exists())
@@ -525,12 +540,12 @@ exec "$@"''',
         with zipfile.ZipFile(archives[0]) as archive:
             self.assertIsNone(archive.testzip())
             self.assertEqual(archive.namelist(), [
-                "LICENSE", "boot-completed.sh", "customize.sh", "drill.sha256", "earkey-drill",
-                "module.prop", "service.sh", "skip_mount",
+                "LICENSE", "boot-completed.sh", "customize.sh", "earkey-worker", "module.prop",
+                "service.sh", "skip_mount", "worker.sha256",
             ])
-            self.assertEqual(hashlib.sha256(archive.read("earkey-drill")).hexdigest(),
-                             (FIXTURE / "drill.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.11-preflight\nversionCode=11\n", archive.read("module.prop"))
+            self.assertEqual(hashlib.sha256(archive.read("earkey-worker")).hexdigest(),
+                             (FIXTURE / "worker.sha256").read_text().strip())
+            self.assertIn(b"version=0.0.12-preflight\nversionCode=12\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777
@@ -539,7 +554,7 @@ exec "$@"''',
             self.assertEqual(modes["boot-completed.sh"], 0o755)
             self.assertEqual(modes["customize.sh"], 0o644)
             self.assertEqual(modes["module.prop"], 0o644)
-            self.assertEqual(modes["earkey-drill"], 0o500)
+            self.assertEqual(modes["earkey-worker"], 0o500)
 
 
 if __name__ == "__main__":

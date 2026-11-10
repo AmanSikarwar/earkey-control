@@ -15,4 +15,4 @@ if [ "${BOOTMODE:-}" != true ] ||
     abort "This diagnostic requires the reference ReSukiSU boot-mode installer."
 fi
 
-set_perm "$MODPATH/earkey-drill" 0 0 0500 || abort "Unable to set drill permissions."
+set_perm "$MODPATH/earkey-worker" 0 0 0500 || abort "Unable to set worker permissions."

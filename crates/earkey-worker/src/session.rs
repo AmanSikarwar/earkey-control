@@ -182,6 +182,11 @@ pub unsafe fn supervise(
     let hard_end = end_at + limits.pause + limits.kill + limits.start;
     let mut actions = Vec::new();
     let mut running_at = None;
+    let mut timeline = Vec::new();
+    let mut last_phase = None;
+    report
+        .lines
+        .push(("supervisor_started_uptime_ms", uptime_ms()));
     loop {
         let action = match adapter.step(&mut supervisor, &mut host, TICK) {
             Ok(action) => action,
@@ -189,6 +194,9 @@ pub unsafe fn supervise(
                 report
                     .lines
                     .push(("supervisor_actions", format!("{actions:?}")));
+                report
+                    .lines
+                    .push(("supervisor_timeline", timeline.join("; ")));
                 return fail(
                     report,
                     "supervisor_latch",
@@ -198,6 +206,14 @@ pub unsafe fn supervise(
         };
         actions.extend(action);
         let phase = supervisor.status().phase;
+        let at = started.elapsed().as_millis();
+        if let Some(action) = action {
+            timeline.push(format!("{at}:{action:?}"));
+        }
+        if last_phase != Some(phase) {
+            timeline.push(format!("{at}:{phase:?}"));
+            last_phase = Some(phase);
+        }
         if running_at.is_none() && phase == Phase::Running {
             running_at = Some(started.elapsed());
         }
@@ -222,6 +238,9 @@ pub unsafe fn supervise(
         .push(("supervisor_actions", format!("{actions:?}")));
     report
         .lines
+        .push(("supervisor_timeline", timeline.join("; ")));
+    report
+        .lines
         .push(("supervisor_phase", format!("{:?}", status.phase)));
     report
         .lines
@@ -241,6 +260,16 @@ pub unsafe fn supervise(
         if report.passed { "pass" } else { "fail" }.into(),
     ));
     report
+}
+
+/// Milliseconds since boot from `/proc/uptime`, for correlating with external events.
+fn uptime_ms() -> String {
+    std::fs::read_to_string("/proc/uptime")
+        .ok()
+        .and_then(|text| text.split_whitespace().next()?.parse::<f64>().ok())
+        .map_or("unavailable".into(), |seconds| {
+            format!("{:.0}", seconds * 1000.0)
+        })
 }
 
 fn fail(mut report: Report, key: &'static str, value: String) -> Report {

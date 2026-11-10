@@ -191,12 +191,30 @@ pub unsafe fn supervise(
         let action = match adapter.step(&mut supervisor, &mut host, TICK) {
             Ok(action) => action,
             Err(error) => {
+                let status = supervisor.status();
+                timeline.push(format!(
+                    "{}:latch_write_refused:{:?}",
+                    started.elapsed().as_millis(),
+                    error.kind()
+                ));
                 report
                     .lines
                     .push(("supervisor_actions", format!("{actions:?}")));
                 report
                     .lines
                     .push(("supervisor_timeline", timeline.join("; ")));
+                report
+                    .lines
+                    .push(("supervisor_phase", format!("{:?}", status.phase)));
+                report
+                    .lines
+                    .push(("supervisor_failures", status.failures.to_string()));
+                report.lines.push((
+                    "supervisor_last_fault",
+                    status
+                        .last_fault
+                        .map_or("none".into(), |fault| format!("{fault:?}")),
+                ));
                 return fail(
                     report,
                     "supervisor_latch",

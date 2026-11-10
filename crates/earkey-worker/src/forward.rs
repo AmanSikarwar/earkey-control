@@ -145,9 +145,12 @@ pub fn run(
     let end = session(opened, proxy, &mut engine, limits, stop, &mut progress);
     release(proxy, &engine);
     let ungrab = opened.grab(false);
-    let end = end?;
-    ungrab?;
-    Ok(end)
+    match (end?, ungrab) {
+        (end, Ok(())) => Ok(end),
+        // A faulted session may have lost its device; closing the descriptor releases the grab.
+        (End::Fault(fault), Err(_)) => Ok(End::Fault(fault)),
+        (_, Err(error)) => Err(error),
+    }
 }
 
 fn session(

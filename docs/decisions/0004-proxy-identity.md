@@ -1,6 +1,6 @@
 # Proxy identity and readiness decision
 
-Date: 10 November 2026. Status: **Proposed.** This narrows [ADR-002](0001-initial-design.md#adr-002-proxy-identity-and-mapping--validation-strategy-accepted-mapping-pending) for the reference profile and awaits maintainer acceptance. It does not authorize device access, a grab or passthrough.
+Date: 10 November 2026. Status: **Accepted** by the maintainer on 10 November 2026. This narrows [ADR-002](0001-initial-design.md#adr-002-proxy-identity-and-mapping--validation-strategy-accepted-mapping-pending) for the reference profile. It does not authorize device access, a grab or passthrough.
 
 ## Context
 

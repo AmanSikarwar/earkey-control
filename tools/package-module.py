@@ -10,6 +10,8 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "module"
+WEBUI = ROOT / "webui"
+WEBROOT = ("index.html", "style.css", "main.js", "status.js")
 REGISTRY = Path.home() / ".cargo" / "registry" / "src"
 LICENSE_PREFIXES = ("license", "copying", "unlicense", "notice")
 
@@ -28,6 +30,17 @@ def runtime_crates():
         if len(parts) == 2 and parts[1].startswith("v"):
             crates.add((parts[0], parts[1][1:]))
     return sorted(crates)
+
+
+def webroot():
+    """Compiles the WebUI with its locked TypeScript and returns the page files."""
+    if not (WEBUI / "node_modules" / "typescript").is_dir():
+        raise SystemExit("run `npm ci --ignore-scripts` in webui first")
+    subprocess.run(["npm", "run", "--silent", "build"], cwd=WEBUI, check=True)
+    built = sorted(p.name for p in (WEBUI / "dist").iterdir())
+    if built != sorted(WEBROOT):
+        raise SystemExit(f"unexpected WebUI output: {built}")
+    return {f"webroot/{name}": ((WEBUI / "dist" / name).read_bytes(), 0o644) for name in WEBROOT}
 
 
 def license_files(name, version):
@@ -63,6 +76,7 @@ def main():
         "LICENSE": ((ROOT / "LICENSE").read_bytes(), 0o644),
         "THIRD_PARTY_NOTICES.md": ((ROOT / "THIRD_PARTY_NOTICES.md").read_bytes(), 0o644),
     }
+    files.update(webroot())
     for name, version in runtime_crates():
         for path in license_files(name, version):
             files[f"licenses/{name}-{version}/{path.name}"] = (path.read_bytes(), 0o644)

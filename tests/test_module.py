@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "module"
 PACKAGER = ROOT / "tools/package-module.py"
-ELF = ROOT / "target/stage6/dbd3db0/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage6/47f7e58/earkey-worker-arm64-api31"
 STORAGE = "/data/adb/earkey_control"
 
 
@@ -148,8 +148,13 @@ class ModuleTests(unittest.TestCase):
             names = archive.namelist()
             for required in ("module.prop", "customize.sh", "service.sh", "uninstall.sh",
                              "skip_mount", "bin/earkey-worker", "bin/earkey-worker.sha256",
-                             "LICENSE", "THIRD_PARTY_NOTICES.md"):
+                             "LICENSE", "THIRD_PARTY_NOTICES.md", "webroot/index.html",
+                             "webroot/style.css", "webroot/main.js", "webroot/status.js"):
                 self.assertIn(required, names)
+            self.assertFalse(any(n.startswith("webroot/") and n.endswith(".ts") for n in names))
+            page = archive.read("webroot/index.html").decode()
+            self.assertIn("script-src 'self'", page)
+            self.assertNotIn("http", page.replace('http-equiv', ''))
             self.assertFalse(any(n.startswith(("module/", "earkey")) for n in names))
             for crate in ("sha2-0.11.1", "libc-0.2.191", "serde_json-1.0.154", "typenum-1.20.1"):
                 self.assertTrue(any(n.startswith(f"licenses/{crate}/") for n in names), crate)

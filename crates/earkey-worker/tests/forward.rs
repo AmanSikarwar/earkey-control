@@ -143,7 +143,9 @@ fn read_records(file: &mut File, count: usize, wait: Duration) -> Vec<(u16, u16,
 #[test]
 #[ignore = "needs /dev/uinput and CAP_MKNOD; see docs/build.md"]
 fn passthrough_forwards_exactly_and_grab_hides_the_source() {
-    let _serial = SERIAL.lock().unwrap();
+    let _serial = SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let dev = Dev::new();
     let source = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
     let proxy = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
@@ -200,7 +202,9 @@ fn passthrough_forwards_exactly_and_grab_hides_the_source() {
 #[test]
 #[ignore = "needs /dev/uinput and CAP_MKNOD; see docs/build.md"]
 fn stop_during_a_held_key_releases_it_on_the_proxy() {
-    let _serial = SERIAL.lock().unwrap();
+    let _serial = SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let dev = Dev::new();
     let source = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
     let proxy = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
@@ -232,7 +236,9 @@ fn stop_during_a_held_key_releases_it_on_the_proxy() {
 #[test]
 #[ignore = "needs /dev/uinput and CAP_MKNOD; see docs/build.md"]
 fn a_key_held_at_grab_time_abandons_the_session() {
-    let _serial = SERIAL.lock().unwrap();
+    let _serial = SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let dev = Dev::new();
     let source = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
     let proxy = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
@@ -257,4 +263,37 @@ fn a_key_held_at_grab_time_abandons_the_session() {
         6,
         "grab must be released"
     );
+}
+
+#[test]
+#[ignore = "needs /dev/uinput and CAP_MKNOD; see docs/build.md"]
+fn a_removed_source_reports_its_fault_after_releasing_held_keys() {
+    let _serial = SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let dev = Dev::new();
+    let source = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
+    let proxy = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
+    let (source_event, source_path) = dev.node(&source);
+    let (_, proxy_path) = dev.node(&proxy);
+    let mut output = reader(&proxy_path);
+    let opened = Opened::open(&dev.0, &observation(&source_event, &source_path)).unwrap();
+    let stop = AtomicBool::new(false);
+    let end = thread::scope(|scope| {
+        let session = scope.spawn(|| run(&opened, &proxy, EVIDENCE, &[], LIMITS, &stop, |_| {}));
+        thread::sleep(Duration::from_millis(200));
+        emit(&source, &press(1)).unwrap();
+        assert_eq!(
+            read_records(&mut output, 3, Duration::from_secs(2)).len(),
+            3
+        );
+        drop(source);
+        session.join().unwrap()
+    });
+    assert!(matches!(end.unwrap(), End::Fault(_)));
+    // The kernel releases the removed device's held keys, marking the report with value 1;
+    // the engine forwards that release before the read fails.
+    let released = read_records(&mut output, 2, Duration::from_secs(1));
+    assert_eq!(released[0], (1, 0xa4, 0));
+    assert!(matches!(released[1], (0, 0, 0 | 1)), "{released:?}");
 }

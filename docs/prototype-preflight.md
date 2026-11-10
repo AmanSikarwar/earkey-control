@@ -495,6 +495,29 @@ Between steps, the maintainer may press one earphone button to confirm passthrou
 
 This tests supervision and release on the reference phone in the boot-completed context only. It does not test suppression, holds and repeat ownership, double presses, calls or the microphone.
 
+## Supervised fault drill result (v16) — 10 November 2026
+
+The maintainer authorized the v16 run and connected the earphones before installation. Pre-checks matched the reforge profile. The guard directory was created as `0:0` mode `0700`. The on-device ZIP digest matched `02cf742d9067e918e2d99176f95201250ecc681ae092adb00334a2c7bd3a729e`, and the staged worker matched `9cd7ff90e5b9cdab1f7600c2a82226f395f5e66aec027b312eea83140ebc173e`. The services hook passed the read-only `check`. The boot-completed hook at 27.36 s started `supervise 600`, with the supervisor starting at 27.73 s uptime. Wireless ADB reconnected at 92.6 s with a worker and proxy running. F1–F3 were injected from a root shell script piped over ADB, so nothing was written to the phone apart from the marker. F4 was performed by the maintainer.
+
+| Step | Injection (uptime) | Supervisor timeline (uptime) | External release check |
+| --- | --- | --- | --- |
+| F1 early stop | marker created 113.97 s, removed 119.98 s | `Stop(BootDisabled)` 114.03 s, `Inactive(BootDisabled)` 114.56 s, `Start` 120.05 s, `Running` 120.25 s; no failure counted | worker and proxy gone by 114.94 s (0.97 s); restarted by 121.51 s |
+| F2 crash | `kill -9` 124.58 s | `Fault(UnexpectedExit)` 124.91 s, `WaitingToRestart`, `Start` 129.95 s (5.04 s restart delay), `Running` 130.09 s; failures 1 | gone by 124.80 s (0.22 s); restarted by 131.09 s |
+| F3 hang | `kill -STOP` 134.21 s | `Stop(Fault(ProgressStalled))` 135.20 s, `Kill` 136.21 s, exit confirmed 136.52 s, `Start` 141.55 s, `Running` 141.69 s; failures 2 | gone by 136.45 s (2.24 s); restarted by 142.83 s |
+| F4 unplug while holding Volume Up | maintainer | the worker's read failed on the removed node (third failure); `PersistLatch` was refused by the diagnostic (`supervisor_latch=error:Other`), and `supervise` ended | the maintainer reports the volume stopped changing once unplugged and the phone keys work; afterwards no worker or proxy, no earphone node |
+
+The proxy readiness after each restart was 15, 44, 12 and 22 ms, with Android up. At the record read no worker or proxy existed, the guard directory was empty, the lock had been removed, and no AVC line naming `earkey`, `uhid`, `uinput`, `input_device` or `ksu` was found.
+
+Two reporting gaps were found, neither affecting release:
+- After the unplug, `EVIOCGRAB` release on the removed node failed, and that error replaced the session fault in the worker report (`worker_end=error:Uncategorized`). The proxy keys had already been released.
+- The latch path omitted the final status and step from the supervisor report.
+
+Both are fixed with a test that removes the source device during a held key. The kernel releases the removed device's held keys (marking the report with value 1) before the read fails. The engine forwards that release, so the proxy key is released by the genuine release as well as by the session's cleanup.
+
+The diagnostic was marked for removal before the cleanup reboot. Wireless debugging did not reappear until the maintainer re-enabled it later. Cleanup was then verified: the guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy or worker. Raw records remain private.
+
+This establishes, on the reference phone in the boot-completed context, that each injected fault produced the expected supervisor transition. Early stop through the marker released within 1 s and restarted on removal. A crash released within 0.22 s. A hang was detected by the progress deadline and released through the kill path within 2.3 s. Restarts were spaced by the 5 s deadline, the third failure requested the latch, and the unplug while held left no stuck key. It does not test a hang during a held key, suppression, double presses, calls or the microphone.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

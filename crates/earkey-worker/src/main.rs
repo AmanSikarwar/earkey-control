@@ -8,7 +8,7 @@ fn main() -> ExitCode {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let command = match args.as_slice() {
-        [command @ ("check" | "proxy-check")] => Command::Plain(command),
+        [command @ ("check" | "proxy-check" | "run")] => Command::Plain(command),
         [
             command @ ("enroll" | "status" | "enable" | "disable" | "pause" | "resume"
             | "disable-next-boot" | "enable-next-boot"),
@@ -38,7 +38,7 @@ enum Command<'a> {
 
 fn usage() -> ExitCode {
     eprintln!(
-        "usage: earkey-worker check | proxy-check | passthrough [selection] | supervise <10-600> [selection]\n       \
+        "usage: earkey-worker check | proxy-check | run | passthrough [selection] | supervise <10-600> [selection]\n       \
          earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume\n       \
          earkey-worker disable-next-boot | enable-next-boot"
     );
@@ -139,6 +139,50 @@ fn run(command: Command<'_>) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    if command == "run" {
+        // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
+        unsafe {
+            libc::signal(
+                libc::SIGTERM,
+                on_terminate as *const () as libc::sighandler_t,
+            )
+        };
+        if !store_gate().is_ok_and(|gate| gate == earkey_supervisor::Gate::OPEN) {
+            eprintln!("worker_gate=closed");
+            return ExitCode::FAILURE;
+        }
+        let (store, layout) = match (Store::open(), earkey_worker::layout::generic_digest(root)) {
+            (Ok(store), Ok(layout)) => (store, layout),
+            (Err(error), _) => {
+                eprintln!("worker_state=storage:{error:?}");
+                return ExitCode::FAILURE;
+            }
+            (_, Err(error)) => {
+                eprintln!("worker_state=layout:{:?}", error.kind());
+                return ExitCode::FAILURE;
+            }
+        };
+        let ctx = earkey_worker::run::Context {
+            root,
+            environment: &environment,
+            layout: &layout,
+            store: &store,
+            poll: Duration::from_millis(500),
+            readiness: Duration::from_secs(15),
+            forward: earkey_worker::session::FORWARD,
+        };
+        let passed = earkey_worker::run::run(
+            &ctx,
+            &STOP,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        return if passed {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        };
+    }
     if let Some(selection) = selection {
         // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
         unsafe {

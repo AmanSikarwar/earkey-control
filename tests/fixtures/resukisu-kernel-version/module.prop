@@ -1,0 +1,6 @@
+id=earkey_control_kver
+name=EarKey Control Kernel Version Diagnostic
+version=0.0.1-kver
+versionCode=1
+author=Aman Sikarwar
+description=Temporary one-shot kernel-version source diagnostic for the reference ReSukiSU setup. No probe and no input access.

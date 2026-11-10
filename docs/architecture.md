@@ -1,6 +1,6 @@
 # Initial architecture
 
-The policy model, host event engine and supervisor state machine are implemented. Android acquisition, the real process adapter, service wiring and physical passthrough still need validation. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
+The policy model, host event engine, supervisor state machine and [Android capability probe](prototype-preflight.md) are implemented. Android acquisition, the real process adapter, service wiring and physical passthrough still need validation. The approved stack is recorded in the [contract](project-contract.md); [decision records](decisions/0001-initial-design.md) explain the unresolved choices.
 
 ## Candidate and boundaries
 

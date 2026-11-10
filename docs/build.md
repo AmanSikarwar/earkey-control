@@ -1,6 +1,6 @@
 # Build and reproducibility conventions
 
-Stages 2–4 have Rust libraries and locked host checks: the policy/identity store, the event engine and the supervisor state machine. The Android executable, installable package and CI workflow are later gates.
+Stages 2–4 have Rust libraries and locked host checks: the policy/identity store, the event engine and the supervisor state machine. Stage 4 also adds a standalone Android capability probe. The passthrough executable, installable package and CI workflow are later gates.
 
 ## Stage 2 host checks
 
@@ -61,9 +61,43 @@ cargo test -p earkey-supervisor --locked
 
 The workspace-wide commands above also run these tests. A passing host suite does not establish process identity, descriptor release, Android service behavior or physical pause/recovery.
 
+## Stage 4 Android capability probe
+
+The prototype host pin uses the existing stable r28c SDK package `28.2.13676358` on arm64 macOS 27.2 and Rust 1.99.1 with the `aarch64-linux-android` target. The official SDK index lists `android-ndk-r28c-darwin.zip` at 952,495,160 bytes with SHA-1 `fc20a6bf15a30fb3428c9b60a7308793a362dc6d`. This identifies the upstream archive. The original download was absent locally, so the build checks the installed package revision and hashes the tool binaries used. Android now archives r28c. This pin applies to the initial probe and must be revisited before release qualification. [Official SDK index](https://dl.google.com/android/repository/repository2-3.xml), [NDK r28c release](https://github.com/android/ndk/releases/tag/r28c)
+
+| Tool from the installed Darwin package | SHA-256 |
+| --- | --- |
+| `clang` 19.0.1, build 13624864, LLVM `97a699bf4812a18fb657c2779f5296a4ab2694d2` | `df85444b66234bf4cae267e22bde45ea8fef596d30ca2991b2091a27e6ea7718` |
+| `ld.lld` | `295bc36e1b10be0137f09904b7cc928a11ab3d44a8ec8250e4087ebd71f091c2` |
+| `llvm-readelf` | `37e565359be0c9f2868348dd314416a420d137ee84c891ec8474cf7d29cfd995` |
+
+Build from a clean reviewed checkout. Set `ANDROID_NDK_HOME` to the installed pinned package. The macOS SDK uses the directory name `darwin-x86_64` for its universal tools.
+
+```sh
+rustup target add --toolchain 1.99.1 aarch64-linux-android
+earkey_prebuilt="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64"
+test "$(sed -n 's/^Pkg.Revision = //p' "$ANDROID_NDK_HOME/source.properties")" = 28.2.13676358
+shasum -a 256 "$earkey_prebuilt/bin/clang" "$earkey_prebuilt/bin/ld.lld" "$earkey_prebuilt/bin/llvm-readelf"
+export CARGO_TARGET_DIR="$(mktemp -d)"
+earkey_registry="${CARGO_HOME:-$HOME/.cargo}"
+earkey_sysroot="$(rustc --print sysroot)"
+earkey_flags=$(printf '%s\037%s\037%s\037%s\037%s' \
+  '-Clink-arg=-Wl,-z,max-page-size=16384' '-Cstrip=symbols' \
+  "--remap-path-prefix=$(pwd -P)=/earkey-control" "--remap-path-prefix=$earkey_registry=/cargo" \
+  "--remap-path-prefix=$earkey_sysroot=/rust-sysroot")
+CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$earkey_prebuilt/bin/aarch64-linux-android31-clang" \
+  CARGO_ENCODED_RUSTFLAGS="$earkey_flags" \
+  cargo build --release --locked --target aarch64-linux-android -p earkey-probe
+earkey_probe="$CARGO_TARGET_DIR/aarch64-linux-android/release/earkey-probe"
+"$earkey_prebuilt/bin/llvm-readelf" -h -l -d -n --dyn-syms --wide "$earkey_probe"
+shasum -a 256 "$earkey_probe"
+```
+
+Compare the recorded tool hashes before building. Expect an AArch64 Android PIE with API 31 identification, `/system/bin/linker64`, and load segments aligned to at least `0x4000`. Compare imported symbols against the NDK API 31 libraries and scan the binary for host paths. The sysroot remap also covers source paths emitted when Rust specializes standard-library code. The probe reports the Rust binding's `input_event` size and field offset, checked against the r28c UAPI header for arm64. Static inspection establishes the ELF properties. Actual loading and service access require an authorized device run. [Other build systems](https://developer.android.com/ndk/guides/other_build_systems), [Android page sizes](https://developer.android.com/guide/practices/page-sizes)
+
 ## Pins and native target
 
-Before each corresponding build, pin the toolchain and inputs. Android and package builds still need the NDK revision/download digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.
+Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.
 
 Start with the **measured** reference ABI and API 31 native minimum. Use Cargo and the Android NDK linker for Android targets; a desktop Linux executable is not an Android binary. Inspect ELF machine, interpreter, dynamic dependencies and imported API availability; then test actual loading. Add ABIs only with runtime demand and a test plan. [Rust Android target guidance](https://doc.rust-lang.org/rustc/platform-support/android.html) and [NDK API availability](https://developer.android.com/ndk/guides/using-newer-apis) govern the implementation.
 

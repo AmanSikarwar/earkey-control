@@ -109,6 +109,12 @@ shasum -a 256 "$earkey_probe"
 
 Compare the recorded tool hashes before building. Expect an AArch64 Android PIE with API 31 identification, `/system/bin/linker64`, and load segments aligned to at least `0x4000`. Compare imported symbols against the NDK API 31 libraries and scan the binary for host paths. The sysroot remap also covers source paths emitted when Rust specializes standard-library code. The probe reports the Rust binding's `input_event` size and field offset, checked against the r28c UAPI header for arm64. Static inspection establishes the ELF properties. Actual loading and service access require an authorized device run. [Other build systems](https://developer.android.com/ndk/guides/other_build_systems), [Android page sizes](https://developer.android.com/guide/practices/page-sizes)
 
+## Stage 4 Android supervision drill
+
+`earkey-drill` uses the same pinned r28c tools, recorded tool hashes, flags and checks as the probe. Replace `-p earkey-probe` with `-p earkey-drill` and inspect `$CARGO_TARGET_DIR/aarch64-linux-android/release/earkey-drill`.
+
+On 10 November 2026 two clean builds from `6db695d` produced identical 576,040-byte ELFs, SHA-256 `156a0391538fc0ceec18fc2f68144136215d885d9a2696feb11f5a98d9bbc475`. The NDK revision and the three tool hashes matched the pins. `llvm-readelf` showed an AArch64 PIE using `/system/bin/linker64`, with the Android note at API 31 and NDK r28c, all `LOAD` segments aligned to `0x4000`, and `BIND_NOW`. It needs only `libc.so` and `libdl.so`, and all 85 imported symbols are defined by the NDK API 31 `libc`, `libdl` and `libm` stubs. A string scan found no host paths. The ELF is kept outside Git at `target/stage4/6db695d/earkey-drill-arm64-api31`. Static inspection does not establish loading or behavior on the phone.
+
 ## Pins and native target
 
 Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.

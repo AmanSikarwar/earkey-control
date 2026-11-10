@@ -307,6 +307,29 @@ The diagnostic was marked for removal, and cleanup was verified after the reboot
 
 This establishes that, in the `u:r:ksu:s0` services hook on this kernel, the adapter's process-group `SIGTERM`/`SIGKILL`, `PR_SET_PDEATHSIG`, `waitid(WNOWAIT)`, `/proc` group scan, `flock` lock and store-backed gate worked for a worker that opened no input device. It does not test the real worker, evdev, uinput device creation, grabs, passthrough or suppression.
 
+## Service-context worker check plan — 10 November 2026
+
+The next check runs the worker's read-only acquisition steps against the real earphone node from the services hook. After the composite gate and the binary digest check, the v12 hook computes the SHA-256 of `/system/usr/keylayout/Generic.kl` with toybox `sha256sum` under a 5 s deadline. It requires 64 lowercase hex characters, then runs `./earkey-worker check <digest>` under a 10 s deadline. An unavailable or malformed digest is recorded as `layout_digest=unavailable`, and the worker is not run.
+
+`check` stops at the first failure and reports one `key=value` line per step:
+
+| Step | Pass value |
+| --- | --- |
+| `evidence` | `xiaomi_pixelos_reforge20261110`, selected from the six properties and `/proc/version` |
+| `inventory_nodes` | the node count; any node that cannot be observed fails |
+| `enrollment` | `observed`: exactly one node enrolls under the evidence, from its live observation |
+| `layout` | `generic`: no `Vendor_0020_Product_0b21*` or name-based `.kl`/`.idc` exists in the ODM, vendor, system or data directories |
+| `targets` | `1`, at the observed instance, for an in-memory Block all policy |
+| `open` | `ok`: the node opened read-only and is the same instance |
+| `revalidate` | `ok`: the descriptor-side ID, name and capabilities and a fresh inventory still select the target |
+| `neutral` | `yes`: `EVIOCGKEY` reports no pressed key |
+
+It prints no serial, device name or key code, reads no event, takes no grab and writes nothing. The enrollment and policy exist only in memory. The fixture is `0.0.12-preflight` (version code 12). The host suite has 24 passing tests. `earkey-control-service-preflight-v12.zip` is 592,918 bytes with SHA-256 `1407369f28d35a03e9566c905743c052cde81c1e68714351548bc19eb6a95a75`; two builds were byte-identical. It embeds the worker ELF `7ee31586bf546e696c1e180d5766eaa541ab1628b3f35bd0d091a041c329a4c9` ([build record](build.md#stage-4-android-worker-check)).
+
+After authorization, follow the v11 procedure with the earphones connected throughout, from before the reboot until the record read, and without pressing a button. Use wireless ADB, because the earphones occupy the USB-C port. Success is `check=pass` with `service_probe_exit=0`.
+
+The digest is computed by the reviewed hook, not the worker. The production worker still needs its own layout resolution and digest, either through a pinned hashing dependency or a reviewed implementation, which is a pending decision. This run does not test the uinput proxy, grabs, passthrough or suppression.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

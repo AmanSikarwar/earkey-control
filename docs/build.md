@@ -117,6 +117,10 @@ Compare the recorded tool hashes before building. Expect an AArch64 Android PIE 
 
 On 10 November 2026 two clean builds from `6db695d` produced identical 576,040-byte ELFs, SHA-256 `156a0391538fc0ceec18fc2f68144136215d885d9a2696feb11f5a98d9bbc475`. The NDK revision and the three tool hashes matched the pins. `llvm-readelf` showed an AArch64 PIE using `/system/bin/linker64`, with the Android note at API 31 and NDK r28c, all `LOAD` segments aligned to `0x4000`, and `BIND_NOW`. It needs only `libc.so` and `libdl.so`, and all 85 imported symbols are defined by the NDK API 31 `libc`, `libdl` and `libm` stubs. A string scan found no host paths. The ELF is kept outside Git at `target/stage4/6db695d/earkey-drill-arm64-api31`. Static inspection does not establish loading or behavior on the phone.
 
+## Stage 4 Android worker check
+
+`earkey-worker` uses the same pinned r28c tools, recorded tool hashes, flags and checks as the probe, built with `-p earkey-worker`. On 10 November 2026 two clean builds from `a0f45ee` produced identical 572,608-byte ELFs, SHA-256 `7ee31586bf546e696c1e180d5766eaa541ab1628b3f35bd0d091a041c329a4c9`. The NDK revision and the three tool hashes matched the pins. `llvm-readelf` showed an AArch64 PIE using `/system/bin/linker64`, with the Android note at API 31, all four `LOAD` segments aligned to `0x4000`, and `BIND_NOW`. It needs only `libc.so` and `libdl.so`, and all 55 imported symbols are defined by the NDK API 31 stubs. A string scan found no host paths. The ELF is kept outside Git at `target/stage4/a0f45ee/earkey-worker-arm64-api31`.
+
 ## Pins and native target
 
 Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.

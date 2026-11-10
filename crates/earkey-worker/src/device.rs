@@ -38,6 +38,8 @@ pub const fn eviocgkey(len: usize) -> u32 {
 pub const fn eviocgbit(event: u32, len: usize) -> u32 {
     eviocg(0x20 + event, len)
 }
+/// `_IOW('E', 0x90, int)`.
+pub const EVIOCGRAB: u32 = (1 << 30) | (4 << 16) | ((b'E' as u32) << 8) | 0x90;
 
 /// Bit indices set in a little-endian evdev byte bitmap.
 pub fn byte_bits(bytes: &[u8]) -> Vec<u16> {
@@ -122,6 +124,22 @@ impl Opened {
             properties: &self.properties,
             ..observed.candidate(layout_sha256)
         }
+    }
+
+    /// Takes (`true`) or releases (`false`) the exclusive grab on this node.
+    pub fn grab(&self, take: bool) -> io::Result<()> {
+        let value: libc::c_int = take.into();
+        // SAFETY: EVIOCGRAB takes an integer argument by value.
+        let result = unsafe { libc::ioctl(self.file.as_raw_fd(), EVIOCGRAB as _, value) };
+        if result < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn file(&self) -> &File {
+        &self.file
     }
 
     /// Keys the kernel currently reports as pressed. Empty means neutral.

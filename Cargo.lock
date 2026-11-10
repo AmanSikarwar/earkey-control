@@ -98,6 +98,7 @@ dependencies = [
 name = "earkey-worker"
 version = "0.1.0"
 dependencies = [
+ "earkey-engine",
  "earkey-policy",
  "libc",
  "serde_json",

@@ -1,0 +1,9 @@
+[package]
+name = "earkey-trace-supervisor"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+libc = "=0.2.191"

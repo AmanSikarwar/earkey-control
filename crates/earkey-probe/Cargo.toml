@@ -1,0 +1,10 @@
+[package]
+name = "earkey-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[target.'cfg(target_os = "android")'.dependencies]
+earkey-policy = { path = "../earkey-policy" }
+libc = "=0.2.191"

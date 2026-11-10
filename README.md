@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 3 adds a host-tested Rust event engine.** Stage 2 policy and identity validation is merged, and the policy store now has host-tested pause, next-boot escape and restart-latch operations. See the [host engine](docs/architecture.md#host-event-engine) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
+**Stage 4 preflight is in review.** The Stage 3 host engine is merged. The arm64 Android capability probe passed a bounded reference shell-context self-check. The first temporary service-hook diagnostic stopped at its kernel-version guard before the probe ran; its module was removed and cleanup was verified. EarKey Control module loading, service-context probe execution and physical passthrough remain pending. [Stage 4 preflight](docs/prototype-preflight.md), [host engine](docs/architecture.md#host-event-engine) The policy store also has host-tested pause, next-boot escape and restart-latch operations.
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

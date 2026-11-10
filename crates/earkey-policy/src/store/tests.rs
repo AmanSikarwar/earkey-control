@@ -430,3 +430,31 @@ fn exhausted_generation_does_not_create_a_boot_marker() {
     ));
     assert!(!store.has_inactive_marker().unwrap());
 }
+
+#[test]
+fn inactive_marker_must_be_absent_or_a_private_regular_file() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let marker = scratch.0.join("stay-inactive");
+    assert!(!store.has_inactive_marker().unwrap());
+
+    symlink("missing", &marker).unwrap();
+    assert!(matches!(
+        store.has_inactive_marker(),
+        Err(StoreError::UnsafeStorage)
+    ));
+    fs::remove_file(&marker).unwrap();
+
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&marker)
+        .unwrap();
+    assert!(store.has_inactive_marker().unwrap());
+    fs::set_permissions(&marker, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(matches!(
+        store.has_inactive_marker(),
+        Err(StoreError::UnsafeStorage)
+    ));
+}

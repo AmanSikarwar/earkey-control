@@ -122,19 +122,53 @@ impl Store {
         self.load_locked(enrollments)
     }
 
+    /// Reads recovery state without verifying enrollments, for the supervisor gate.
+    /// The worker must still select devices only from [`Store::load`].
+    pub fn recovery(&self) -> Result<Recovery, StoreError> {
+        let lock = open_at(&self.directory, c".", DIRECTORY)?;
+        lock.lock_shared()?;
+        Ok(self.load_unverified_locked()?.recovery())
+    }
+
+    /// Persists the restart latch at the current generation without verifying enrollments.
+    pub fn latch_restart_limit(&self) -> Result<(), StoreError> {
+        let lock = open_at(&self.directory, c".", DIRECTORY)?;
+        lock.lock()?;
+        let mut policy = self.load_unverified_locked()?;
+        if policy.recovery().latch == RecoveryLatch::RestartLimit {
+            return Ok(());
+        }
+        let generation = policy
+            .generation()
+            .checked_add(1)
+            .ok_or(StoreError::GenerationExhausted)?;
+        policy.set_generation(generation);
+        policy.set_recovery(RecoveryOperation::LatchRestartLimit.apply(policy.recovery()));
+        let canonical = policy.to_json();
+        if canonical.len() > MAX_POLICY_BYTES {
+            return Err(PolicyError::Oversized.into());
+        }
+        self.write_policy(&canonical, generation)
+    }
+
+    fn load_unverified_locked(&self) -> Result<Policy, StoreError> {
+        self.check_directory()?;
+        let Some(file) = self.private_file(POLICY)? else {
+            return Ok(Policy::inactive());
+        };
+        let policy = Policy::parse_unverified(&read_bounded(file)?)?;
+        if policy.generation() == 0 {
+            return Err(StoreError::UnsafeStorage);
+        }
+        Ok(policy)
+    }
+
     fn load_locked(&self, enrollments: &[VerifiedEnrollment<'_>]) -> Result<Policy, StoreError> {
         self.check_directory()?;
         let Some(file) = self.private_file(POLICY)? else {
             return Ok(Policy::inactive());
         };
-        if file.metadata()?.size() > MAX_POLICY_BYTES as u64 {
-            return Err(PolicyError::Oversized.into());
-        }
-
-        let mut bytes = Vec::new();
-        file.take(MAX_POLICY_BYTES as u64 + 1)
-            .read_to_end(&mut bytes)?;
-        let policy = Policy::parse(&bytes, enrollments)?;
+        let policy = Policy::parse(&read_bounded(file)?, enrollments)?;
         if policy.generation() == 0 {
             return Err(StoreError::UnsafeStorage);
         }
@@ -335,6 +369,16 @@ impl Store {
         }
         Ok(())
     }
+}
+
+fn read_bounded(file: File) -> Result<Vec<u8>, StoreError> {
+    if file.metadata()?.size() > MAX_POLICY_BYTES as u64 {
+        return Err(PolicyError::Oversized.into());
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_POLICY_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
 
 fn open_at(directory: &File, name: &CStr, flags: libc::c_int) -> io::Result<File> {

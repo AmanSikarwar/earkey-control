@@ -446,6 +446,36 @@ Holds, double presses, calls and the microphone are later cases.
 
 This session tests passthrough of short presses in the boot-completed context only. It is not suppression, module installation or acceptance.
 
+## Supervised passthrough session result (v15) — 10 November 2026
+
+The maintainer authorized the v15 run, had the earphones connected before the reboot, and confirmed readiness before the reboot was issued. Pre-checks over wireless ADB matched the reforge profile, with one earphone node and no proxy present. The guard directory was created as `0:0` mode `0700` and left empty. The on-device ZIP digest matched `3ab1612ceda3004375774a8b23a7ab0bdec7b6de1ef4db49f43210a91c8114c8`, and the staged worker matched `e6a32fca5671f4d0831bb9615e5d7c7cf4adf2a0824a012fcf8767a4e93ed091`.
+
+The services hook passed the read-only `check` (`check=pass`, exit 0). The boot-completed hook at 27.18 s in `u:r:ksu:s0` ran `supervise 120`, and the session **Passed**:
+
+```text
+worker_check=pass
+worker_proxy_ready_ms=22
+worker_progress=1249
+worker_end=Stopped
+supervisor_stop_ms=366
+supervisor_running_after_ms=203
+supervisor_actions=[Start, Stop(Paused)]
+supervisor_phase=Inactive(Paused)
+supervisor_failures=0
+supervisor_last_fault=none
+supervise=pass
+supervise_lock_removed=true
+guard_exit=0
+```
+
+The worker's acquisition selected the reforge evidence and passed every step, including the descriptor revalidation and the neutral check. Android had already finished booting, so it opened the proxy in 22 ms. The worker reported 1,249 loop checkpoints at the 100 ms tick over the two-minute session. At the deadline the supervisor paused it, and the orderly stop with key release and ungrab took 366 ms. At the record read no proxy node or `earkey-worker` process existed, the guard directory was empty, and no AVC line naming `earkey`, `uhid`, `uinput`, `input_device` or `ksu` was found.
+
+During the session the maintainer reports that all buttons were normal and acted once each. With music playing, Center paused and resumed once per press, Volume Up and Volume Down changed one step each, audio kept playing through the earphones, and the phone's own keys worked. This is a qualitative maintainer report of short presses through the proxy. No event counts were captured, and holds, double presses, calls and microphone routing were not exercised.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy node or worker process. Raw records remain private.
+
+This is the first physical passthrough evidence. On the reference phone, from the boot-completed hook, the supervised worker grabbed the verified collection, forwarded short Center and volume presses through the decision-0004 proxy with the expected single actions, and released cleanly on pause. Stage 4 still needs fault paths on the phone (worker crash, hang, unplug, early stop by the `stay-inactive` marker), holds and repeats, double presses, calls and the microphone, and a session started from the services stage. This is not suppression, module installation or support qualification.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

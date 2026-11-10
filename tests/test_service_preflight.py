@@ -235,6 +235,17 @@ exec "$@"''',
                 self.assertIn("service_probe_exit=0\n", result)
                 self.assertTrue((self.case / ".calls").exists())
 
+    def test_driver_full_version_is_observation_only(self):
+        for value in ("v3.3.1-32726", "unknown", "v4.2.0-35201-backslashxx"):
+            with self.subTest(value=value):
+                self.reset()
+                self.assertEqual(self.run_hook(TEST_INFO_FULL=value).returncode, 0)
+                result = self.result()
+                self.assertIn(f"info_full_version={value}\n", result)
+                self.assertIn("driver_identity=verified\n", result)
+                self.assertIn("service_probe_exit=0\n", result)
+                self.assertTrue((self.case / ".calls").exists())
+
     def test_composite_identity_rejects_untrusted_manager(self):
         cases = [
             {"TEST_MANAGER_SHA": "0" * 64},
@@ -255,8 +266,6 @@ exec "$@"''',
 
     def test_composite_identity_requires_expected_driver(self):
         cases = [
-            ({"TEST_INFO_FULL": "unknown"}, "mismatch", "full_version"),
-            ({"TEST_INFO_FULL": "v4.2.0-35200-other"}, "mismatch", "full_version"),
             ({"TEST_INFO_FLAGS": "0x0"}, "mismatch", "flags"),
             ({"TEST_INFO_FLAGS": "0x120"}, "mismatch", "flags"),
             ({"TEST_INFO_FEATURES": "0x3"}, "mismatch", "features"),
@@ -513,7 +522,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-probe")).hexdigest(),
                              (FIXTURE / "probe.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.8-preflight\nversionCode=8\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.9-preflight\nversionCode=9\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

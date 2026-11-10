@@ -130,7 +130,6 @@ mv "$attempt/context.tmp" "$attempt/context"
     manager_sha=fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50
     expected_release='4.14.357-reforge-g9b21e3df6c0a'
     expected_build='#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026'
-    expected_full_version='v4.2.0-35201-backslashxx'
     expected_flags='0x160'
     expected_features='0x7'
 
@@ -342,8 +341,6 @@ mv "$attempt/context.tmp" "$attempt/context"
                 driver_identity=unavailable
             elif [ "$info_status" != complete ]; then
                 driver_identity=invalid
-            elif [ "$info_full_version" != "$expected_full_version" ]; then
-                driver_identity=mismatch; driver_reason=full_version
             elif [ "$info_flags" != "$expected_flags" ]; then
                 driver_identity=mismatch; driver_reason=flags
             elif [ "$info_features" != "$expected_features" ]; then

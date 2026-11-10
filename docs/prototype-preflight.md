@@ -330,6 +330,32 @@ After authorization, follow the v11 procedure with the earphones connected throu
 
 The digest is computed by the reviewed hook, not the worker. The production worker still needs its own layout resolution and digest, either through a pinned hashing dependency or a reviewed implementation, which is a pending decision. This run does not test the uinput proxy, grabs, passthrough or suppression.
 
+## Service-context worker check result — 10 November 2026
+
+The maintainer authorized the v12 run. Pre-checks over wireless ADB matched the reforge profile: the manager and metamodule hook digests were unchanged, no module operation was pending, neither the diagnostic nor `/data/adb/earkey_control` existed, no `earkey-worker` process ran, exactly one earphone node was present, and the `Generic.kl` digest began `4d28d904`. The guard directory was created as `0:0` mode `0700` and left empty. The on-device ZIP digest matched `1407369f28d35a03e9566c905743c052cde81c1e68714351548bc19eb6a95a75`. `0.0.12-preflight` was staged with `earkey-worker` mode `0500`, its digest matched `7ee31586bf546e696c1e180d5766eaa541ab1628b3f35bd0d091a041c329a4c9`, and the upload was removed.
+
+Wireless ADB did not return on its previous port after the reboot. The maintainer reconnected the phone by USB, which unplugged the earphones after boot; the services hook had already run by then. The earphones were present when the hook ran.
+
+The service-context worker check **Passed**. The services hook at 13.22 s in `u:r:ksu:s0` verified the composite identity, with driver `full_version=v3.3.1-32726` recorded as an observation. It computed `layout_sha256=4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773` and ran `earkey-worker check`:
+
+```text
+evidence=xiaomi_pixelos_reforge20261110
+inventory_nodes=6
+enrollment=observed
+layout=generic
+targets=1
+open=ok
+revalidate=ok
+neutral=yes
+check=pass
+```
+
+The result was `service_probe_exit=0`. The boot-completed hook verified the identity and did not run the worker. At the record read the guard directory was empty, no `earkey-worker` process existed, and no AVC line naming `earkey`, `uhid` or `input_device` was found. Six input nodes existed at 13.22 s; more appeared later in boot, and the inventory enumerates nodes at the moment it runs.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The empty guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained. Raw records remain private.
+
+This establishes that, from the `u:r:ksu:s0` services hook on the reforge kernel, the worker's inventory, environment, live enrollment, layout-override check, targeting, read-only open, `EVIOCG*` revalidation and `EVIOCGKEY` neutral check all succeeded against the real earphone node. It does not test the uinput proxy, grabs, passthrough, suppression, button mappings or preservation behavior.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

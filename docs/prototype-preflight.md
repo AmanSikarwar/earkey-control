@@ -261,6 +261,31 @@ The diagnostic was marked for removal, and cleanup was verified after the reboot
 
 This establishes only that the `u:r:ksu:s0` services hook may open `/dev/uinput` for writing on this kernel. It does not test `UI_SET_*`/`UI_DEV_CREATE` ioctls, Android's recognition of a virtual device, evdev access, grabs, the EarKey Control module, passthrough or suppression. No additional SELinux policy was needed for this open.
 
+## Service-context supervision drill plan — 10 November 2026
+
+The next check proves the no-grab pause and deadline paths before any grab (step 4 of the physical order). After the composite gate and digest check pass, the v11 fixture runs the pinned `earkey-drill drill` from the services hook with a 30 s kill deadline. The packaged binary and digest file are named `earkey-drill` and `drill.sha256`; the result keeps the `service_probe_exit` key. The drill requires valid private storage and an open gate from `Store::recovery` and the `stay-inactive` marker. It checks that `supervisor.lock` is exclusive, then runs four scenarios with workers that never open an input device:
+
+| Scenario | Worker | Pass condition |
+| --- | --- | --- |
+| `pause` | normal | `[Stop(Paused)]`, and the worker is gone |
+| `kill` | ignores `SIGTERM` | `[Stop(Paused), Kill(Paused)]` after the 1 s pause deadline, and the worker is gone |
+| `stall` | stops reporting after its first checkpoint | `Stop(Fault(ProgressStalled))` after the 500 ms progress deadline |
+| `parent_death` | ignores `SIGTERM` | the worker dies when its supervising thread exits |
+
+It prints each duration, removes `supervisor.lock`, and never writes policy. The limits (start 2 s, progress 500 ms, pause 1 s, kill 1 s, restart 200 ms) are drill values, not production deadlines.
+
+The fixture is `0.0.11-preflight` (version code 11). The host suite has 23 passing tests. `earkey-control-service-preflight-v11.zip` is 595,871 bytes with SHA-256 `4fcfd5dc17dbe6c770a56c7fafb99940556df70f17f9ca5ce3ce1be600909712`; two builds were byte-identical. It embeds the drill ELF `156a0391538fc0ceec18fc2f68144136215d885d9a2696feb11f5a98d9bbc475` ([build record](build.md#stage-4-android-supervision-drill)).
+
+```sh
+python3 tools/package-service-probe.py \
+  target/stage4/6db695d/earkey-drill-arm64-api31 \
+  target/stage4/earkey-control-service-preflight-v11.zip
+```
+
+After authorization, follow the v10 procedure: pre-checks, an empty `0:0` `0700` `/data/adb/earkey_control`, install, reboot and record read, uninstall, cleanup reboot, and removal of the directory only if it is empty. Success is `drill=pass` with `service_probe_exit=0`. Also confirm that no `earkey-drill` process remains after the record read and after cleanup.
+
+This tests supervision timing, parent death and `/proc` visibility in the `u:r:ksu:s0` services hook on this kernel. It does not test the real worker, evdev, uinput device creation, grabs, passthrough or suppression.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

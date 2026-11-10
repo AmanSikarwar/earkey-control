@@ -108,6 +108,13 @@ Each write reports the saved generation only. The active generation needs the wo
 
 A watcher thread sets the session's interrupt on `SIGTERM` or when the saved generation changes, so a new policy is applied by reacquiring at the next neutral boundary. A disconnect or read fault returns to waiting (`disconnected`) rather than failing. A grab conflict (`EBUSY`) is reported and waited on, never defeated. Any other session fault or a proxy creation failure exits with failure for the supervisor to count. Each session reports its tally (`worker_session=…`), and state lines are written only on change.
 
+## Supervisor daemon and runtime status
+
+`earkey-worker daemon` is the module's long-running service. It takes `supervisor.lock` and supervises `earkey-worker run` with the production deadlines and no session deadline, over the store-backed gate.
+- **Latch:** after three failures the latch is persisted with `Store::latch_restart_limit`. A failed latch write stops the daemon instead of letting it continue unlatched. While the stored latch is set, nothing restarts. `earkey-worker clear-latch` clears it, and the daemon then clears its own latch and resumes.
+- **Stop:** `SIGTERM` closes the gate, waits until no worker runs, removes the lock and exits 0. An `Unsafe` phase exits 1.
+- **Runtime files:** generated runtime state lives in two bounded (4 KiB), atomically replaced `0600` files in the private store, apart from durable policy. `worker.status` holds the worker's state and `active_generation`; `supervisor.status` holds the phase, failures and last fault. `earkey-worker status` prints the saved policy and then both runtime reports, so the saved generation (from `apply`) and the active generation (from the worker) are visible separately.
+
 ## Host supervisor core
 
 [earkey-supervisor](../crates/earkey-supervisor) is a host-tested state machine, not a process supervisor. It performs no process, clock, file, policy or device I/O. The service adapter supplies monotonic time, a gate built from durable pause, the pre-open `stay-inactive` marker and the restart latch, plus worker signals. It executes the returned actions.

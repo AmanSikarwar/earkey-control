@@ -12,6 +12,7 @@ use crate::environment::Observed;
 use crate::forward::{self, End};
 use crate::proxy::{Proxy, wait_ready};
 use crate::proxy_check::proxy_keys;
+use earkey_policy::identity::{Evidence, Group};
 use earkey_supervisor::process::{Adapter, Host, progress_frame, started_frame};
 use earkey_supervisor::{Action, Gate, InactiveReason, Limits, Phase, StopCause, Supervisor};
 use std::io::{self, Write};
@@ -41,10 +42,75 @@ const TICK: Duration = Duration::from_millis(50);
 /// Supervised diagnostic length bounds, in seconds.
 pub const SESSION_SECONDS: std::ops::RangeInclusive<u64> = 10..=600;
 
+/// Which measured control groups a session blocks.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Selection {
+    Passthrough,
+    BlockAll,
+    Groups(Vec<Group>),
+}
+
+impl Selection {
+    /// Parses `passthrough`, `block-all`, or a comma list of distinct
+    /// `center`, `volume-up` and `volume-down`.
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "passthrough" => return Some(Self::Passthrough),
+            "block-all" => return Some(Self::BlockAll),
+            _ => {}
+        }
+        let mut groups = Vec::new();
+        for name in text.split(',') {
+            let group = match name {
+                "center" => Group::Center,
+                "volume-up" => Group::VolumeUp,
+                "volume-down" => Group::VolumeDown,
+                _ => return None,
+            };
+            if groups.contains(&group) {
+                return None;
+            }
+            groups.push(group);
+        }
+        Some(Self::Groups(groups))
+    }
+
+    /// The blocked groups for `evidence`; `BlockAll` means every measured control.
+    pub fn groups(&self, evidence: Evidence) -> Vec<Group> {
+        match self {
+            Self::Passthrough => vec![],
+            Self::BlockAll => evidence.controls().iter().map(|c| c.group).collect(),
+            Self::Groups(groups) => groups.clone(),
+        }
+    }
+}
+
+/// Disclosed effects of blocking `groups`, including shared center behavior.
+pub fn blocked_effects(evidence: Evidence, groups: &[Group]) -> String {
+    let effects: Vec<&str> = evidence
+        .controls()
+        .iter()
+        .filter(|control| groups.contains(&control.group))
+        .flat_map(|control| {
+            control
+                .observed_effects
+                .iter()
+                .chain(control.reported_effects)
+        })
+        .copied()
+        .collect();
+    if effects.is_empty() {
+        "none".into()
+    } else {
+        effects.join("|")
+    }
+}
+
 /// Worker child: returns true only for an orderly stop after a full acquisition.
 pub fn worker(
     root: &Path,
     environment: &Observed,
+    selection: &Selection,
     gate: impl FnOnce() -> io::Result<Gate>,
     stop: &AtomicBool,
     frames: &mut impl Write,
@@ -93,6 +159,22 @@ pub fn worker(
         }
     };
     line(report, "proxy_ready_ms", &ready.elapsed.as_millis());
+    let groups = selection.groups(verified.evidence);
+    let names: Vec<String> = groups.iter().map(|g| format!("{g:?}")).collect();
+    line(
+        report,
+        "blocked_groups",
+        &if names.is_empty() {
+            "none".into()
+        } else {
+            names.join(",")
+        },
+    );
+    line(
+        report,
+        "blocked_effects",
+        &blocked_effects(verified.evidence, &groups),
+    );
     if frames
         .write_all(&started_frame())
         .and_then(|()| frames.flush())
@@ -106,7 +188,7 @@ pub fn worker(
         &opened,
         &proxy,
         verified.evidence,
-        &[],
+        &groups,
         FORWARD,
         stop,
         &mut tally,

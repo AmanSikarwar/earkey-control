@@ -1,8 +1,9 @@
 #![cfg(any(target_os = "linux", target_os = "android"))]
 
+use earkey_policy::identity::{Evidence, Group};
 use earkey_supervisor::{Gate, Limits};
 use earkey_worker::environment::{Observed, parse};
-use earkey_worker::session::{supervise, worker};
+use earkey_worker::session::{Selection, blocked_effects, supervise, worker};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -170,6 +171,7 @@ fn the_worker_checks_the_gate_and_acquisition_before_anything_else() {
         assert!(!worker(
             root,
             &environment(),
+            &Selection::Passthrough,
             || gate,
             &stop,
             &mut frames,
@@ -182,6 +184,7 @@ fn the_worker_checks_the_gate_and_acquisition_before_anything_else() {
     assert!(!worker(
         root,
         &environment(),
+        &Selection::Passthrough,
         || Ok(Gate::OPEN),
         &stop,
         &mut frames,
@@ -192,4 +195,51 @@ fn the_worker_checks_the_gate_and_acquisition_before_anything_else() {
         String::from_utf8(report).unwrap(),
         "worker_layout=unavailable:NotFound\nworker_check=fail\n"
     );
+}
+
+#[test]
+fn selections_parse_strictly() {
+    assert_eq!(
+        Selection::parse("passthrough"),
+        Some(Selection::Passthrough)
+    );
+    assert_eq!(Selection::parse("block-all"), Some(Selection::BlockAll));
+    assert_eq!(
+        Selection::parse("volume-up,center"),
+        Some(Selection::Groups(vec![Group::VolumeUp, Group::Center]))
+    );
+    for bad in [
+        "",
+        "center,",
+        "center,center",
+        "Center",
+        "volume_up",
+        "all",
+        "center volume-up",
+    ] {
+        assert_eq!(Selection::parse(bad), None, "{bad:?}");
+    }
+    let evidence = Evidence::XiaomiPixelosReforge20261110;
+    assert_eq!(
+        Selection::BlockAll.groups(evidence),
+        [Group::Center, Group::VolumeUp, Group::VolumeDown]
+    );
+    assert!(Selection::Passthrough.groups(evidence).is_empty());
+}
+
+#[test]
+fn blocking_center_discloses_its_shared_effects() {
+    let evidence = Evidence::XiaomiPixelosReforge20261110;
+    let center = blocked_effects(evidence, &[Group::Center]);
+    for effect in [
+        "Play or pause",
+        "Open assistant and wake screen",
+        "Answer or end cellular call",
+        "Reject an incoming call",
+    ] {
+        assert!(center.contains(effect), "{center}");
+    }
+    assert!(!center.contains("volume"), "{center}");
+    assert_eq!(blocked_effects(evidence, &[]), "none");
+    assert!(blocked_effects(evidence, &[Group::VolumeUp]).contains("Raise volume"));
 }

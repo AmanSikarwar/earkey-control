@@ -572,6 +572,25 @@ During each 60 s window, with music playing, the maintainer presses each earphon
 
 Call-context effects of blocking Center (answer, end, reject, mute) are disclosed in the report but not exercised. Combinations and policy changes during a held key are later cases.
 
+## Stage 5 suppression session results — 11 November 2026
+
+The maintainer authorized S1–S4 from the root ADB shell (`u:r:ksu:s0`). Pre-checks matched the reforge profile, with the earphones connected and no proxy, worker, diagnostic or guard directory present. The guard directory was created as `0:0` mode `0700`. The pinned ELF was copied to a private `0700` temporary directory as a `0500 root:root` file, and its on-device digest matched `ad1c3be5b51f4ff957222077341802c02a29d52e6863953e51102206243c5dba`.
+
+The first `block-all` run used a 60 s window. The maintainer pressed after the window had ended, so the worker read no key records while the buttons acted normally (nothing was blocked by then). That run is inconclusive and is not counted. Each later run used a 180 s window started only after the maintainer confirmed readiness.
+
+| Run | Selection | Read (down/up, repeat 0 for all) | Forwarded | Supervisor | Maintainer |
+| --- | --- | --- | --- | --- | --- |
+| S1 | `block-all` | Volume Down 64/64, Volume Up 47/47, Center 37/37 | none | `[Start, Stop(Paused)]`, 0 failures, stop 421 ms, pass | no earphone button acted; phone volume key worked |
+| S2 | `center` | Volume Down 2/2, Volume Up 1/1, Center 10/10 | Volume Down 2/2, Volume Up 1/1 | same, stop 366 ms, pass | Center did nothing; earphone volume and phone key worked |
+| S3 | `volume-up` | Volume Down 1/1, Volume Up 105/105, Center 4/4 | Volume Down 1/1, Center 4/4 | same, stop 465 ms, pass | earphone Volume Up did nothing; Center, Volume Down and phone key worked |
+| S4 | `volume-down` | Volume Down 86/86, Volume Up 2/2, Center 2/2 | Volume Up 2/2, Center 2/2 | same, stop 440 ms, pass | earphone Volume Down did nothing; Center, Volume Up and phone key worked |
+
+Every run reported 0 cleanup releases and `worker_end=Stopped`, and removed its lock. The blocked-effect disclosure listed the evidence's effects for the blocked groups. For Center, that is play/pause, track change, assistant and wake, and call answer/end, mute and reject. The counts exceed one press per button; the maintainer pressed repeatedly in some windows. Every blocked press was read and dropped, and every unblocked press was forwarded exactly once.
+
+Cleanup removed the temporary binary and directory and the empty guard directory. No proxy node remained. A first broad process count of 2 was a false match on the cleanup command's own arguments; the exact-name count was 0. The original six modules and Enforcing mode remained. Raw records remain private.
+
+This is the first physical suppression evidence. On the reference phone, Block all and each separable group alone suppressed exactly the selected earphone controls at the event level, passed the others through unchanged, and left the phone's own keys working (partial evidence for T03, T04 and T10). The runs were from the root shell rather than a module hook. Call contexts for a blocked Center (T05, T08), combinations, a policy change during a held key (T15), and policy-driven selection from durable storage remain open.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

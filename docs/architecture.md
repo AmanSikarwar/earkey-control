@@ -63,7 +63,13 @@ An `Observation` lends itself to the policy matcher as a `Candidate`. The caller
 
 `earkey_worker::device` (Linux and Android) opens `/dev/input/<event>` read-only with `O_NONBLOCK`, `O_NOFOLLOW` and close-on-exec. The opened descriptor's filesystem device, inode and character device must equal the inventoried `NodeInstance`. It then re-reads the input ID, name, event-type, key, MSC and property bitmaps with `EVIOCGID`, `EVIOCGNAME`, `EVIOCGBIT` and `EVIOCGPROP`. The result, combined with the inventory's USB ancestry, is the opened candidate for `Policy::revalidate`. `pressed_keys` reports `EVIOCGKEY` for the neutral-state check. Nothing here reads events or grabs.
 
-`earkey_worker::layout` hashes `system/usr/keylayout/Generic.kl` (a regular file of at most 64 KiB) with the pinned `sha2` crate. It treats a device-specific `.kl` or `.idc` (by vendor, product and version, or by canonical device name, in the ODM, vendor, system and data directories) as an override. A node with an override gets a digest that matches no evidence, so it cannot enroll or be targeted. The uinput proxy and the acquisition sequence are not implemented yet.
+`earkey_worker::layout` hashes `system/usr/keylayout/Generic.kl` (a regular file of at most 64 KiB) with the pinned `sha2` crate. It treats a device-specific `.kl` or `.idc` (by vendor, product and version, or by canonical device name, in the ODM, vendor, system and data directories) as an override. A node with an override gets a digest that matches no evidence, so it cannot enroll or be targeted. `earkey_worker::proxy` implements the proxy described in [decision record 0004](decisions/0004-proxy-identity.md), which is Proposed:
+- It opens `/dev/uinput`, which must be character device 10:223, and copies only bus, vendor, product and version into `UI_DEV_SETUP`, with the fixed name `EarKey Control proxy`.
+- It sets `EV_KEY` with only the given measured keys and `EV_MSC` with `MSC_SCAN`. It never sets `EV_REP`.
+- It reads the device name through `UI_GET_SYSNAME`, and `Drop` issues `UI_DEV_DESTROY`.
+- `wait_ready` waits within a deadline for exactly one `eventN` under the proxy's sysfs directory, a `/dev/input/eventN` character node with that device number, and a descriptor on it held by `system_server`.
+
+Forwarding, grabs and the acquisition sequence are not implemented yet.
 
 The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 

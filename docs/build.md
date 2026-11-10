@@ -75,6 +75,8 @@ To run the drill end to end, add `--tmpfs /data:size=16m` to the command above. 
 
 The worker inventory's node tests create character devices, so they need `--cap-add MKNOD` and a `/tmp` tmpfs mounted with `exec,dev`. They fail rather than skip when `mknod` is denied.
 
+The real uinput proxy test is ignored by default because it creates a virtual input device in the test kernel. The Docker Desktop LinuxKit kernel has `CONFIG_INPUT_UINPUT=y`. Run it there by adding `--cap-add MKNOD --device /dev/uinput` and passing `-- --include-ignored` to `cargo test -p earkey-worker --test proxy`. Never run it on the reference phone.
+
 `RUSTUP_TOOLCHAIN` selects the image's installed toolchain instead of syncing `rust-toolchain.toml` components. `cargo clippy -p earkey-supervisor --all-targets --target aarch64-linux-android -- -D warnings` type-checks the adapter and its tests for the Android target.
 
 ## Stage 4 Android capability probe

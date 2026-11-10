@@ -25,5 +25,5 @@ fi
 
 ui_print "- EarKey Control is installed and inactive."
 ui_print "- After reboot, with the earphones connected, run as root:"
-ui_print "-   $MODPATH/bin/earkey-worker enroll"
-ui_print "-   $MODPATH/bin/earkey-worker apply block-all enable"
+ui_print "-   /data/adb/modules/earkey_control/bin/earkey-worker enroll"
+ui_print "-   /data/adb/modules/earkey_control/bin/earkey-worker apply block-all enable"

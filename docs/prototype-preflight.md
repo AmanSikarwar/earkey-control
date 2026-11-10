@@ -414,6 +414,38 @@ The diagnostic was marked for removal, and cleanup was verified after the reboot
 
 This establishes, for the reference phone on the reforge kernel from the services hook, that the decision-0004 proxy can be created, that Android opens it within about 7 s of creation at 14 s uptime, that Android classifies it `KEYBOARD | EXTERNAL` with `Generic.kl` exactly like the physical earphones, that the worker inventory excludes it, and that teardown removes it. It does not test forwarded events, key mapping or action equivalence, repeat behavior, grabs, passthrough or suppression. Those are the Stage 4 passthrough gate. A single readiness sample at early boot is not a production deadline.
 
+## Supervised passthrough session plan (v15) — 10 November 2026
+
+This is the first Stage 4 passthrough session: grab the verified earphone collection and forward every event through the proxy, with no suppression, under the supervisor, for a bounded time.
+
+- **Services hook:** after the composite gate and digest check, it runs the read-only `earkey-worker check` (30 s deadline).
+- **Boot-completed hook:** after the same gate, it runs `earkey-worker supervise 120` (200 s kill deadline). ReSukiSU launches both stages without waiting for them. The supervisor starts `earkey-worker passthrough`, which:
+  1. re-checks the gate;
+  2. runs the read-only acquisition;
+  3. creates the proxy and waits up to 15 s for Android readiness;
+  4. grabs only if no key is down or queued;
+  5. forwards until the supervisor pauses it at 120 s.
+- **Success:** `supervise=pass`, which requires the actions `[Start, Stop(Paused)]`, no failure and a final `Inactive(Paused)` phase, plus `worker_end=Stopped` and `guard_exit=0`.
+
+The fixture is `0.0.15-preflight` (version code 15). The host suite has 23 passing tests. `earkey-control-service-preflight-v15.zip` is 761,674 bytes with SHA-256 `3ab1612ceda3004375774a8b23a7ab0bdec7b6de1ef4db49f43210a91c8114c8`; two builds were byte-identical. It embeds the worker `e6a32fca5671f4d0831bb9615e5d7c7cf4adf2a0824a012fcf8767a4e93ed091` ([build record](build.md#stage-4-android-worker-check)).
+
+### Maintainer protocol during the two-minute window
+
+With the earphones connected before the reboot, unlock the phone after boot and start music playback. Then, within the two minutes after boot completes:
+1. Press Center once and confirm playback pauses exactly once. Press it again and confirm it resumes.
+2. Press Volume Up once and Volume Down once, and confirm exactly one volume step each.
+3. Confirm audio kept playing through the earphones and the phone's own volume and power keys still work.
+4. Report anything that acted twice, did not act, or behaved differently from normal.
+
+Holds, double presses, calls and the microphone are later cases.
+
+### Stopping early and recovery
+
+- **Stopping early:** from a root shell, create the marker with `(umask 077; : > /data/adb/earkey_control/stay-inactive)`. The supervisor re-reads the gate every 50 ms and pauses the worker. Even a malformed marker closes the gate. Unplugging the earphones ends the worker with a disconnect fault and releases everything.
+- **Recovery:** a worker crash releases the grab when its descriptors close, and the supervisor's kill path and the parent-death signal bound a hung worker. The session cannot outlive 120 s plus the pause and kill deadlines. The diagnostic is one-shot per installation, and cleanup follows the v14 procedure. Remove the marker if one was created, before removing the empty guard directory.
+
+This session tests passthrough of short presses in the boot-completed context only. It is not suppression, module installation or acceptance.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

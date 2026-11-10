@@ -23,6 +23,8 @@
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod process;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+pub mod store;
 
 use std::cmp::Ordering;
 use std::time::{Duration, Instant};

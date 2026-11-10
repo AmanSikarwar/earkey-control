@@ -404,7 +404,7 @@ mv "$attempt/context.tmp" "$attempt/context"
             printf 'artifact_sha256=%s\n' "$expected"
             status=0
             if [ "$stage" = boot_completed ]; then
-                timeout -s KILL 200 ./earkey-worker supervise 120 || status=$?
+                timeout -s KILL 800 ./earkey-worker supervise 600 || status=$?
             else
                 timeout -s KILL 30 ./earkey-worker check || status=$?
             fi

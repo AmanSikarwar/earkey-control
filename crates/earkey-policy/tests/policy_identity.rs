@@ -391,3 +391,52 @@ fn inactive_policy_and_recovery_inhibit_targets() {
             .is_empty()
     );
 }
+
+#[test]
+fn enrollment_from_observation_requires_the_reviewed_environment_identity_and_capabilities() {
+    let device = earphones(7);
+    let enrolled = VerifiedEnrollment::from_observation(EVIDENCE, &ENVIRONMENT, &device).unwrap();
+    assert_eq!(enrolled.evidence(), EVIDENCE);
+    assert_eq!(enrolled.serial(), SERIAL);
+    assert!(Policy::parse(REQUEST.as_bytes(), &[enrolled]).is_ok());
+
+    let other_kernel = Environment {
+        kernel_release: "4.14.357-reforge-g9b21e3df6c0a",
+        ..ENVIRONMENT
+    };
+    assert!(VerifiedEnrollment::from_observation(EVIDENCE, &other_kernel, &device).is_none());
+
+    let rejected = [
+        Candidate {
+            usb_serial: None,
+            ..earphones(7)
+        },
+        Candidate {
+            usb_serial: Some(" "),
+            ..earphones(7)
+        },
+        Candidate {
+            is_virtual: true,
+            ..earphones(7)
+        },
+        Candidate {
+            usb_driver: Some("hid-generic"),
+            ..earphones(7)
+        },
+        Candidate {
+            name: "Generic Xiaomi Type-C Earphones 2",
+            ..earphones(7)
+        },
+        Candidate {
+            misc: &[],
+            ..earphones(7)
+        },
+        Candidate {
+            layout_sha256: "0000",
+            ..earphones(7)
+        },
+    ];
+    for candidate in &rejected {
+        assert!(VerifiedEnrollment::from_observation(EVIDENCE, &ENVIRONMENT, candidate).is_none());
+    }
+}

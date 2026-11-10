@@ -1,4 +1,4 @@
-use crate::identity::VerifiedEnrollment;
+use crate::identity::{Evidence, VerifiedEnrollment};
 use crate::policy::{MAX_POLICY_BYTES, Policy, PolicyError, Recovery, RecoveryLatch};
 use std::ffi::CStr;
 use std::fs::{File, OpenOptions};
@@ -10,6 +10,11 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 const POLICY: &CStr = c"policy.json";
 const TEMP: &CStr = c"policy.tmp";
 const STAY_INACTIVE: &CStr = c"stay-inactive";
+const ENROLLMENTS: &CStr = c"enrollments.json";
+const ENROLLMENTS_TEMP: &CStr = c"enrollments.tmp";
+const ENROLLMENT_SCHEMA: u32 = 1;
+/// Maximum durable enrollments; equal to the policy profile limit.
+pub const MAX_ENROLLMENTS: usize = 8;
 const DIRECTORY: libc::c_int = libc::O_RDONLY | libc::O_DIRECTORY;
 
 #[derive(Debug)]
@@ -31,6 +36,52 @@ pub enum StoreError {
         generation: u64,
         source: Box<StoreError>,
     },
+    InvalidEnrollments,
+    TooManyEnrollments,
+}
+
+/// A durable enrollment written only by [`Store::enroll`] from a live observation.
+#[derive(Clone, Debug, serde::Deserialize, Eq, PartialEq, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EnrollmentRecord {
+    pub evidence: Evidence,
+    pub usb_serial: String,
+}
+
+impl EnrollmentRecord {
+    /// Records read from the store were validated when parsed.
+    pub fn verified(&self) -> Option<VerifiedEnrollment<'_>> {
+        VerifiedEnrollment::from_reviewed_measurement(self.evidence, &self.usb_serial)
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Enrollments {
+    schema_version: u32,
+    enrollments: Vec<EnrollmentRecord>,
+}
+
+fn parse_enrollments(bytes: &[u8]) -> Result<Vec<EnrollmentRecord>, StoreError> {
+    let value: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|_| StoreError::InvalidEnrollments)?;
+    let parsed: Enrollments =
+        serde_json::from_slice(bytes).map_err(|_| StoreError::InvalidEnrollments)?;
+    if parsed.schema_version != ENROLLMENT_SCHEMA
+        || serde_json::to_value(&parsed).map_err(|_| StoreError::InvalidEnrollments)? != value
+    {
+        return Err(StoreError::InvalidEnrollments);
+    }
+    let records = parsed.enrollments;
+    if records.len() > MAX_ENROLLMENTS {
+        return Err(StoreError::TooManyEnrollments);
+    }
+    for (index, record) in records.iter().enumerate() {
+        if record.verified().is_none() || records[..index].contains(record) {
+            return Err(StoreError::InvalidEnrollments);
+        }
+    }
+    Ok(records)
 }
 
 impl From<io::Error> for StoreError {
@@ -151,6 +202,48 @@ impl Store {
         self.write_policy(&canonical, generation)
     }
 
+    /// Reads durable enrollments. A missing file means none.
+    pub fn enrollments(&self) -> Result<Vec<EnrollmentRecord>, StoreError> {
+        let lock = open_at(&self.directory, c".", DIRECTORY)?;
+        lock.lock_shared()?;
+        self.enrollments_locked()
+    }
+
+    /// Adds an enrollment made by [`VerifiedEnrollment::from_observation`]. Ordinary policy
+    /// saves cannot create one. Adding an existing enrollment changes nothing.
+    pub fn enroll(&self, enrollment: &VerifiedEnrollment<'_>) -> Result<(), StoreError> {
+        let lock = open_at(&self.directory, c".", DIRECTORY)?;
+        lock.lock()?;
+        let mut records = self.enrollments_locked()?;
+        let record = EnrollmentRecord {
+            evidence: enrollment.evidence(),
+            usb_serial: enrollment.serial().to_owned(),
+        };
+        if records.contains(&record) {
+            return Ok(());
+        }
+        if records.len() >= MAX_ENROLLMENTS {
+            return Err(StoreError::TooManyEnrollments);
+        }
+        records.push(record);
+        let canonical = serde_json::to_vec(&Enrollments {
+            schema_version: ENROLLMENT_SCHEMA,
+            enrollments: records,
+        })
+        .map_err(|_| StoreError::InvalidEnrollments)?;
+        self.write_private(ENROLLMENTS_TEMP, ENROLLMENTS, &canonical)?;
+        self.directory.sync_all()?;
+        Ok(())
+    }
+
+    fn enrollments_locked(&self) -> Result<Vec<EnrollmentRecord>, StoreError> {
+        self.check_directory()?;
+        let Some(file) = self.private_file(ENROLLMENTS)? else {
+            return Ok(vec![]);
+        };
+        parse_enrollments(&read_bounded(file)?)
+    }
+
     fn load_unverified_locked(&self) -> Result<Policy, StoreError> {
         self.check_directory()?;
         let Some(file) = self.private_file(POLICY)? else {
@@ -265,25 +358,38 @@ impl Store {
     }
 
     fn write_policy(&self, canonical: &[u8], generation: u64) -> Result<(), StoreError> {
-        if self.private_file(TEMP)?.is_some() {
-            unlink_at(&self.directory, TEMP)?;
+        self.write_private(TEMP, POLICY, canonical)?;
+        self.directory
+            .sync_all()
+            .map_err(|source| StoreError::DurabilityUncertain { generation, source })
+    }
+
+    /// Atomically replaces `target` through `temp`. The caller synchronizes the directory.
+    fn write_private(
+        &self,
+        temp_name: &CStr,
+        target: &CStr,
+        bytes: &[u8],
+    ) -> Result<(), StoreError> {
+        if self.private_file(temp_name)?.is_some() {
+            unlink_at(&self.directory, temp_name)?;
         }
         let mut temp = open_at(
             &self.directory,
-            TEMP,
+            temp_name,
             libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL,
         )?;
         let replaced = (|| -> Result<(), StoreError> {
             self.check_private_file(&temp)?;
-            temp.write_all(canonical)?;
+            temp.write_all(bytes)?;
             temp.sync_all()?;
             // SAFETY: Both names are fixed components under a live directory descriptor.
             let status = unsafe {
                 libc::renameat(
                     self.directory.as_raw_fd(),
-                    TEMP.as_ptr(),
+                    temp_name.as_ptr(),
                     self.directory.as_raw_fd(),
-                    POLICY.as_ptr(),
+                    target.as_ptr(),
                 )
             };
             if status == -1 {
@@ -292,12 +398,10 @@ impl Store {
             Ok(())
         })();
         if let Err(error) = replaced {
-            let _ = unlink_at(&self.directory, TEMP);
+            let _ = unlink_at(&self.directory, temp_name);
             return Err(error);
         }
-        self.directory
-            .sync_all()
-            .map_err(|source| StoreError::DurabilityUncertain { generation, source })
+        Ok(())
     }
 
     fn set_inactive_marker(&self, disabled: bool) -> Result<(), StoreError> {

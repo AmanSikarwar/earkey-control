@@ -224,6 +224,29 @@ impl<'a> VerifiedEnrollment<'a> {
         valid_serial(serial).then_some(Self { evidence, serial })
     }
 
+    /// Enrolls the serial of a live candidate that matches the reviewed evidence's
+    /// environment, identity and capabilities. This is the enrollment command's only source.
+    pub fn from_observation(
+        evidence: Evidence,
+        environment: &Environment<'_>,
+        candidate: &Candidate<'a>,
+    ) -> Option<Self> {
+        let serial = candidate.usb_serial?;
+        (valid_serial(serial)
+            && evidence.matches_environment(environment)
+            && evidence.matches_identity(serial, candidate)
+            && evidence.matches_capabilities(candidate))
+        .then_some(Self { evidence, serial })
+    }
+
+    pub fn evidence(&self) -> Evidence {
+        self.evidence
+    }
+
+    pub fn serial(&self) -> &'a str {
+        self.serial
+    }
+
     pub(crate) fn matches(&self, evidence: Evidence, serial: &str) -> bool {
         self.evidence == evidence && self.serial == serial
     }

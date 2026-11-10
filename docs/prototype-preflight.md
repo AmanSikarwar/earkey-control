@@ -188,7 +188,7 @@ A read-only preflight on 10 November found that the reference phone had booted a
 | Manager | unchanged | unchanged, digest `fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50`, owner `0:0`, mode `0755` |
 | Loaded KSU module | none | none |
 
-The service hook now requires the exact measured `full_version`, `flags=0x160`, `features=0x7`, UAPI 6, built-in mode and `pr_build=false`, together with the new release/build string. The driver `version` remains an observation, as does `KSU_KERNEL_VER_CODE`.
+The v8 service hook required the exact measured `full_version`, `flags=0x160`, `features=0x7`, UAPI 6, built-in mode and `pr_build=false`, together with the new release/build string. The driver `version` remains an observation, as does `KSU_KERNEL_VER_CODE`.
 
 `flags=0x160` is consistent with `PREINIT` (`0x20`) plus FinaSU's `KSU_GET_INFO_FLAG_HOOK_TRACEPOINT` (`0x40`) and `KSU_GET_INFO_FLAG_HOOK_READY` (`0x100`). The `0x80` inline-SUSFS-hook bit is clear, and the live `/proc/config.gz` advertises `CONFIG_KSU_SUSFS=y` with no inline-hook option. BakaSU's UAPI defines only bits 0–5, so the high bits are not BakaSU constants. `features=0x7` matches BakaSU's `KSU_FEATURE_MAX` (IDs 0–6), not FinaSU's larger enum. The running kernel's exact source is unidentified, so this is a sourced related-fork interpretation, not proven local semantics; the gate pins the measured numbers rather than claiming a specific fork. Sources reviewed 10 November 2026: [BakaSU `uapi/supercall.h` at `516d3e87`](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/uapi/supercall.h), [BakaSU `uapi/feature.h` at `516d3e87`](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/uapi/feature.h), and [FinaSU `uapi/supercall.h` at `adf9a186`](https://github.com/LyraVoid/FinaSU/blob/adf9a18614c099d775a4389e8cc94cc5be31da61/uapi/supercall.h).
 
@@ -212,6 +212,12 @@ Manager, kernel and module identities were verified in both hooks. Both hooks re
 `full_version` is therefore mutable during boot together with the driver `version`, so pinning it reproduces the original temporal failure. The flags, features, UAPI and mode fields matched in both hooks. The pinned userspace `ksud` source contains no version writer, so the writer is still unidentified; it may be in-kernel or the manager app. That is an unverified hypothesis.
 
 The module was marked for removal with `ksud module uninstall`, and the `remove` marker was verified. After the cleanup reboot, the active and staged paths, records and upload were gone. The original six modules, the `magic_mount_rs` metamodule link, the manager digest and Enforcing mode remained. No `probe-uinput`, evdev, uinput, grab, passthrough, suppression, audio or microphone behavior was exercised. Raw records remain private.
+
+## Full-version observation — 10 November 2026
+
+After the v8 result, the maintainer decided that the driver `full_version` is a recorded observation only, like the driver `version` and `KSU_KERNEL_VER_CODE`. The services hook still requires the manager file and digest, one complete `debug info` result with `flags=0x160`, `features=0x7`, UAPI 6, built-in mode, no LKM/bundled/late load and `pr_build=false`, the reforge release/build in `/proc/version`, and no loaded KSU module. A malformed or duplicate `full_version` line still makes the info result invalid.
+
+The fixture is `0.0.9-preflight` (version code 9). The host suite has 22 passing tests. `earkey-control-service-preflight-v9.zip` is 362,057 bytes with SHA-256 `1a41ee4def45d74a31a66ec36fdef68472536a43378ec78d054e33251d4a40de`; two builds were byte-identical, from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`. The v8 run showed that the remaining pinned fields matched in the services hook, but that is not a v9 result. The service-context launcher check remains **Not passed** until an authorized v9 run succeeds.
 
 ## Descriptor comparison design
 

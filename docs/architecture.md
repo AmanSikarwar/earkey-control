@@ -98,6 +98,16 @@ The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, in
 
 Each write reports the saved generation only. The active generation needs the worker's acknowledgment in a later increment. `Store::open_dir` provides the same checks over a directory owned by the effective user, for host tests.
 
+## Production worker loop
+
+`earkey-worker run` ([Stage 6 plan](stage-6-plan.md)) is the long-running child the supervisor daemon will start. It re-checks the gate before opening anything, computes the `Generic.kl` digest once, sends the started frame, and sends a strictly increasing progress counter on every pass and during forwarding. Each pass:
+1. Loads the enrollments and the policy verified against them. It waits while the policy is unreadable (`policy:…`), disabled (`disabled`), or paused, boot-disabled or latched (`recovery_inactive`).
+2. Scans the inventory, marks layout overrides, and asks `Policy::targets`. It waits if there is no target (`waiting_accessory`) or the targets are refused (`refused:…`). Only the first target is used for now.
+3. Opens the target, revalidates it against the descriptor and a fresh inventory, and requires no key down (`not_neutral`).
+4. Creates the decision-0004 proxy, waits for readiness, and forwards with the policy's blocked groups for that profile (`active:generation=N:blocked=…`).
+
+A watcher thread sets the session's interrupt on `SIGTERM` or when the saved generation changes, so a new policy is applied by reacquiring at the next neutral boundary. A disconnect or read fault returns to waiting (`disconnected`) rather than failing. A grab conflict (`EBUSY`) is reported and waited on, never defeated. Any other session fault or a proxy creation failure exits with failure for the supervisor to count. Each session reports its tally (`worker_session=…`), and state lines are written only on change.
+
 ## Host supervisor core
 
 [earkey-supervisor](../crates/earkey-supervisor) is a host-tested state machine, not a process supervisor. It performs no process, clock, file, policy or device I/O. The service adapter supplies monotonic time, a gate built from durable pause, the pre-open `stay-inactive` marker and the restart latch, plus worker signals. It executes the returned actions.

@@ -1,4 +1,5 @@
 use super::*;
+use crate::identity::Evidence;
 use std::fs::{self, DirBuilder};
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt, symlink};
 use std::path::PathBuf;
@@ -40,6 +41,13 @@ impl Drop for Scratch {
     fn drop(&mut self) {
         fs::remove_dir_all(&self.0).unwrap();
     }
+}
+
+const SERIAL: &str = "SYNTHETIC-ENROLLMENT";
+const REQUEST: &str = include_str!("../../../../tests/fixtures/identity/reference-policy.json");
+
+fn enrollment() -> VerifiedEnrollment<'static> {
+    VerifiedEnrollment::from_reviewed_measurement(Evidence::XiaomiPixelos20261107, SERIAL).unwrap()
 }
 
 #[test]
@@ -195,6 +203,232 @@ fn unsafe_temp_does_not_replace_last_good_file() {
         .unwrap();
     assert_eq!(store.save(&saved.to_json(), &[]).unwrap().generation(), 2);
     assert!(!temp.exists());
+}
+
+#[test]
+fn recovery_operations_are_generation_checked_and_preserve_policy() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let enrollments = [enrollment()];
+    let saved = store.save(REQUEST.as_bytes(), &enrollments).unwrap();
+    assert_eq!(saved.generation(), 1);
+    assert!(!saved.recovery().paused);
+    assert_eq!(saved.blocked_controls(0).count(), 1);
+
+    assert!(matches!(
+        store.apply_recovery(0, RecoveryOperation::Pause, &enrollments),
+        Err(StoreError::StaleGeneration {
+            requested: 0,
+            saved: 1
+        })
+    ));
+    assert!(!store.load(&enrollments).unwrap().recovery().paused);
+
+    let paused = store
+        .apply_recovery(1, RecoveryOperation::Pause, &enrollments)
+        .unwrap();
+    assert_eq!(paused.generation(), 2);
+    assert!(paused.recovery().paused);
+    assert_eq!(paused.blocked_controls(0).count(), 1);
+
+    let reloaded = store.load(&enrollments).unwrap();
+    assert_eq!(reloaded.recovery(), paused.recovery());
+    assert_eq!(reloaded.blocked_controls(0).count(), 1);
+
+    let mut ordinary = serde_json::from_slice::<serde_json::Value>(&paused.to_json()).unwrap();
+    ordinary["recovery"]["paused"] = false.into();
+    assert!(matches!(
+        store.save(&serde_json::to_vec(&ordinary).unwrap(), &enrollments),
+        Err(StoreError::RecoveryChange)
+    ));
+    assert!(store.load(&enrollments).unwrap().recovery().paused);
+
+    let resumed = store
+        .apply_recovery(2, RecoveryOperation::Resume, &enrollments)
+        .unwrap();
+    assert_eq!(resumed.generation(), 3);
+    assert!(!resumed.recovery().paused);
+    assert_eq!(resumed.blocked_controls(0).count(), 1);
+}
+
+#[test]
+fn boot_disable_and_enable_manage_the_preopen_marker() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let marker = scratch.0.join("stay-inactive");
+    assert!(!store.has_inactive_marker().unwrap());
+
+    let disabled = store
+        .apply_recovery(0, RecoveryOperation::DisableNextBoot, &[])
+        .unwrap();
+    assert_eq!(disabled.generation(), 1);
+    assert!(disabled.recovery().boot_disabled);
+    assert!(store.has_inactive_marker().unwrap());
+    let metadata = fs::metadata(&marker).unwrap();
+    assert!(metadata.is_file());
+    assert_eq!(metadata.mode() & 0o7777, 0o600);
+    assert_eq!(metadata.nlink(), 1);
+
+    let mut ordinary = serde_json::from_slice::<serde_json::Value>(&disabled.to_json()).unwrap();
+    ordinary["recovery"]["boot_disabled"] = false.into();
+    assert!(matches!(
+        store.save(&serde_json::to_vec(&ordinary).unwrap(), &[]),
+        Err(StoreError::RecoveryChange)
+    ));
+    assert!(store.has_inactive_marker().unwrap());
+
+    let enabled = store
+        .apply_recovery(1, RecoveryOperation::EnableNextBoot, &[])
+        .unwrap();
+    assert_eq!(enabled.generation(), 2);
+    assert!(!enabled.recovery().boot_disabled);
+    assert!(!store.has_inactive_marker().unwrap());
+    assert!(!marker.exists());
+}
+
+#[test]
+fn restart_latch_requires_an_explicit_recovery_operation() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let saved = store.save(&Policy::inactive().to_json(), &[]).unwrap();
+
+    let mut ordinary = serde_json::from_slice::<serde_json::Value>(&saved.to_json()).unwrap();
+    ordinary["recovery"]["latch"] = "restart_limit".into();
+    assert!(matches!(
+        store.save(&serde_json::to_vec(&ordinary).unwrap(), &[]),
+        Err(StoreError::RecoveryChange)
+    ));
+
+    let latched = store
+        .apply_recovery(1, RecoveryOperation::LatchRestartLimit, &[])
+        .unwrap();
+    assert_eq!(latched.generation(), 2);
+    assert_eq!(latched.recovery().latch, RecoveryLatch::RestartLimit);
+
+    let cleared = store
+        .apply_recovery(2, RecoveryOperation::ClearRestartLimit, &[])
+        .unwrap();
+    assert_eq!(cleared.generation(), 3);
+    assert_eq!(cleared.recovery().latch, RecoveryLatch::Clear);
+}
+
+#[test]
+fn tampered_marker_blocks_boot_recovery_without_changing_policy() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let saved = store.save(&Policy::inactive().to_json(), &[]).unwrap();
+    let marker = scratch.0.join("stay-inactive");
+
+    symlink("missing", &marker).unwrap();
+    for operation in [
+        RecoveryOperation::DisableNextBoot,
+        RecoveryOperation::EnableNextBoot,
+    ] {
+        assert!(matches!(
+            store.apply_recovery(saved.generation(), operation, &[]),
+            Err(StoreError::UnsafeStorage)
+        ));
+    }
+    assert_eq!(store.load(&[]).unwrap().to_json(), saved.to_json());
+    assert!(
+        fs::symlink_metadata(&marker)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    fs::remove_file(&marker).unwrap();
+
+    fs::write(&marker, b"").unwrap();
+    fs::set_permissions(&marker, fs::Permissions::from_mode(0o644)).unwrap();
+    for operation in [
+        RecoveryOperation::DisableNextBoot,
+        RecoveryOperation::EnableNextBoot,
+    ] {
+        assert!(matches!(
+            store.apply_recovery(saved.generation(), operation, &[]),
+            Err(StoreError::UnsafeStorage)
+        ));
+    }
+    assert_eq!(store.load(&[]).unwrap().to_json(), saved.to_json());
+}
+
+#[test]
+fn failed_boot_disable_keeps_the_marker_before_policy_retry() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let saved = store.save(&Policy::inactive().to_json(), &[]).unwrap();
+    let marker = scratch.0.join("stay-inactive");
+    let temp = scratch.0.join("policy.tmp");
+    symlink("policy.json", &temp).unwrap();
+
+    assert!(matches!(
+        store.apply_recovery(1, RecoveryOperation::DisableNextBoot, &[]),
+        Err(StoreError::UnsafeStorage)
+    ));
+    assert!(store.has_inactive_marker().unwrap());
+    let unchanged = store.load(&[]).unwrap();
+    assert_eq!(unchanged.generation(), saved.generation());
+    assert!(!unchanged.recovery().boot_disabled);
+    fs::remove_file(&temp).unwrap();
+
+    let disabled = store
+        .apply_recovery(1, RecoveryOperation::DisableNextBoot, &[])
+        .unwrap();
+    assert_eq!(disabled.generation(), 2);
+    assert!(disabled.recovery().boot_disabled);
+    assert!(marker.exists());
+}
+
+#[test]
+fn recovery_operations_still_require_verified_enrollments() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let enrollments = [enrollment()];
+    let saved = store.save(REQUEST.as_bytes(), &enrollments).unwrap();
+
+    assert!(matches!(
+        store.apply_recovery(saved.generation(), RecoveryOperation::Pause, &[]),
+        Err(StoreError::Policy(PolicyError::UnverifiedProfile))
+    ));
+    assert_eq!(store.load(&enrollments).unwrap().to_json(), saved.to_json());
+}
+
+#[test]
+fn concurrent_recovery_operations_cannot_both_commit_same_base() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    store.save(&Policy::inactive().to_json(), &[]).unwrap();
+    let results = std::thread::scope(|scope| {
+        let pause = scope.spawn(|| store.apply_recovery(1, RecoveryOperation::Pause, &[]));
+        let latch =
+            scope.spawn(|| store.apply_recovery(1, RecoveryOperation::LatchRestartLimit, &[]));
+        [pause.join().unwrap(), latch.join().unwrap()]
+    });
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| matches!(result, Err(StoreError::StaleGeneration { .. })))
+            .count(),
+        1
+    );
+    assert_eq!(store.load(&[]).unwrap().generation(), 2);
+}
+
+#[test]
+fn exhausted_generation_does_not_create_a_boot_marker() {
+    let scratch = Scratch::new();
+    let mut state: serde_json::Value =
+        serde_json::from_slice(&Policy::inactive().to_json()).unwrap();
+    state["generation"] = u64::MAX.into();
+    scratch.write_policy(&serde_json::to_vec(&state).unwrap());
+    let store = scratch.store();
+
+    assert!(matches!(
+        store.apply_recovery(u64::MAX, RecoveryOperation::DisableNextBoot, &[]),
+        Err(StoreError::GenerationExhausted)
+    ));
+    assert!(!store.has_inactive_marker().unwrap());
 }
 
 #[test]

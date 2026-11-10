@@ -4,7 +4,7 @@
 //! kernel spoofs. Any missing, empty, possibly truncated or malformed value is
 //! an error, so an uncertain environment matches no evidence.
 
-use earkey_policy::identity::Environment;
+use earkey_policy::identity::{Environment, Evidence};
 use std::io;
 
 /// Android properties read, in [`Environment`] field order. `ro.custom.version`
@@ -21,6 +21,20 @@ const SDK: &str = "ro.build.version.sdk";
 const TRUNCATED: usize = 91;
 #[cfg(target_os = "android")]
 const MAX_PROC_VERSION: u64 = 1024;
+
+/// Evidence that may be selected, by environment.
+pub const EVIDENCE: [Evidence; 2] = [
+    Evidence::XiaomiPixelos20261107,
+    Evidence::XiaomiPixelosReforge20261110,
+];
+
+/// The reviewed evidence whose pinned environment matches `observed`.
+pub fn evidence_for(observed: &Observed) -> Option<Evidence> {
+    let environment = observed.as_environment();
+    EVIDENCE
+        .into_iter()
+        .find(|evidence| evidence.matches_environment(&environment))
+}
 
 /// An owned environment observation.
 #[derive(Debug, Eq, PartialEq)]

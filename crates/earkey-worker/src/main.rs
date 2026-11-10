@@ -9,6 +9,12 @@ fn main() -> ExitCode {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let command = match args.as_slice() {
         [command @ ("check" | "proxy-check")] => Command::Plain(command),
+        [
+            command @ ("enroll" | "status" | "enable" | "disable" | "pause" | "resume"
+            | "disable-next-boot" | "enable-next-boot"),
+        ] => Command::Control(command, None, false),
+        ["apply", selection] => Command::Control("apply", Some(selection), false),
+        ["apply", selection, "enable"] => Command::Control("apply", Some(selection), true),
         ["passthrough"] => Command::Passthrough("passthrough"),
         ["passthrough", selection] => Command::Passthrough(selection),
         ["supervise", seconds, rest @ ..] if rest.len() <= 1 => match seconds.parse::<u64>() {
@@ -24,13 +30,17 @@ fn main() -> ExitCode {
 
 enum Command<'a> {
     Plain(&'a str),
+    /// A root control operation: name, optional selection, and `enable` for `apply`.
+    Control(&'a str, Option<&'a str>, bool),
     Passthrough(&'a str),
     Supervise(u64, &'a str),
 }
 
 fn usage() -> ExitCode {
     eprintln!(
-        "usage: earkey-worker check | proxy-check | passthrough [selection] | supervise <10-600> [selection]"
+        "usage: earkey-worker check | proxy-check | passthrough [selection] | supervise <10-600> [selection]\n       \
+         earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume\n       \
+         earkey-worker disable-next-boot | enable-next-boot"
     );
     ExitCode::from(2)
 }
@@ -66,6 +76,9 @@ fn run(command: Command<'_>) -> ExitCode {
         earkey_supervisor::store::read_gate(&store)
     };
     let root = Path::new("/");
+    if let Command::Control(name, selection, enable) = command {
+        return control(name, selection, enable);
+    }
     if let Command::Supervise(seconds, selection) = command {
         if earkey_worker::session::Selection::parse(selection).is_none() {
             return usage();
@@ -115,7 +128,7 @@ fn run(command: Command<'_>) -> ExitCode {
             Some(selection) => ("passthrough", Some(selection)),
             None => return usage(),
         },
-        Command::Supervise(..) => unreachable!(),
+        Command::Supervise(..) | Command::Control(..) => unreachable!(),
     };
 
     let environment = match earkey_worker::environment::read() {
@@ -161,6 +174,73 @@ fn run(command: Command<'_>) -> ExitCode {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
+    }
+}
+
+/// Runs one root control operation against the private store.
+#[cfg(target_os = "android")]
+fn control(name: &str, selection: Option<&str>, enable: bool) -> ExitCode {
+    use earkey_policy::store::{RecoveryOperation, Store};
+    use earkey_worker::control;
+    use earkey_worker::selection::Selection;
+
+    let store = match Store::open() {
+        Ok(store) => store,
+        Err(error) => {
+            println!("{name}=error:storage:{error:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let result =
+        match name {
+            "status" => {
+                for (key, value) in control::status(&store) {
+                    println!("{key}={value}");
+                }
+                return ExitCode::SUCCESS;
+            }
+            "enroll" => match earkey_worker::environment::read() {
+                Ok(environment) => control::enroll(&store, std::path::Path::new("/"), &environment)
+                    .map(|evidence| {
+                        format!(
+                            "enrolled:{}",
+                            serde_json::to_value(evidence)
+                                .ok()
+                                .and_then(|v| v.as_str().map(str::to_owned))
+                                .unwrap_or_default()
+                        )
+                    }),
+                Err(error) => {
+                    println!("enroll=error:environment:{:?}", error.kind());
+                    return ExitCode::FAILURE;
+                }
+            },
+            "apply" => match selection.and_then(Selection::parse) {
+                Some(selection) => control::apply(&store, &selection, enable)
+                    .map(|g| format!("saved_generation:{g}")),
+                None => return usage(),
+            },
+            "enable" | "disable" => control::set_enabled(&store, name == "enable")
+                .map(|g| format!("saved_generation:{g}")),
+            _ => {
+                let operation = match name {
+                    "pause" => RecoveryOperation::Pause,
+                    "resume" => RecoveryOperation::Resume,
+                    "disable-next-boot" => RecoveryOperation::DisableNextBoot,
+                    _ => RecoveryOperation::EnableNextBoot,
+                };
+                control::recovery(&store, operation).map(|g| format!("saved_generation:{g}"))
+            }
+        };
+    match result {
+        Ok(value) => {
+            println!("{name}=ok:{value}");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            println!("{name}=error:{error:?}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -210,6 +290,12 @@ fn dumpsys_input() -> std::io::Result<String> {
 fn run(command: Command<'_>) -> ExitCode {
     match command {
         Command::Plain(command) => println!("{command}=android_required"),
+        Command::Control(command, selection, enable) => {
+            println!(
+                "{command}_{}_{enable}=android_required",
+                selection.unwrap_or("none")
+            )
+        }
         Command::Passthrough(selection) => println!("passthrough_{selection}=android_required"),
         Command::Supervise(seconds, selection) => {
             println!("supervise_{seconds}_{selection}=android_required")

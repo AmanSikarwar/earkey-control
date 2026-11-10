@@ -13,11 +13,7 @@ use earkey_policy::identity::{Evidence, VerifiedEnrollment};
 use earkey_policy::policy::Policy;
 use std::path::Path;
 
-/// Evidence the check may select, by environment.
-pub const EVIDENCE: [Evidence; 2] = [
-    Evidence::XiaomiPixelos20261107,
-    Evidence::XiaomiPixelosReforge20261110,
-];
+pub use crate::environment::EVIDENCE;
 /// Digest given to a node whose layout is overridden; it matches no evidence.
 const OVERRIDDEN: &str = "override";
 

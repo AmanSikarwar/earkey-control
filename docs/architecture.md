@@ -88,6 +88,16 @@ An `Observation` lends itself to the policy matcher as a `Candidate`. The caller
 
 The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 
+## Root control commands
+
+`earkey_worker::control` implements the first root command operations ([Stage 6 plan](stage-6-plan.md)), exposed as `earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume | disable-next-boot | enable-next-boot`:
+- `enroll` selects the reviewed evidence by environment, hashes `Generic.kl`, scans the inventory, and enrolls only the single candidate without a layout override for which `VerifiedEnrollment::from_observation` succeeds. Zero or several candidates are refused.
+- `apply` saves a policy at the current generation with one enabled profile per enrollment. `block-all` uses the `block_all` preset; other selections use `custom` with the listed groups. The current recovery state is preserved, because ordinary saves cannot change it. `enable` and `disable` change only the master enabled state.
+- `pause`, `resume`, `disable-next-boot` and `enable-next-boot` use the dedicated recovery operations.
+- `status` reports the enrollment count and evidence, the `stay-inactive` marker, the saved generation, enabled, paused, boot-disabled, the restart latch, and blocked groups per profile, never serials.
+
+Each write reports the saved generation only. The active generation needs the worker's acknowledgment in a later increment. `Store::open_dir` provides the same checks over a directory owned by the effective user, for host tests.
+
 ## Host supervisor core
 
 [earkey-supervisor](../crates/earkey-supervisor) is a host-tested state machine, not a process supervisor. It performs no process, clock, file, policy or device I/O. The service adapter supplies monotonic time, a gate built from durable pause, the pre-open `stay-inactive` marker and the restart latch, plus worker signals. It executes the returned actions.

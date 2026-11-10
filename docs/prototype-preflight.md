@@ -286,6 +286,27 @@ After authorization, follow the v10 procedure: pre-checks, an empty `0:0` `0700`
 
 This tests supervision timing, parent death and `/proc` visibility in the `u:r:ksu:s0` services hook on this kernel. It does not test the real worker, evdev, uinput device creation, grabs, passthrough or suppression.
 
+## Service-context supervision drill result — 10 November 2026
+
+The maintainer authorized the v11 run, including provisioning and removing the guard directory. Pre-checks matched the v9 profile: the manager and metamodule hook digests were unchanged, no module operation was pending, and neither the diagnostic, `/data/adb/earkey_control` nor an `earkey-drill` process existed. A first broad `ps | grep earkey` count of 3 was a false match on `android.hardware.drm-service.clearkey`; later checks matched `earkey-drill` exactly. The guard directory was created as `0:0` mode `0700` and left empty. The on-device ZIP digest matched `4fcfd5dc17dbe6c770a56c7fafb99940556df70f17f9ca5ce3ce1be600909712`. `0.0.11-preflight` was staged with `earkey-drill` mode `0500`, its digest matched `156a0391538fc0ceec18fc2f68144136215d885d9a2696feb11f5a98d9bbc475`, and the upload was removed.
+
+The service-context supervision drill **Passed**. The services hook at 13.93 s verified the composite identity, with driver `full_version=v3.3.1-32726` recorded as an observation, and ran `earkey-drill drill`:
+
+| Scenario | Actions | Duration | Worker gone |
+| --- | --- | --- | --- |
+| `pause` | `[Stop(Paused)]` | 105 ms | yes |
+| `kill` | `[Stop(Paused), Kill(Paused)]` | 1,074 ms | yes |
+| `stall` | `[Stop(Fault(ProgressStalled))]` | 560 ms | stopped |
+| `parent_death` | thread exit | 10 ms | yes |
+
+It also reported `gate=open`, `lock_exclusive=true` and `lock_removed=true`, then `drill=pass` and `service_probe_exit=0`. The boot-completed hook verified the identity and did not run the drill. About 100 s after boot, the guard directory was empty and no `earkey-drill` process remained. A bounded `dmesg` search found no AVC line naming `earkey` or `ksu`.
+
+Pause took 105 ms on the phone, against 11–12 ms in the container; kill took 1,074 ms against about 1,015 ms, and stall 560 ms against about 505 ms. The phone run happened during early boot. These are single drill measurements with drill limits, not production deadlines or a timing distribution.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The empty guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, and no `earkey-drill` process existed. Raw records remain private.
+
+This establishes that, in the `u:r:ksu:s0` services hook on this kernel, the adapter's process-group `SIGTERM`/`SIGKILL`, `PR_SET_PDEATHSIG`, `waitid(WNOWAIT)`, `/proc` group scan, `flock` lock and store-backed gate worked for a worker that opened no input device. It does not test the real worker, evdev, uinput device creation, grabs, passthrough or suppression.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

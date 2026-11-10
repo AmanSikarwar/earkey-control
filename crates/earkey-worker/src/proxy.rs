@@ -115,6 +115,12 @@ impl Proxy {
     }
 }
 
+impl Proxy {
+    pub(crate) fn file(&self) -> &File {
+        &self.file
+    }
+}
+
 impl Drop for Proxy {
     fn drop(&mut self) {
         // SAFETY: UI_DEV_DESTROY takes no argument; the descriptor is still open.

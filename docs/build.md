@@ -131,6 +131,18 @@ For v15, two clean builds from `f3cc75c` produced identical 741,728-byte ELFs, S
 
 For v13, two clean builds from `8035136` produced identical 672,792-byte ELFs, SHA-256 `57178e5f0431f85ac0214505381a460b3cdb0a6953191f51bfea9aa085b4e895`. The same pins and checks passed: AArch64 PIE using `linker64`, API 31, four `LOAD` segments aligned to `0x4000`, only `libc.so` and `libdl.so`, all 82 imports in the API 31 stubs, and no host paths. The ELF is kept at `target/stage4/8035136/earkey-worker-arm64-api31`.
 
+## Stage 6 WebUI
+
+`webui/` is TypeScript compiled by TypeScript 6.0.3, pinned exactly in `package.json` and by integrity in `package-lock.json`. TypeScript is build-only, and the page has no runtime dependencies, so no WebUI code is bundled from third parties. Node 26.13.0 and npm 11.20.0 built it on 11 November 2026.
+
+```sh
+cd webui
+npm ci --ignore-scripts
+npm test   # compiles to dist/ and runs node:test on the status logic
+```
+
+`tools/package-module.py` runs `npm run build` and copies `index.html`, `style.css`, `main.js` and `status.js` to `webroot/`. It fails if `node_modules` is missing or the output differs.
+
 ## Pins and native target
 
 Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.

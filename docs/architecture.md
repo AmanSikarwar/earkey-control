@@ -57,7 +57,11 @@ On `SYN_DROPPED`, the engine discards the partial frame and consumes through the
 - `/dev/input/eventN` must be a non-symlink character device whose device number equals the sysfs `dev` value. Its filesystem device, inode and character device form the `NodeInstance`.
 - Any node that cannot be fully observed fails the whole scan, so an unreadable duplicate cannot hide an ambiguity from the matcher.
 
-An `Observation` lends itself to the policy matcher as a `Candidate`. The caller supplies the key layout digest. Layout resolution, the environment reader, the enrollment source, post-open revalidation, neutral-state checks and the uinput proxy are not implemented yet.
+An `Observation` lends itself to the policy matcher as a `Candidate`. The caller supplies the key layout digest.
+
+`earkey_worker::environment` reads the pinned environment. The six properties `ro.product.model`, `ro.product.device`, `ro.build.version.sdk`, `ro.custom.version`, `ro.build.id` and `ro.build.version.incremental` come through bionic `__system_property_get`. The kernel release and build come from `/proc/version`. A missing, empty, control-character, possibly truncated (91-byte) or malformed value is an error, so an uncertain environment matches no evidence.
+
+`earkey_worker::device` (Linux and Android) opens `/dev/input/<event>` read-only with `O_NONBLOCK`, `O_NOFOLLOW` and close-on-exec. The opened descriptor's filesystem device, inode and character device must equal the inventoried `NodeInstance`. It then re-reads the input ID, name, event-type, key, MSC and property bitmaps with `EVIOCGID`, `EVIOCGNAME`, `EVIOCGBIT` and `EVIOCGPROP`. The result, combined with the inventory's USB ancestry, is the opened candidate for `Policy::revalidate`. `pressed_keys` reports `EVIOCGKEY` for the neutral-state check. Nothing here reads events or grabs. Layout resolution, the uinput proxy and the acquisition sequence are not implemented yet.
 
 The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 

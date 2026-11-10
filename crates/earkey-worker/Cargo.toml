@@ -8,5 +8,8 @@ publish = false
 [dependencies]
 earkey-policy = { path = "../earkey-policy" }
 
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+libc = "=0.2.191"
+
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dev-dependencies]
 libc = "=0.2.191"

@@ -1,0 +1,12 @@
+[package]
+name = "earkey-worker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[dependencies]
+earkey-policy = { path = "../earkey-policy" }
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dev-dependencies]
+libc = "=0.2.191"

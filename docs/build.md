@@ -71,6 +71,8 @@ docker run --rm --network none --cap-drop ALL --read-only --tmpfs /tmp:exec,size
   cargo test --workspace --locked --offline
 ```
 
+To run the drill end to end, add `--tmpfs /data:size=16m` to the command above. Then replace the cargo command with a shell that builds `earkey-drill`, creates `/data/adb` (mode `0755`) and `/data/adb/earkey_control` (mode `0700`), and runs `/tmp/target/debug/earkey-drill drill`. The container runs as root without capabilities, which satisfies the store's ownership checks.
+
 `RUSTUP_TOOLCHAIN` selects the image's installed toolchain instead of syncing `rust-toolchain.toml` components. `cargo clippy -p earkey-supervisor --all-targets --target aarch64-linux-android -- -D warnings` type-checks the adapter and its tests for the Android target.
 
 ## Stage 4 Android capability probe

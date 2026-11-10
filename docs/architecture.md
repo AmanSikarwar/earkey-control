@@ -67,7 +67,9 @@ The supervisor never starts or signals a child itself and never receives a grabb
 - **Latch:** `PersistLatch` and `Unsafe` call the host's latch write, and a failed write is returned to the caller.
 - **Single instance:** an exclusive non-blocking `flock` on a caller-supplied lock file in validated private storage.
 
-The adapter has no worker binary, store-backed host or Android service wiring yet. Its unsafe constructor requires that nothing else reaps the process's children and that the adapter lives on the supervising thread.
+`earkey_supervisor::store` builds the gate from `Store::recovery` and the `stay-inactive` marker, and persists the latch with `Store::latch_restart_limit`. A store error keeps the worker stopped.
+
+[earkey-drill](../crates/earkey-drill) is a bounded diagnostic, not the product worker. Its worker modes write progress frames and never open an input device. One mode is normal, one ignores `SIGTERM`, and one stalls after its first checkpoint. The `drill` command requires valid private storage and an open gate. It checks that the `supervisor.lock` lock is exclusive, then runs four scenarios against the store-backed gate: pause, kill escalation, stall detection and parent-death cleanup. It reports each duration, removes its lock file and never writes policy; its latch write always fails. The real worker and Android service wiring are not implemented yet. Its unsafe constructor requires that nothing else reaps the process's children and that the adapter lives on the supervising thread.
 
 Start, progress, pause, kill and restart deadlines are constructor inputs and must be non-zero. They are not measured production values; Stage 4 must select and fault-test them with the real process adapter. The Linux process adapter and progress transport are host-tested. Android service wiring, the worker, the descriptor-release proof and the physical pause/recovery drill are not implemented or measured.
 

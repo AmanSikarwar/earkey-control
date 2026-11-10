@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/resukisu-service-preflight"
-ELF = ROOT / "target/stage4/7af4c5d/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage4/4938f7f/earkey-worker-arm64-api31"
 PACKAGER = ROOT / "tools/package-service-probe.py"
 
 
@@ -537,7 +537,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-worker")).hexdigest(),
                              (FIXTURE / "worker.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.16-preflight\nversionCode=16\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.17-preflight\nversionCode=17\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

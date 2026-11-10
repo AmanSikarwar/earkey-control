@@ -101,6 +101,7 @@ pub fn worker(
         return false;
     }
     let mut last = 0;
+    let mut tally = forward::Tally::default();
     let end = forward::run(
         &opened,
         &proxy,
@@ -108,6 +109,7 @@ pub fn worker(
         &[],
         FORWARD,
         stop,
+        &mut tally,
         |counter| {
             last = counter;
             let _ = frames
@@ -116,6 +118,9 @@ pub fn worker(
         },
     );
     line(report, "progress", &last);
+    line(report, "read_keys", &tally.read.summary());
+    line(report, "forwarded_keys", &tally.forwarded.summary());
+    line(report, "cleanup_releases", &tally.cleanup_releases);
     match end {
         Ok(end) => {
             line(report, "end", &format!("{end:?}"));

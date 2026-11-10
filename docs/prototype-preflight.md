@@ -518,6 +518,26 @@ The diagnostic was marked for removal before the cleanup reboot. Wireless debugg
 
 This establishes, on the reference phone in the boot-completed context, that each injected fault produced the expected supervisor transition. Early stop through the marker released within 1 s and restarted on removal. A crash released within 0.22 s. A hang was detected by the progress deadline and released through the kill path within 2.3 s. Restarts were spaced by the 5 s deadline, the third failure requested the latch, and the unplug while held left no stuck key. It does not test a hang during a held key, suppression, double presses, calls or the microphone.
 
+## Supervised gesture session plan (v17) — 10 November 2026
+
+v17 checks gestures beyond single short presses with exact counts. On orderly stop, the worker now reports `worker_read_keys`, `worker_forwarded_keys` (per key, `down`/`repeat`/`up` record counts) and `worker_cleanup_releases`. The Stage 1 fixtures show that the earphones never emit repeat records (value 2): a hold is one press and one release, so Android's own key repeat drives held volume steps. The proxy, which has no `EV_REP`, should therefore behave identically, and passthrough should forward every record unchanged.
+
+The hook is the same ten-minute boot-completed `supervise 600` as v16. The fixture is `0.0.17-preflight` (version code 17). `earkey-control-service-preflight-v17.zip` is 794,162 bytes with SHA-256 `669a0a98e53e0cd6514dce58fbe92b6d9ff3e108bff9a0a5881626fdc402517a`; two builds were byte-identical. It embeds the worker `5953973300dacd3be36f72fb4511ce13e8ebb70a53e868e760ef3d3107fc2cff` ([build record](build.md#stage-4-android-worker-check)).
+
+After the session starts and music is playing, the maintainer performs, once each and with pauses between:
+
+| Step | Gesture | Expected effect |
+| --- | --- | --- |
+| G1 | Center short press, twice | pause, then resume |
+| G2 | Volume Up held about 2 s, then Volume Down held about 2 s | volume rises, then falls, continuously as normal |
+| G3 | Center double press | next track |
+| G4 | Center held about 2 s | assistant opens; dismiss it |
+| G5 | Volume Up double press | two volume steps |
+
+Then I create the `stay-inactive` marker to stop the worker in an orderly way, which makes it print its tally, and remove the marker. The expected tally is `0xa4` (Center) down 5, up 5; `0x73` (Volume Up) down 3, up 3; `0x72` (Volume Down) down 1, up 1; repeat 0 for every key; forwarded equal to read; and 0 cleanup releases. Extra counts would mean extra physical records, not a forwarding error, as long as forwarded equals read. The maintainer reports whether each effect matched normal behavior.
+
+A hang during a held key is not part of v17. Volume saturates within about a second, so the effect would not be observable. The kernel's release of a removed device's held keys is covered by the container test.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

@@ -139,6 +139,19 @@ impl Policy {
         bytes: &[u8],
         enrollments: &[VerifiedEnrollment<'_>],
     ) -> Result<Self, PolicyError> {
+        Self::decode(bytes, Some(enrollments))
+    }
+
+    /// Applies every check except enrollment matching. The result may only be
+    /// used for recovery state; device selection must come from [`Policy::parse`].
+    pub(crate) fn parse_unverified(bytes: &[u8]) -> Result<Self, PolicyError> {
+        Self::decode(bytes, None)
+    }
+
+    fn decode(
+        bytes: &[u8],
+        enrollments: Option<&[VerifiedEnrollment<'_>]>,
+    ) -> Result<Self, PolicyError> {
         if bytes.len() > MAX_POLICY_BYTES {
             return Err(PolicyError::Oversized);
         }
@@ -164,9 +177,10 @@ impl Policy {
             return Err(PolicyError::TooManyProfiles);
         }
         for (index, profile) in policy.profiles.iter().enumerate() {
-            if !enrollments
-                .iter()
-                .any(|entry| entry.matches(profile.evidence, &profile.usb_serial))
+            if let Some(enrollments) = enrollments
+                && !enrollments
+                    .iter()
+                    .any(|entry| entry.matches(profile.evidence, &profile.usb_serial))
             {
                 return Err(PolicyError::UnverifiedProfile);
             }

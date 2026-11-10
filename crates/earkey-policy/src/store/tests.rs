@@ -458,3 +458,89 @@ fn inactive_marker_must_be_absent_or_a_private_regular_file() {
         Err(StoreError::UnsafeStorage)
     ));
 }
+
+#[test]
+fn recovery_read_skips_only_enrollment_matching() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    assert_eq!(store.recovery().unwrap(), Policy::inactive().recovery());
+
+    let enrollments = [enrollment()];
+    store.save(REQUEST.as_bytes(), &enrollments).unwrap();
+    store
+        .apply_recovery(1, RecoveryOperation::Pause, &enrollments)
+        .unwrap();
+    assert!(matches!(
+        store.load(&[]),
+        Err(StoreError::Policy(PolicyError::UnverifiedProfile))
+    ));
+    let recovery = store.recovery().unwrap();
+    assert!(recovery.paused);
+    assert!(!recovery.boot_disabled);
+    assert_eq!(recovery.latch, RecoveryLatch::Clear);
+}
+
+#[test]
+fn recovery_read_rejects_corrupt_unsafe_and_unsaved_policies() {
+    for (bytes, expected) in [
+        (
+            br#"{ "schema_version": 42 }"#.as_slice(),
+            PolicyError::UnsupportedSchema(42),
+        ),
+        (
+            br#"{ "schema_version": 1 "#.as_slice(),
+            PolicyError::InvalidJson,
+        ),
+    ] {
+        let scratch = Scratch::new();
+        scratch.write_policy(bytes);
+        assert!(
+            matches!(scratch.store().recovery(), Err(StoreError::Policy(ref error)) if error == &expected)
+        );
+    }
+
+    let scratch = Scratch::new();
+    scratch.write_policy(&Policy::inactive().to_json());
+    assert!(matches!(
+        scratch.store().recovery(),
+        Err(StoreError::UnsafeStorage)
+    ));
+    let policy = scratch.0.join("policy.json");
+    fs::remove_file(&policy).unwrap();
+    symlink("missing", &policy).unwrap();
+    assert!(scratch.store().recovery().is_err());
+    fs::remove_file(&policy).unwrap();
+
+    let store = scratch.store();
+    fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o755)).unwrap();
+    assert!(matches!(store.recovery(), Err(StoreError::UnsafeStorage)));
+    assert!(matches!(
+        store.latch_restart_limit(),
+        Err(StoreError::UnsafeStorage)
+    ));
+    fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+}
+
+#[test]
+fn restart_latch_write_preserves_profiles_without_enrollments() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let enrollments = [enrollment()];
+    let saved = store.save(REQUEST.as_bytes(), &enrollments).unwrap();
+
+    store.latch_restart_limit().unwrap();
+    let latched = store.load(&enrollments).unwrap();
+    assert_eq!(latched.generation(), 2);
+    assert_eq!(latched.recovery().latch, RecoveryLatch::RestartLimit);
+    assert_eq!(
+        latched.blocked_controls(0).count(),
+        saved.blocked_controls(0).count()
+    );
+
+    store.latch_restart_limit().unwrap();
+    assert_eq!(store.load(&enrollments).unwrap().generation(), 2);
+    assert!(matches!(
+        store.save(&latched.to_json(), &enrollments),
+        Ok(ref policy) if policy.recovery().latch == RecoveryLatch::RestartLimit
+    ));
+}

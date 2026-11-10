@@ -42,6 +42,8 @@ A save takes the generation the caller edited. Updates lock the private director
 
 Boot disable creates and synchronizes the private `stay-inactive` marker before replacing the policy. Boot enable validates the marker, replaces the policy, then removes and synchronizes the marker. If removal fails after the save, the API reports the saved generation and an incomplete recovery, and the marker still inhibits pre-open access. A failed boot disable leaves the marker in place rather than failing open.
 
+The supervisor never opens input devices, so it has no verified enrollments. `Store::recovery` applies every storage and policy check except matching profiles to enrollments, and returns only the recovery state. `Store::latch_restart_limit` uses the same check to persist the restart latch at the current generation, preserving the rest of the policy; it changes nothing if the latch is already set. Parsing without enrollments is crate-private, so device selection still comes only from `Store::load` with verified enrollments. A gate built from this read can only allow the worker to start; the worker must load the full policy before opening any candidate. The `stay-inactive` marker is still checked separately.
+
 A successful save reports a saved generation only. The worker must independently acknowledge the exact generation before the UI reports active policy. The model refuses new targets when inactive or when recovery inhibits activation. Live application must preserve the current press sequence and honor the separate future-boot and pause controls. Corrupt storage yields an error and requires the consumer to remain inactive. A rejected update leaves the last good policy intact.
 
 ## Migration and rollback

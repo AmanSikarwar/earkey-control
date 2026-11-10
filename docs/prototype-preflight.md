@@ -251,6 +251,16 @@ The probe neither creates nor clears storage, so the run explicitly provisions t
 
 The run tests only open permission for the services hook on this kernel. It does not test uinput device creation, evdev, grabs, the EarKey Control module, passthrough or suppression. The on-phone escape-marker refusal is not exercised; host tests cover it.
 
+## Service-context uinput open result — 10 November 2026
+
+The maintainer authorized the v10 run, including provisioning and removing the guard directory. Pre-checks matched the v9 profile: the manager and metamodule hook digests were unchanged, no module operation was pending, and neither the diagnostic nor `/data/adb/earkey_control` existed. The root shell observed `/dev/uinput` as a character device 10:223, owner `uhid:uhid` (3011:3011), mode `0660`, label `u:object_r:uhid_device:s0`. `/data/adb/earkey_control` was created as `0:0` mode `0700`, labelled `u:object_r:adb_data_file:s0`, and left empty. The on-device ZIP digest matched `3e59f8da9582b40ce6c43b4d0fa83f8aa20cb7f8c8c4f3bac31d85bb5fb07997`. `0.0.10-preflight` was staged, its probe matched `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`, and the upload was removed.
+
+The service-context uinput open check **Passed**. The services hook at 13.87 s verified the composite identity, with driver `full_version=v3.3.1-32726` recorded as an observation, and ran `probe-uinput`. It reported `launcher=resukisu_service`, `effective_uid=0`, `selinux_context=u:r:ksu:s0`, `selinux_enforcing=1`, `arch=aarch64`, `page_size=4096`, `probe=uinput_open_ok` and `service_probe_exit=0`. The boot-completed hook verified the identity and did not run the probe. A bounded search of `dmesg` and logcat found no AVC line naming `uinput`. The guard directory remained empty.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The empty guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained. Raw records remain private.
+
+This establishes only that the `u:r:ksu:s0` services hook may open `/dev/uinput` for writing on this kernel. It does not test `UI_SET_*`/`UI_DEV_CREATE` ioctls, Android's recognition of a virtual device, evdev access, grabs, the EarKey Control module, passthrough or suppression. No additional SELinux policy was needed for this open.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

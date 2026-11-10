@@ -2,6 +2,7 @@
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod check;
+pub mod control;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod device;
 pub mod environment;
@@ -13,5 +14,6 @@ pub mod layout;
 pub mod proxy;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod proxy_check;
+pub mod selection;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod session;

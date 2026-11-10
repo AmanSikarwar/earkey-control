@@ -225,6 +225,14 @@ impl Policy {
         self.0.generation
     }
 
+    pub fn enabled(&self) -> bool {
+        self.0.enabled
+    }
+
+    pub fn profile_count(&self) -> usize {
+        self.0.profiles.len()
+    }
+
     pub fn recovery(&self) -> Recovery {
         self.0.recovery
     }

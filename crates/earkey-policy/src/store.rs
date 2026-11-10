@@ -146,6 +146,17 @@ impl Store {
         Self::from_directory(open_at(&adb, c"earkey_control", DIRECTORY)?, 0)
     }
 
+    /// Opens a private directory owned by the effective user, for tests and alternate roots.
+    /// It applies the same `0700` and private-file checks; production uses [`Store::open`].
+    pub fn open_dir(path: &std::path::Path) -> Result<Self, StoreError> {
+        let directory = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW)
+            .open(path)?;
+        // SAFETY: geteuid has no arguments or memory preconditions.
+        Self::from_directory(directory, unsafe { libc::geteuid() })
+    }
+
     fn from_directory(directory: File, owner: u32) -> Result<Self, StoreError> {
         let store = Self { directory, owner };
         store.check_directory()?;

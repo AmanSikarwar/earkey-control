@@ -404,19 +404,8 @@ mv "$attempt/context.tmp" "$attempt/context"
            [ "${actual%% *}" = "$expected" ]; then
             printf 'launcher=resukisu_service\n'
             printf 'artifact_sha256=%s\n' "$expected"
-            status=1
-            layout=$(timeout -s KILL 5 /system/bin/sha256sum /system/usr/keylayout/Generic.kl 2>/dev/null) || layout=
-            layout=${layout%% *}
-            case "$layout" in
-                ''|*[!0-9a-f]*) layout= ;;
-            esac
-            if [ "${#layout}" -eq 64 ]; then
-                printf 'layout_sha256=%s\n' "$layout"
-                status=0
-                timeout -s KILL 10 ./earkey-worker check "$layout" || status=$?
-            else
-                printf 'layout_digest=unavailable\n'
-            fi
+            status=0
+            timeout -s KILL 75 ./earkey-worker proxy-check || status=$?
         else
             printf 'preflight=digest_mismatch\n'
         fi

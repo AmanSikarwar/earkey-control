@@ -538,6 +538,22 @@ Then I create the `stay-inactive` marker to stop the worker in an orderly way, w
 
 A hang during a held key is not part of v17. Volume saturates within about a second, so the effect would not be observable. The kernel's release of a removed device's held keys is covered by the container test.
 
+## Supervised gesture session result (v17) — 11 November 2026
+
+The maintainer authorized the v17 run. Pre-checks over wireless ADB matched the reforge profile, with one earphone node and no proxy present. The on-device ZIP digest matched `669a0a98e53e0cd6514dce58fbe92b6d9ff3e108bff9a0a5881626fdc402517a`, and the staged worker matched `5953973300dacd3be36f72fb4511ce13e8ebb70a53e868e760ef3d3107fc2cff`. The boot-completed session started, and wireless ADB reconnected at 104.8 s uptime with a worker and proxy running. **The result is mixed and not a pass.**
+
+- **First worker (pid 3745):** the maintainer reports performing G1–G5 after being prompted, with every gesture behaving normally. When the `stay-inactive` marker stopped this worker at 150.02 s (released in 0.59 s), it reported `worker_progress=1193`, `worker_read_keys=none`, `worker_forwarded_keys=none` and `worker_end=Stopped`. It held the grab and looped but read no key record. Normal behavior with no forwarded record means those gestures reached Android without passing through the worker. The cause is unexplained.
+- **Second worker (pid 15673, restarted 0.19 s after marker removal):** a 15 s read-only `getevent` capture, authorized by the maintainer, ran on only the earphone-related nodes. The earphone node (`event5` on that boot) showed no events, as expected while grabbed. The proxy (`event10`) showed every press the maintainer made as complete scan, press and release records. The maintainer then repeated G1–G5, reporting all normal. On marker stop at 322.73 s (released in 0.58 s), the worker reported `worker_read_keys` equal to `worker_forwarded_keys`: `0x72` 4/4, `0x73` 7/7, `0xa4` 2/2, repeat 0, cleanup releases 0.
+- **Interpretation:**
+  - Forwarding was exact for every record the second worker received, and holds produced no repeat records, consistent with Stage 1.
+  - The observed counts do not match the expected protocol totals (about Center 5, Volume Up 5 and Volume Down 5 with the capture presses), so the gesture set is **not verified by counts**.
+  - The first worker's empty tally contradicts the maintainer-reported normal effects during its window.
+- **v15 correction:** v15 had no tally, so its maintainer-reported normal short presses do not establish that they passed through the proxy. Its supervision results stand. Its passthrough claim is downgraded to unverified. The second v17 worker and the capture are the first evidence of records actually forwarded through the proxy on the phone.
+
+The session was ended by the cleanup reboot rather than its deadline, so no final supervisor report was written; partial records were read from `result.tmp`. Cleanup removed the marker, uninstalled the diagnostic, and rebooted. It then removed the supervisor's leftover `supervisor.lock`, which the reboot had prevented the supervisor from removing, and the empty guard directory. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy or worker. Raw records remain private.
+
+Before suppression, the next step is to explain the first worker's empty tally. Candidate checks include whether the earphone node identity changed between the boot inventory and the gestures, and recording the opened node's event number and per-read counts in the worker report.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

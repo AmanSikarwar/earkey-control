@@ -1,12 +1,13 @@
 # Fixture evidence and intended use
 
-These files are data, not an installer, enrolled profile, production policy or implemented input engine.
+These fixtures support scoped discovery, host validation and a temporary service diagnostic.
 
 | Directory | Evidence class | Intended use |
 | --- | --- | --- |
 | `discovery/` | Sanitized physical, unfiltered observations | Preserve exactly what was captured and what the maintainer reported; each record retains source/raw/helper identities and limits |
 | `identity/` | Synthetic policy and serial | Exercise the reference evidence model without storing a physical accessory serial. Related host fixtures cover duplicates, mixed nodes, keyboards and a virtual proxy |
 | `protocol/` | Hand-authored synthetic examples | Prepare independent host checks while device gates remain open; never count these events as physical observations |
+| `resukisu-service-preflight/` | Temporary diagnostic package inputs | Exercise the reference late-start launcher with the reviewed metadata-only probe after device authorization. [Scope and cleanup](../../docs/prototype-preflight.md#temporary-service-diagnostic) |
 
 The discovery report explains which physical windows qualify a baseline, which remain mixed or interrupted, and how D09–D20 change the discovery scope. The D11–D18 call gesture reports are recorded separately from the instrumented fixtures. [Discovery report](../../docs/discovery/reference-2026-11-04.md)
 

@@ -59,7 +59,7 @@ On `SYN_DROPPED`, the engine discards the partial frame and consumes through the
 
 An `Observation` lends itself to the policy matcher as a `Candidate`. The caller supplies the key layout digest. Layout resolution, the environment reader, the enrollment source, post-open revalidation, neutral-state checks and the uinput proxy are not implemented yet.
 
-The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. The phone now runs a maintainer-installed reforge kernel, so `targets` selects nothing on it until the profile is re-measured and new evidence is reviewed. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name.
+The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 
 ## Host supervisor core
 

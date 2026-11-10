@@ -396,16 +396,16 @@ mv "$attempt/context.tmp" "$attempt/context"
             printf 'guard_failure=%s\n' "$failure"
         elif [ "$stage" = boot_completed ]; then
             status=0
-        elif [ -f ./probe.sha256 ] && [ ! -L ./probe.sha256 ] &&
-           [ "$(stat -c '%s' ./probe.sha256)" = 65 ] &&
-           [ -f ./earkey-probe ] && [ ! -L ./earkey-probe ] && [ -x ./earkey-probe ] &&
-           IFS= read -r expected < ./probe.sha256 &&
-           actual=$(timeout -s KILL 5 /system/bin/sha256sum ./earkey-probe) &&
+        elif [ -f ./drill.sha256 ] && [ ! -L ./drill.sha256 ] &&
+           [ "$(stat -c '%s' ./drill.sha256)" = 65 ] &&
+           [ -f ./earkey-drill ] && [ ! -L ./earkey-drill ] && [ -x ./earkey-drill ] &&
+           IFS= read -r expected < ./drill.sha256 &&
+           actual=$(timeout -s KILL 5 /system/bin/sha256sum ./earkey-drill) &&
            [ "${actual%% *}" = "$expected" ]; then
             printf 'launcher=resukisu_service\n'
             printf 'artifact_sha256=%s\n' "$expected"
             status=0
-            timeout -s KILL 5 ./earkey-probe probe-uinput || status=$?
+            timeout -s KILL 30 ./earkey-drill drill || status=$?
         else
             printf 'preflight=digest_mismatch\n'
         fi

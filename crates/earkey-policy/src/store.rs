@@ -12,6 +12,24 @@ const TEMP: &CStr = c"policy.tmp";
 const STAY_INACTIVE: &CStr = c"stay-inactive";
 const ENROLLMENTS: &CStr = c"enrollments.json";
 const ENROLLMENTS_TEMP: &CStr = c"enrollments.tmp";
+/// Maximum size of a generated runtime status file.
+pub const MAX_RUNTIME_BYTES: usize = 4096;
+
+/// Generated runtime status, kept apart from durable policy and enrollments.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Runtime {
+    Worker,
+    Supervisor,
+}
+
+impl Runtime {
+    fn names(self) -> (&'static CStr, &'static CStr) {
+        match self {
+            Self::Worker => (c"worker.status", c"worker.status.tmp"),
+            Self::Supervisor => (c"supervisor.status", c"supervisor.status.tmp"),
+        }
+    }
+}
 const ENROLLMENT_SCHEMA: u32 = 1;
 /// Maximum durable enrollments; equal to the policy profile limit.
 pub const MAX_ENROLLMENTS: usize = 8;
@@ -38,6 +56,7 @@ pub enum StoreError {
     },
     InvalidEnrollments,
     TooManyEnrollments,
+    InvalidRuntime,
 }
 
 /// A durable enrollment written only by [`Store::enroll`] from a live observation.
@@ -169,6 +188,36 @@ impl Store {
             return Err(StoreError::UnsafeStorage);
         }
         Ok(())
+    }
+
+    /// Atomically replaces a runtime status file with bounded UTF-8 text.
+    pub fn write_runtime(&self, file: Runtime, text: &str) -> Result<(), StoreError> {
+        if text.len() > MAX_RUNTIME_BYTES {
+            return Err(StoreError::InvalidRuntime);
+        }
+        self.check_directory()?;
+        let (target, temp) = file.names();
+        self.write_private(temp, target, text.as_bytes())
+    }
+
+    /// Reads a runtime status file; a missing file means no report yet.
+    pub fn read_runtime(&self, file: Runtime) -> Result<Option<String>, StoreError> {
+        self.check_directory()?;
+        let Some(handle) = self.private_file(file.names().0)? else {
+            return Ok(None);
+        };
+        if handle.metadata()?.size() > MAX_RUNTIME_BYTES as u64 {
+            return Err(StoreError::InvalidRuntime);
+        }
+        let mut text = String::new();
+        handle
+            .take(MAX_RUNTIME_BYTES as u64 + 1)
+            .read_to_string(&mut text)
+            .map_err(|_| StoreError::InvalidRuntime)?;
+        if text.len() > MAX_RUNTIME_BYTES {
+            return Err(StoreError::InvalidRuntime);
+        }
+        Ok(Some(text))
     }
 
     /// Checks the boot escape before any device open. An error must inhibit the operation.

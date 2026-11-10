@@ -544,3 +544,121 @@ fn restart_latch_write_preserves_profiles_without_enrollments() {
         Ok(ref policy) if policy.recovery().latch == RecoveryLatch::RestartLimit
     ));
 }
+
+fn write_enrollments(scratch: &Scratch, bytes: &[u8]) {
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(scratch.0.join("enrollments.json"))
+        .unwrap()
+        .write_all(bytes)
+        .unwrap();
+}
+
+#[test]
+fn enrollments_round_trip_and_verify_saved_policies() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    assert!(store.enrollments().unwrap().is_empty());
+
+    store.enroll(&enrollment()).unwrap();
+    store.enroll(&enrollment()).unwrap();
+    let records = store.enrollments().unwrap();
+    assert_eq!(
+        records,
+        [EnrollmentRecord {
+            evidence: Evidence::XiaomiPixelos20261107,
+            usb_serial: SERIAL.into(),
+        }]
+    );
+    let metadata = fs::metadata(scratch.0.join("enrollments.json")).unwrap();
+    assert_eq!(metadata.mode() & 0o7777, 0o600);
+    assert!(!scratch.0.join("enrollments.tmp").exists());
+    assert_eq!(
+        fs::read(scratch.0.join("enrollments.json")).unwrap(),
+        format!(
+            r#"{{"schema_version":1,"enrollments":[{{"evidence":"xiaomi_pixelos20261107","usb_serial":"{SERIAL}"}}]}}"#
+        )
+        .as_bytes()
+    );
+
+    let verified: Vec<_> = records
+        .iter()
+        .filter_map(EnrollmentRecord::verified)
+        .collect();
+    store.save(REQUEST.as_bytes(), &verified).unwrap();
+    assert_eq!(store.load(&verified).unwrap().generation(), 1);
+    assert!(store.save(REQUEST.as_bytes(), &[]).is_err());
+}
+
+#[test]
+fn malformed_enrollment_records_are_rejected() {
+    let record = |serial: &str| {
+        format!(r#"{{"evidence":"xiaomi_pixelos20261107","usb_serial":"{serial}"}}"#)
+    };
+    let file = |schema: u32, records: &[String]| {
+        format!(
+            r#"{{"schema_version":{schema},"enrollments":[{}]}}"#,
+            records.join(",")
+        )
+    };
+    let nine: Vec<_> = (0..9).map(|n| record(&format!("S{n}"))).collect();
+    for (bytes, expected) in [
+        (file(2, &[record("A")]), "InvalidEnrollments"),
+        (file(1, &[record("A"), record("A")]), "InvalidEnrollments"),
+        (file(1, &[record(" ")]), "InvalidEnrollments"),
+        (file(1, &[record("A\\u0007")]), "InvalidEnrollments"),
+        (
+            file(1, &[record("A")]).replace("}]", r#","extra":1}]"#),
+            "InvalidEnrollments",
+        ),
+        (
+            r#"{"schema_version":1,"schema_version":1,"enrollments":[]}"#.into(),
+            "InvalidEnrollments",
+        ),
+        (file(1, &nine), "TooManyEnrollments"),
+        ("{".into(), "InvalidEnrollments"),
+    ] {
+        let scratch = Scratch::new();
+        write_enrollments(&scratch, bytes.as_bytes());
+        let error = scratch.store().enrollments().unwrap_err();
+        assert_eq!(format!("{error:?}"), expected, "{bytes}");
+        assert!(scratch.store().enroll(&enrollment()).is_err());
+        assert_eq!(
+            fs::read(scratch.0.join("enrollments.json")).unwrap(),
+            bytes.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn enrollment_capacity_and_unsafe_files_are_enforced() {
+    let scratch = Scratch::new();
+    let store = scratch.store();
+    let serials: Vec<String> = (0..MAX_ENROLLMENTS).map(|n| format!("S{n}")).collect();
+    for serial in &serials {
+        let entry =
+            VerifiedEnrollment::from_reviewed_measurement(Evidence::XiaomiPixelos20261107, serial)
+                .unwrap();
+        store.enroll(&entry).unwrap();
+    }
+    assert!(matches!(
+        store.enroll(&enrollment()),
+        Err(StoreError::TooManyEnrollments)
+    ));
+    assert_eq!(store.enrollments().unwrap().len(), MAX_ENROLLMENTS);
+
+    let scratch = Scratch::new();
+    let path = scratch.0.join("enrollments.json");
+    symlink("missing", &path).unwrap();
+    assert!(scratch.store().enrollments().is_err());
+    assert!(scratch.store().enroll(&enrollment()).is_err());
+    fs::remove_file(&path).unwrap();
+    fs::write(&path, br#"{"schema_version":1,"enrollments":[]}"#).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(matches!(
+        scratch.store().enrollments(),
+        Err(StoreError::UnsafeStorage)
+    ));
+}

@@ -233,6 +233,13 @@ impl Policy {
         self.0.profiles.len()
     }
 
+    pub fn profile_evidence(&self, profile_index: usize) -> Option<Evidence> {
+        self.0
+            .profiles
+            .get(profile_index)
+            .map(|profile| profile.evidence)
+    }
+
     pub fn recovery(&self) -> Recovery {
         self.0.recovery
     }

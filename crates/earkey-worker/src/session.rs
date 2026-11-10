@@ -318,3 +318,93 @@ fn fail(mut report: Report, key: &'static str, value: String) -> Report {
     report.lines.push(("supervise", "fail".into()));
     report
 }
+
+struct DaemonHost<'a, G, P> {
+    gate: G,
+    persist: P,
+    exe: PathBuf,
+    args: Vec<String>,
+    stop: &'a AtomicBool,
+}
+
+impl<G: FnMut() -> io::Result<Gate>, P: FnMut() -> io::Result<()>> Host for DaemonHost<'_, G, P> {
+    fn gate(&mut self) -> io::Result<Gate> {
+        let mut gate = (self.gate)()?;
+        gate.paused |= self.stop.load(std::sync::atomic::Ordering::SeqCst);
+        Ok(gate)
+    }
+
+    fn command(&mut self) -> Command {
+        let mut command = Command::new(&self.exe);
+        command.args(&self.args);
+        command
+    }
+
+    fn persist_latch(&mut self) -> io::Result<()> {
+        (self.persist)()
+    }
+}
+
+/// `supervisor.status` text for one status snapshot.
+pub fn daemon_status(status: &earkey_supervisor::Status) -> String {
+    format!(
+        "phase={:?}\nfailures={}\nlast_fault={}\n",
+        status.phase,
+        status.failures,
+        status
+            .last_fault
+            .map_or("none".into(), |fault| format!("{fault:?}"))
+    )
+}
+
+/// Unbounded supervision for the module service.
+///
+/// The restart latch is persisted through `persist_latch`; a failed write is
+/// returned so the service stops instead of continuing unlatched. A latch is
+/// cleared in the supervisor only after the stored latch has been cleared by
+/// the operator. `stop` closes the gate, and the function returns once no
+/// worker runs. `status` receives a snapshot on every change.
+///
+/// # Safety
+/// As for [`Adapter::new`]: nothing else may reap this process's children.
+pub unsafe fn daemon(
+    exe: PathBuf,
+    args: Vec<String>,
+    limits: Limits,
+    gate: impl FnMut() -> io::Result<Gate>,
+    persist_latch: impl FnMut() -> io::Result<()>,
+    stop: &AtomicBool,
+    mut status: impl FnMut(&str),
+) -> io::Result<Phase> {
+    let mut host = DaemonHost {
+        gate,
+        persist: persist_latch,
+        exe,
+        args,
+        stop,
+    };
+    let mut supervisor = Supervisor::new(limits)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, format!("{error:?}")))?;
+    // SAFETY: Forwarded from the caller's contract.
+    let mut adapter = unsafe { Adapter::new() };
+    let mut last = String::new();
+    loop {
+        adapter.step(&mut supervisor, &mut host, TICK)?;
+        let snapshot = supervisor.status();
+        let text = daemon_status(&snapshot);
+        if text != last {
+            status(&text);
+            last = text;
+        }
+        let stopping = stop.load(std::sync::atomic::Ordering::SeqCst);
+        match snapshot.phase {
+            Phase::Unsafe(_) => return Ok(snapshot.phase),
+            Phase::Latched if stopping => return Ok(snapshot.phase),
+            Phase::Inactive(_) if stopping => return Ok(snapshot.phase),
+            Phase::Latched if host.gate().is_ok_and(|gate| !gate.latched) => {
+                supervisor.clear_latch();
+            }
+            _ => {}
+        }
+    }
+}

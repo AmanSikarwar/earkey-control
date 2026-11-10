@@ -396,16 +396,27 @@ mv "$attempt/context.tmp" "$attempt/context"
             printf 'guard_failure=%s\n' "$failure"
         elif [ "$stage" = boot_completed ]; then
             status=0
-        elif [ -f ./drill.sha256 ] && [ ! -L ./drill.sha256 ] &&
-           [ "$(stat -c '%s' ./drill.sha256)" = 65 ] &&
-           [ -f ./earkey-drill ] && [ ! -L ./earkey-drill ] && [ -x ./earkey-drill ] &&
-           IFS= read -r expected < ./drill.sha256 &&
-           actual=$(timeout -s KILL 5 /system/bin/sha256sum ./earkey-drill) &&
+        elif [ -f ./worker.sha256 ] && [ ! -L ./worker.sha256 ] &&
+           [ "$(stat -c '%s' ./worker.sha256)" = 65 ] &&
+           [ -f ./earkey-worker ] && [ ! -L ./earkey-worker ] && [ -x ./earkey-worker ] &&
+           IFS= read -r expected < ./worker.sha256 &&
+           actual=$(timeout -s KILL 5 /system/bin/sha256sum ./earkey-worker) &&
            [ "${actual%% *}" = "$expected" ]; then
             printf 'launcher=resukisu_service\n'
             printf 'artifact_sha256=%s\n' "$expected"
-            status=0
-            timeout -s KILL 30 ./earkey-drill drill || status=$?
+            status=1
+            layout=$(timeout -s KILL 5 /system/bin/sha256sum /system/usr/keylayout/Generic.kl 2>/dev/null) || layout=
+            layout=${layout%% *}
+            case "$layout" in
+                ''|*[!0-9a-f]*) layout= ;;
+            esac
+            if [ "${#layout}" -eq 64 ]; then
+                printf 'layout_sha256=%s\n' "$layout"
+                status=0
+                timeout -s KILL 10 ./earkey-worker check "$layout" || status=$?
+            else
+                printf 'layout_digest=unavailable\n'
+            fi
         else
             printf 'preflight=digest_mismatch\n'
         fi

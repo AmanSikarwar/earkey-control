@@ -69,7 +69,14 @@ An `Observation` lends itself to the policy matcher as a `Candidate`. The caller
 - It reads the device name through `UI_GET_SYSNAME`, and `Drop` issues `UI_DEV_DESTROY`.
 - `wait_ready` waits within a deadline for exactly one `eventN` under the proxy's sysfs directory, a `/dev/input/eventN` character node with that device number, and a descriptor on it held by `system_server`.
 
-Forwarding, grabs and the acquisition sequence are not implemented yet.
+`earkey_worker::forward` runs one session over the host engine:
+- `NativeSource` reads whole native `input_event` records from the opened non-blocking node, rejecting a partial record, and answers key-state queries with `EVIOCGKEY`.
+- `ProxySink` writes whole records to the proxy. Timestamps are zero, and uinput stamps them on write.
+- `run` takes the `EVIOCGRAB` grab only once the proxy exists. It discards the descriptor's pre-grab queue, because those records already reached Android, and returns `NotNeutral` if that queue held a key event or any key is down.
+- It then drives the engine with `poll`, bounded by the engine deadline, a tick and the total session limit. It calls `progress` with a strictly increasing counter from the loop itself, including idle waits, and stops as soon as the stop flag is set.
+- On every exit, it writes key-up and report records for every key the engine may have forwarded, then releases the grab.
+
+Supervisor wiring, the stop signal, measured deadlines and the physical passthrough session are not implemented yet.
 
 The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. After the maintainer installed the reforge kernel, a read-only [revalidation](discovery/reforge-revalidation-2026-11-10.md) found the accessory unchanged. `xiaomi_pixelos_reforge20261110` pins the new kernel with the same identity and capability rules. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name, and the ROM comes from `ro.custom.version`.
 

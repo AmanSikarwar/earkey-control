@@ -93,3 +93,83 @@ fn a_failed_check_never_creates_a_proxy() {
         ["layout=unavailable:NotFound", "check=fail", "proxy=skipped"]
     );
 }
+
+mod exclusion {
+    use earkey_policy::identity::{Environment, Evidence, LinuxKey, NodeInstance};
+    use earkey_worker::check::Checked;
+    use earkey_worker::inventory::Observation;
+    use earkey_worker::proxy::PROXY_NAME;
+    use earkey_worker::proxy_check::{excluded, proxy_keys};
+
+    const LAYOUT: &str = "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773";
+    const ENVIRONMENT: Environment<'static> = Environment {
+        model: "M2101K6P",
+        device: "sweetin",
+        api: 37,
+        rom: "PixelOS_sweet-17.0-20261030-2116",
+        build_id: "CP2A.260605.016",
+        incremental: "1793394994",
+        kernel_release: "4.14.357-reforge-g9b21e3df6c0a",
+        kernel_build: "#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026",
+    };
+    const CHECKED: Checked = Checked {
+        evidence: Evidence::XiaomiPixelosReforge20261110,
+        input_id: [3, 0x20, 0x0b21, 0x0201],
+    };
+
+    /// The proxy as the inventory reports it: bitmap keys in ascending order.
+    fn proxy() -> Observation {
+        Observation {
+            event: "event6".into(),
+            instance: NodeInstance {
+                filesystem_device: 1,
+                inode: 2,
+                character_device: 3,
+            },
+            usb_hid: None,
+            usb_serial: None,
+            usb_driver: None,
+            is_virtual: true,
+            input_id: CHECKED.input_id,
+            name: PROXY_NAME.into(),
+            event_types: vec![0, 1, 4],
+            keys: vec![LinuxKey(0x72), LinuxKey(0x73), LinuxKey(0xa4)],
+            misc: vec![4],
+            properties: vec![],
+        }
+    }
+
+    #[test]
+    fn proxy_keys_are_ascending_although_the_evidence_lists_center_first() {
+        let evidence: Vec<u16> = CHECKED
+            .evidence
+            .controls()
+            .iter()
+            .map(|c| c.linux.0)
+            .collect();
+        assert_eq!(evidence, [0xa4, 0x73, 0x72]);
+        assert_eq!(
+            proxy_keys(CHECKED.evidence),
+            [LinuxKey(0x72), LinuxKey(0x73), LinuxKey(0xa4)]
+        );
+    }
+
+    #[test]
+    fn the_reported_proxy_is_excluded_and_any_deviation_is_not() {
+        assert!(excluded(&proxy(), CHECKED, &ENVIRONMENT, LAYOUT));
+        let deviations: [fn(&mut Observation); 7] = [
+            |o| o.is_virtual = false,
+            |o| o.name = "Generic Xiaomi Type-C Earphones 1".into(),
+            |o| o.input_id[3] = 0x0202,
+            |o| o.event_types = vec![0, 1, 4, 20],
+            |o| o.keys.push(LinuxKey(0x71)),
+            |o| o.misc = vec![],
+            |o| o.keys.reverse(),
+        ];
+        for deviate in deviations {
+            let mut observed = proxy();
+            deviate(&mut observed);
+            assert!(!excluded(&observed, CHECKED, &ENVIRONMENT, LAYOUT));
+        }
+    }
+}

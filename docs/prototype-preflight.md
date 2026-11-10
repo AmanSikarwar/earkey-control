@@ -372,6 +372,22 @@ It ends with `proxy_check=pass`. A failed `check` creates no proxy. The proxy is
 
 After authorization, follow the v12 procedure with the earphones connected from before the reboot until the record read, and no button pressed. Whether the `u:r:ksu:s0` domain may read `system_server`'s descriptors and run `dumpsys` from the services hook is unverified. A denial there is a recorded failure, not a reason to change policy.
 
+## Service-context proxy check result — 10 November 2026
+
+The maintainer authorized the v13 run and connected the phone over wireless ADB with the earphones plugged in. Pre-checks matched the reforge profile, with one earphone node and no proxy node present. The guard directory was created as `0:0` mode `0700` and left empty. The on-device ZIP digest matched `a524f1651fb97285abaeeeb92fa1cb13a04dc2156b56ab151f4344ac734c1b88`, and the staged worker matched `57178e5f0431f85ac0214505381a460b3cdb0a6953191f51bfea9aa085b4e895`. Wireless ADB returned on a new port after each reboot.
+
+The service-context proxy check **Failed** at the exclusion comparison. The services hook at 13.32 s in `u:r:ksu:s0` passed every `check` step, from the reforge evidence to `neutral=yes`. It then reported `proxy=created`, `proxy_ready_ms=7163`, `proxy_event=event6` and `proxy_excluded=no`, then `proxy_check=fail` and `service_probe_exit=1`. The proxy was destroyed on that exit path; no proxy node or `earkey-worker` process remained at the record read, and the guard directory was empty. Filtered AVC lines named only `system_server` reads of unrelated properties and binder logs.
+
+The cause is a comparison defect in the worker, not proxy behavior. The evidence lists the controls Center first (`0xa4`, `0x73`, `0x72`), while the inventory reports bitmap bits in ascending order. The v13 code compared the two orders directly. The fix (`ba9cd7d`) sorts the proxy keys once for creation and comparison, and adds a regression test.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy node or worker process. Raw records remain private.
+
+This run does establish that the services hook can create the decision-0004 proxy and that `system_server` opened it within 7,163 ms, which also shows that `u:r:ksu:s0` could read `system_server`'s descriptors. The proxy's inventory exclusion as reported, its Android classification and the explicit teardown check were not reached.
+
+## Service-context proxy check rerun plan (v14) — 10 November 2026
+
+v14 repeats the v13 procedure with the fixed worker. The ELF was built twice from `ba9cd7d` with identical results: 675,016 bytes, SHA-256 `7e04111588033f095b4257d367c4925b3d868af66ac23e30fdee769ea72897e5`. It passes the same pins and ELF checks: API 31, 16 KiB-aligned segments, only `libc` and `libdl`, all 82 imports in API 31, and no host paths. The fixture is `0.0.14-preflight` (version code 14). `earkey-control-service-preflight-v14.zip` is 694,868 bytes with SHA-256 `5041d8eebe7f5b872609bdc65d8aaf1e53b28303f6f98ae519d5297f0671ba65`; two builds were byte-identical. It needs a new maintainer authorization.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

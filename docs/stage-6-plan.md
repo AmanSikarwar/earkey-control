@@ -7,15 +7,17 @@ Date: 11 November 2026. Stage 6 turns the Stage 4 and 5 diagnostics into the ins
 | 6.1 Root control commands | `enroll`, `status`, `apply <selection> [enable]`, `enable`, `disable`, `pause`, `resume`, `disable-next-boot`, `enable-next-boot` over the private store. Enrollment only from a unique live observation, policy writes that keep recovery state, and status without serials | implemented, host-tested |
 | 6.2 Production worker loop | `earkey-worker run`: load enrollments and the verified policy each pass. Wait without failing while disabled, recovery-inactive, unreadable, accessory-absent, not neutral or grab-conflicted. Forward with the policy's blocked groups, reacquire on a new saved generation, and return to waiting on unplug | implemented, end-to-end container test |
 | 6.3 Supervisor daemon | `earkey-worker daemon`: unbounded supervision of `run` with the real persisted restart latch, `clear-latch` to resume, `worker.status`/`supervisor.status` runtime files, and `status` reporting saved and active generations separately | implemented, container-tested |
-| 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | implemented, host-tested; not installed |
+| 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | 0.1.0-alpha.1 install plan passed on the reference phone; 0.1.0-alpha.2 (readiness-progress fix) host-tested, not installed |
 | 6.5 Offline WebUI | TypeScript/HTML/CSS through the KernelSU WebUI bridge, calling only the fixed control commands. Accessible and offline | planned |
 | 6.6 Reference evidence | The Stage 6 physical cases on the reference phone | planned |
 
 Each increment goes through its own PR. Phone runs need separate maintainer authorization.
 
-## Module package 0.1.0-alpha.1
+## Module package 0.1.0-alpha.2
 
-The package is built by `tools/package-module.py` from the pinned worker. Two clean builds from `8957c89` gave identical 923,360-byte ELFs, SHA-256 `3327239e45c7179e302fda9023cd784348277006c9537daec9002631f441d26c`. They pass the NDK pins and ELF checks: API 31, four `LOAD` segments aligned to `0x4000`, only `libc`/`libdl`, all 93 imports in API 31, and no host paths. The ELF is kept at `target/stage6/8957c89/earkey-worker-arm64-api31`. The ZIP has `module.prop` at its root, the scripts, `skip_mount`, `bin/earkey-worker` with its digest, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `licenses/<crate>-<version>/` for every crate in the Android dependency tree. Two builds of `earkey-control-0.1.0-alpha.1.zip` were byte-identical: 526,427 bytes, SHA-256 `4d515ea2bd4d9b5a7a49a5aa40478ea9408e546bdf222c394ef1869970300955`.
+The package is built by `tools/package-module.py` from the pinned worker. Two clean builds from `dbd3db0` gave identical 924,608-byte ELFs, SHA-256 `2179496b26d866d9b73c824658db45ee2961b9db58276aca81b83ac9f8f74dca`. They pass the NDK pins and ELF checks: API 31, four `LOAD` segments aligned to `0x4000`, only `libc`/`libdl`, all 93 imports in API 31, and no host paths. The ELF is kept at `target/stage6/dbd3db0/earkey-worker-arm64-api31`. The ZIP has `module.prop` at its root, the scripts, `skip_mount`, `bin/earkey-worker` with its digest, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `licenses/<crate>-<version>/` for every crate in the Android dependency tree. Two builds of `earkey-control-0.1.0-alpha.2.zip` were byte-identical: 526,994 bytes, SHA-256 `05371b5eb6a8fbb4d9f3db8415e527d4fe7d42ce2060830ff91db3fc26ec41ad`.
+
+Alpha.2 differs from alpha.1 in two ways. The worker now sends progress frames while it waits for `system_server` to open the proxy, so a slow early boot no longer trips the 1 s progress deadline. The installer now prints the installed worker path, not the `modules_update` staging path.
 
 **Install behavior:**
 - `customize.sh` requires the boot-mode KernelSU installer (`BOOTMODE=true`, `KSU=true`), arm64 and API 31 or later.
@@ -33,7 +35,7 @@ The package is built by `tools/package-module.py` from the pinned worker. Two cl
 
 Stopping without the earphone buttons: `$M pause` or `$M disable-next-boot`. After repeated faults: `$M clear-latch`.
 
-**First install plan (needs authorization):**
+**Install plan (each run needs authorization):**
 1. Install the ZIP with `ksud module install`.
 2. Reboot and confirm the daemon runs, with `worker.status` showing `disabled`.
 3. `enroll`, then `apply block-all enable`. Confirm `active_generation` matches and that the maintainer sees the earphone buttons blocked and the phone keys working.
@@ -42,3 +44,22 @@ Stopping without the earphone buttons: `$M pause` or `$M disable-next-boot`. Aft
 6. Unplug, then replug.
 7. Reboot with the earphones connected and confirm blocking resumes.
 8. Mark the module for removal, reboot, and confirm the store and processes are gone.
+
+## First install results (0.1.0-alpha.1, 11 November 2026)
+
+This was an authorized run on the reference phone with the reforge kernel `4.14.357-reforge-g9b21e3df6c0a`, using ZIP `4d515ea2bd4d9b5a7a49a5aa40478ea9408e546bdf222c394ef1869970300955` and worker `3327239e45c7179e302fda9023cd784348277006c9537daec9002631f441d26c`. The maintainer reported the button results; the phone reported the states. Raw logs stay private.
+
+| Step | Result |
+| --- | --- |
+| 1. Install | Staged correctly with the pinned digest |
+| 2. Reboot | `daemon` and `run` running; `worker.status` `disabled`; inactive |
+| 3. Enroll, block all | `enrolled:xiaomi_pixelos_reforge20261110`; generation 1 active with all three groups; the maintainer pressed every control and none acted |
+| 4. Center live | Generation 2 active without a restart; the maintainer confirmed only Center was blocked |
+| 5. Pause, resume | The proxy was gone 0.66 s after `pause` (`Inactive(Paused)`) and Center worked while paused; `resume` activated generation 4 |
+| 6. Unplug, replug | The worker returned to waiting and reacquired the earphones; the maintainer confirmed the expected behavior |
+| 7. Reboot connected | Generation 4 active, Center blocked and Volume Up working, as confirmed by the maintainer. The supervisor recorded one `ProgressStalled` failure (see below) |
+| 8. Remove | After marking for removal and rebooting: module directory, staged update, private store, all `earkey-worker` processes and the proxy are gone. The other six modules, the `ksud` digest, the metamodule link and enforcing SELinux are unchanged |
+
+The first removal attempt did not run because wireless ADB was offline; the retry ran and passed.
+
+Step 7's failure came from the worker loop sending no progress frames while it waited for `system_server` to open the proxy. Early in boot that wait can exceed the 1 s progress deadline. One such failure only restarts the worker, but three in a row would latch blocking off. Alpha.2 fixes this, and the run test now holds Android back for 1.6 s and requires progress throughout. The fix has not yet run on the phone.

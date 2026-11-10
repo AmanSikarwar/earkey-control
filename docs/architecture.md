@@ -55,7 +55,21 @@ The state machine starts only through an open gate. It requires an explicit star
 
 The supervisor never starts or signals a child itself and never receives a grabbed descriptor. The adapter must enforce single-instance ownership, close-on-exec, verified process identity, and a progress channel updated by the actual worker loop rather than a separate thread. It must re-read the gate immediately before executing `Start`, and the worker must repeat the pre-open pause and marker check before opening a candidate. It must also terminate the verified worker process group, not merely the direct child, and confirm exit before treating a stop as complete. The core does not persist recovery state or report Active; it exposes phase, failure count and last fault for the service.
 
-Start, progress, pause, kill and restart deadlines are constructor inputs and must be non-zero. They are not measured production values; Stage 4 must select and fault-test them with the real process adapter. The adapter, progress transport, Android service wiring, descriptor-release proof and physical pause/recovery drill are not implemented or measured.
+### Linux process adapter
+
+`earkey_supervisor::process` (Linux and Android only) executes the state machine's actions for one worker:
+
+- **Spawn:** the worker runs in its own process group with stdin and stderr closed and stdout as the progress pipe. A parent-death `SIGKILL` is set before exec, and spawn fails if the supervising thread already exited. Standard library spawning keeps other descriptors close-on-exec.
+- **Progress frames:** each frame is 9 bytes, a tag byte and a little-endian `u64`. Tag 1 with counter 0 is the startup acknowledgment, and tag 2 is a progress counter. Frames are delivered to the state machine one at a time, so a backwards counter is never hidden inside a batch. A malformed frame, end of stream or an oversized backlog stops reading the channel; the progress deadline then stops the worker.
+- **Stop and kill:** `Stop` sends `SIGTERM` to the group, and the worker must release its node and destroy its proxy on it. `Kill` sends `SIGKILL` to the group. A stop or kill with no worker is reported back as exited.
+- **Exit confirmation:** the adapter observes the leader with `waitid(WNOWAIT)`. The unreaped leader keeps its PID and group ID reserved. It then sends `SIGKILL` to the group and scans `/proc` until no readable, non-zombie member remains, and only then reaps the leader. `/proc` entries denied by SELinux are skipped. That assumes the worker stays in the supervisor's own SELinux domain, and it must not leave its process group.
+- **Gate:** an unreadable gate is treated as paused and boot-disabled. The gate is read again immediately before `Start`; if it closed, nothing is spawned and the following stop settles without counting a failure.
+- **Latch:** `PersistLatch` and `Unsafe` call the host's latch write, and a failed write is returned to the caller.
+- **Single instance:** an exclusive non-blocking `flock` on a caller-supplied lock file in validated private storage.
+
+The adapter has no worker binary, store-backed host or Android service wiring yet. Its unsafe constructor requires that nothing else reaps the process's children and that the adapter lives on the supervising thread.
+
+Start, progress, pause, kill and restart deadlines are constructor inputs and must be non-zero. They are not measured production values; Stage 4 must select and fault-test them with the real process adapter. The Linux process adapter and progress transport are host-tested. Android service wiring, the worker, the descriptor-release proof and the physical pause/recovery drill are not implemented or measured.
 
 ## Failure and state reporting
 

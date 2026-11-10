@@ -23,12 +23,29 @@ class ServicePreflightTests(unittest.TestCase):
         self.case = self.root / "module"
         shutil.copytree(FIXTURE, self.case)
         self.manager = self.case / "manager"
-        self.manager.write_text('#!/bin/sh\n[ "$*" = "debug version" ] || exit 98\nprintf "ran\\n" >> .manager_calls\nprintf "%s\\n" "${TEST_MANAGER_OUTPUT:-Kernel Version: 35240}"\n')
+        self.manager.write_text('''#!/bin/sh
+[ "$*" = "debug info" ] || exit 98
+printf "ran\\n" >> .manager_calls
+printf "version: %s\\n" "${TEST_INFO_VERSION:-35240}"
+printf "full_version: %s\\n" "${TEST_INFO_FULL:-unknown}"
+printf "flags: %s\\n" "${TEST_INFO_FLAGS:-0x20}"
+printf "uapi_version: %s\\n" "${TEST_INFO_UAPI:-6}"
+printf "lkm: %s\\n" "${TEST_INFO_LKM:-false}"
+printf "bundled: %s\\n" "${TEST_INFO_BUNDLED:-false}"
+printf "late_load: %s\\n" "${TEST_INFO_LATE:-false}"
+printf "runtime_mode: %s\\n" "${TEST_INFO_MODE:-built-in}"
+''')
         self.manager.chmod(0o755)
         self.context_input = self.case / "context_input"
         self.context_input.write_text("u:r:test:s0")
         self.uptime_input = self.case / "uptime_input"
         self.uptime_input.write_text("123.45 678.9\n")
+        self.kernel_version_input = self.case / "kernel_version_input"
+        self.kernel_version_input.write_text(
+            "Linux version 4.14.357-openela-VantomKernel (builder@example) "
+            "(gcc version test) #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n")
+        self.modules_input = self.case / "modules_input"
+        self.modules_input.write_text("")
         self.fd_root = self.root / "proc"
         (self.fd_root / "fd").mkdir(parents=True)
         (self.fd_root / "fdinfo").mkdir()
@@ -39,6 +56,8 @@ class ServicePreflightTests(unittest.TestCase):
         hook.write_text(hook.read_text().replace("/data/adb/ksud", str(self.manager))
                         .replace('"/proc/$$/attr/current"', shlex.quote(str(self.context_input)))
                         .replace("/proc/uptime", shlex.quote(str(self.uptime_input)))
+                        .replace("/proc/version", shlex.quote(str(self.kernel_version_input)))
+                        .replace("/proc/modules", shlex.quote(str(self.modules_input)))
                         .replace("/proc/$$/fdinfo", str(self.fd_root / "fdinfo"))
                         .replace("/proc/$$/fd", str(self.fd_root / "fd")))
         self.bin = self.root / "bin"
@@ -87,7 +106,7 @@ exec "$@"''',
         self.env = os.environ | {
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "KSU": "true", "BAKASU": "true", "KSU_MODULE": "earkey_control_preflight",
-            "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "35240", "KSU_UAPI_VER": "6",
+            "KSU_VER_CODE": "35257", "KSU_KERNEL_VER_CODE": "32704", "KSU_UAPI_VER": "6",
             "TEST_MANAGER_PATH": str(self.manager),
         }
 
@@ -114,10 +133,32 @@ exec "$@"''',
     def result(self):
         return (self.case / ".preflight/result").read_text()
 
+    def reset(self):
+        shutil.rmtree(self.case / ".preflight", ignore_errors=True)
+        for name in (".manager_calls", ".calls"):
+            (self.case / name).unlink(missing_ok=True)
+
+    def set_manager_output(self, output):
+        self.manager.write_text(
+            "#!/bin/sh\ncat <<'EOF'\n" + output + "EOF\nprintf 'ran\\n' >> .manager_calls\n")
+        self.manager.chmod(0o755)
+
+    def assert_no_probe(self):
+        self.assertFalse((self.case / ".calls").exists())
+
     def test_success_is_private_and_runs_once(self):
         self.assertEqual(self.run_hook().returncode, 0)
-        self.assertIn("hook=entered\nlauncher=resukisu_service\n", self.result())
-        self.assertIn("probe=self_check_ok\nservice_probe_exit=0\n", self.result())
+        result = self.result()
+        self.assertIn("hook=entered\nkernel_version_state=numeric\n"
+                      "kernel_version_value=32704\n", result)
+        self.assertIn("manager_identity=verified\n", result)
+        self.assertIn("info_flags=0x20\ninfo_uapi_version=6\n", result)
+        self.assertIn("info_lkm=false\ninfo_bundled=false\ninfo_late_load=false\n", result)
+        self.assertIn("info_runtime_mode=built-in\ninfo_status=complete\ninfo_result=ok\n", result)
+        self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
+                      "modules_identity=verified\n", result)
+        self.assertIn("launcher=resukisu_service\n", result)
+        self.assertIn("probe=self_check_ok\nservice_probe_exit=0\n", result)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
@@ -127,38 +168,36 @@ exec "$@"''',
                          "driver_cloexec_yes=1\ndriver_cloexec_no=0\ndriver_cloexec_unknown=0\n"
                          "driver_su_cloexec_yes=0\ndriver_su_cloexec_no=1\ndriver_su_cloexec_unknown=0\n")
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/context").stat().st_mode), 0o600)
-        self.assertFalse((self.case / ".manager_calls").exists())
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
         self.assertEqual(self.run_hook().returncode, 0)
         self.assertEqual((self.case / ".calls").read_text(), "ran\n")
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
 
-    def test_each_guard_records_failure_without_executing_probe(self):
+    def test_each_environment_guard_records_failure_without_executing_probe(self):
         cases = [
             ("KSU", "false", "ksu"),
             ("BAKASU", "false", "bakasu"),
             ("KSU_MODULE", "other", "module"),
             ("KSU_VER_CODE", "1", "userspace_version"),
-            ("KSU_KERNEL_VER_CODE", "1", "kernel_version"),
             ("KSU_UAPI_VER", "1", "uapi_version"),
             ("TEST_UID", "2000", "uid"),
         ]
         for variable, value, label in cases:
             with self.subTest(guard=label):
-                shutil.rmtree(self.case / ".preflight", ignore_errors=True)
-                (self.case / ".manager_calls").unlink(missing_ok=True)
+                self.reset()
                 self.assertEqual(self.run_hook(**{variable: value}).returncode, 0)
-                detail = "kernel_version_state=numeric\nkernel_version_value=1\n" if label == "kernel_version" else ""
-                if label == "kernel_version":
-                    detail += "fresh_query=numeric\nfresh_query_value=35240\n"
-                self.assertEqual(self.result(), f"hook=entered\nguard_failure={label}\n{detail}service_probe_exit=1\n")
-                self.assertFalse((self.case / ".calls").exists())
-                self.assertEqual((self.case / ".manager_calls").exists(), label == "kernel_version")
+                self.assertEqual(self.result(),
+                                 f"hook=entered\nguard_failure={label}\nservice_probe_exit=1\n")
+                self.assertFalse((self.case / ".manager_calls").exists())
+                self.assert_no_probe()
 
-    def test_kernel_version_failure_reports_only_bounded_numeric_values(self):
+    def test_mutable_kernel_version_is_observation_only(self):
         cases = [
             (None, "unset", None),
             ("", "empty", None),
+            ("32704", "numeric", "32704"),
+            ("35240", "numeric", "35240"),
             ("000035240", "numeric", "000035240"),
-            ("1234567890", "numeric", "1234567890"),
             ("12345678901", "invalid", None),
             ("42\nforged=value", "invalid", None),
             ("-1", "invalid", None),
@@ -166,68 +205,179 @@ exec "$@"''',
         ]
         for value, state, number in cases:
             with self.subTest(value=value):
-                shutil.rmtree(self.case / ".preflight", ignore_errors=True)
+                self.reset()
                 self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE=value).returncode, 0)
-                detail = f"kernel_version_value={number}\n" if number is not None else ""
-                self.assertEqual(self.result(),
-                    "hook=entered\nguard_failure=kernel_version\n"
-                    f"kernel_version_state={state}\n{detail}"
-                    "fresh_query=numeric\nfresh_query_value=35240\nservice_probe_exit=1\n")
-                self.assertFalse((self.case / ".calls").exists())
+                result = self.result()
+                self.assertIn(f"kernel_version_state={state}\n", result)
+                if number is None:
+                    self.assertNotIn("kernel_version_value=", result)
+                else:
+                    self.assertIn(f"kernel_version_value={number}\n", result)
+                self.assertIn("manager_identity=verified\n", result)
+                self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
+                              "modules_identity=verified\n", result)
+                self.assertIn("service_probe_exit=0\n", result)
+                self.assertTrue((self.case / ".calls").exists())
 
-    def test_fresh_query_requires_valid_manager_and_rejects_untrusted_output(self):
+    def test_composite_identity_rejects_untrusted_manager(self):
         cases = [
-            ({"TEST_MANAGER_SHA": "0" * 64}, "unavailable", False),
-            ({"TEST_MANAGER_STAT": "501:0:755"}, "unavailable", False),
-            ({"KSU_UAPI_VER": "0"}, "unavailable", False),
-            ({"TEST_UID": "2000"}, "unavailable", False),
-            ({"TEST_MANAGER_TIMEOUT": "1"}, "failed", False),
-            ({"TEST_MANAGER_OUTPUT": "Kernel Version: 12345678901"}, "invalid", True),
-            ({"TEST_MANAGER_OUTPUT": "Kernel Version: 3\nforged=value"}, "invalid", True),
-            ({"TEST_MANAGER_OUTPUT": "unexpected"}, "invalid", True),
+            {"TEST_MANAGER_SHA": "0" * 64},
+            {"TEST_MANAGER_STAT": "501:0:755"},
         ]
-        for changes, state, called in cases:
+        for changes in cases:
             with self.subTest(changes=changes):
-                shutil.rmtree(self.case / ".preflight", ignore_errors=True)
-                (self.case / ".manager_calls").unlink(missing_ok=True)
-                self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704", **changes).returncode, 0)
-                self.assertEqual(self.result(), "hook=entered\nguard_failure=kernel_version\n"
-                    "kernel_version_state=numeric\nkernel_version_value=32704\n"
-                    f"fresh_query={state}\nservice_probe_exit=1\n")
-                self.assertEqual((self.case / ".manager_calls").exists(), called)
-                self.assertFalse((self.case / ".calls").exists())
+                self.reset()
+                self.assertEqual(self.run_hook(**changes).returncode, 0)
+                result = self.result()
+                self.assertIn("manager_identity=unverified\n", result)
+                self.assertIn("info_result=unavailable\n", result)
+                self.assertIn("driver_identity=not_checked\n", result)
+                self.assertIn("guard_failure=manager_identity\n"
+                              "service_probe_exit=1\n", result)
+                self.assertFalse((self.case / ".manager_calls").exists())
+                self.assert_no_probe()
+
+    def test_composite_identity_requires_expected_driver(self):
+        cases = [
+            ({"TEST_INFO_FLAGS": "0x0"}, "mismatch", "flags"),
+            ({"TEST_INFO_UAPI": "5"}, "mismatch", "uapi_version"),
+            ({"TEST_INFO_LKM": "true"}, "mismatch", "lkm"),
+            ({"TEST_INFO_BUNDLED": "true"}, "mismatch", "bundled"),
+            ({"TEST_INFO_LATE": "true"}, "mismatch", "late_load"),
+            ({"TEST_INFO_MODE": "lkm"}, "mismatch", "runtime_mode"),
+            ({"TEST_INFO_FLAGS": "bad"}, "invalid", None),
+            ({"TEST_INFO_UAPI": "12345678901"}, "invalid", None),
+        ]
+        for changes, identity, reason in cases:
+            with self.subTest(changes=changes):
+                self.reset()
+                self.assertEqual(self.run_hook(**changes).returncode, 0)
+                result = self.result()
+                self.assertIn("manager_identity=verified\n", result)
+                self.assertIn("guard_failure=driver_identity\n", result)
+                self.assertIn(f"driver_identity={identity}\n", result)
+                if reason is None:
+                    self.assertNotIn("driver_reason=", result)
+                else:
+                    self.assertIn(f"driver_reason={reason}\n", result)
+                self.assertIn("service_probe_exit=1\n", result)
+                self.assertTrue((self.case / ".manager_calls").exists())
+                self.assert_no_probe()
+
+    def test_composite_identity_rejects_missing_duplicate_or_extra_info(self):
+        prefix = ("version: 35240\nfull_version: unknown\nflags: 0x20\n"
+                  "uapi_version: 6\nlkm: false\nbundled: false\nlate_load: false\n"
+                  "runtime_mode: built-in\n")
+        cases = [
+            ("missing", prefix.replace("flags: 0x20\n", "")),
+            ("duplicate", prefix.replace("flags: 0x20\n", "flags: 0x20\nflags: 0x20\n")),
+        ]
+        for label, output in cases:
+            with self.subTest(label=label):
+                self.reset()
+                self.set_manager_output(output)
+                self.assertEqual(self.run_hook().returncode, 0)
+                result = self.result()
+                self.assertIn(f"info_flags={label}\n", result)
+                self.assertIn("info_status=invalid\n", result)
+                self.assertIn("guard_failure=driver_identity\n"
+                              "service_probe_exit=1\n", result)
+                self.assert_no_probe()
+
+        self.reset()
+        self.set_manager_output(prefix.replace(
+            "version: 35240\n", "version: 35240\nforged=value\n"))
+        self.assertEqual(self.run_hook().returncode, 0)
+        result = self.result()
+        self.assertIn("info_version=35240\n", result)
+        self.assertIn("info_status=complete\n", result)
+        self.assertIn("service_probe_exit=0\n", result)
+        self.assertNotIn("forged", result)
+
+    def test_composite_identity_requires_measured_kernel(self):
+        cases = [
+            ("mismatch", "Linux version 4.14.356-other #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n"),
+            ("mismatch", "Linux version 4.14.357-openela-VantomKernel #2 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026\n"),
+        ]
+        for identity, content in cases:
+            with self.subTest(identity=identity, content=content):
+                self.reset()
+                self.kernel_version_input.write_text(content)
+                self.assertEqual(self.run_hook().returncode, 0)
+                result = self.result()
+                self.assertIn(f"kernel_identity={identity}\n", result)
+                self.assertIn("guard_failure=kernel_identity\n"
+                              "service_probe_exit=1\n", result)
+                self.assert_no_probe()
+
+        self.reset()
+        self.kernel_version_input.unlink()
+        self.assertEqual(self.run_hook().returncode, 0)
+        result = self.result()
+        self.assertIn("kernel_identity=unavailable\n", result)
+        self.assertIn("guard_failure=kernel_identity\nservice_probe_exit=1\n", result)
+        self.assert_no_probe()
+
+    def test_composite_identity_rejects_loaded_ksu_module(self):
+        cases = [
+            ("kernelsu 12345 0 - Live 0x0000000000000000\n", "conflict"),
+            ("ksu 12345 0 - Live 0x0000000000000000\n", "conflict"),
+            ("susfs 12345 0 - Live 0x0000000000000000\n", "conflict"),
+        ]
+        for content, identity in cases:
+            with self.subTest(content=content):
+                self.reset()
+                self.modules_input.write_text(content)
+                self.assertEqual(self.run_hook().returncode, 0)
+                result = self.result()
+                self.assertIn(f"modules_identity={identity}\n", result)
+                self.assertIn("guard_failure=module_identity\n"
+                              "service_probe_exit=1\n", result)
+                self.assert_no_probe()
+
+        self.reset()
+        self.modules_input.unlink()
+        self.assertEqual(self.run_hook().returncode, 0)
+        result = self.result()
+        self.assertIn("modules_identity=unavailable\n", result)
+        self.assertIn("guard_failure=module_identity\nservice_probe_exit=1\n", result)
+        self.assert_no_probe()
 
     def test_symlink_manager_is_not_queried(self):
         self.manager.rename(self.case / "real_manager")
         self.manager.symlink_to("real_manager")
-        self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704").returncode, 0)
-        self.assertIn("fresh_query=unavailable\n", self.result())
+        self.assertEqual(self.run_hook().returncode, 0)
+        result = self.result()
+        self.assertIn("manager_identity=unverified\n", result)
+        self.assertIn("guard_failure=manager_identity\nservice_probe_exit=1\n", result)
         self.assertFalse((self.case / ".manager_calls").exists())
-        self.assertFalse((self.case / ".calls").exists())
+        self.assert_no_probe()
 
     def test_boot_completed_compares_without_running_probe(self):
-        self.assertEqual(self.run_hook(KSU_KERNEL_VER_CODE="32704", TEST_MANAGER_OUTPUT="Kernel Version: 32704").returncode, 0)
         self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
         result = (self.case / ".boot-preflight/result").read_text()
-        self.assertEqual(result, "hook=entered\nkernel_version_state=numeric\n"
-                         "kernel_version_value=35240\nfresh_query=numeric\n"
-                         "fresh_query_value=35240\nguard_exit=0\n")
-        self.assertFalse((self.case / ".calls").exists())
-        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\nran\n")
+        self.assertIn("kernel_version_state=numeric\nkernel_version_value=32704\n", result)
+        self.assertIn("manager_identity=verified\n", result)
+        self.assertIn("info_runtime_mode=built-in\ninfo_status=complete\ninfo_result=ok\n", result)
+        self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
+                      "modules_identity=verified\n", result)
+        self.assertTrue(result.endswith("guard_exit=0\n"))
+        self.assert_no_probe()
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
         self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
-        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\nran\n")
+        self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
         self.assertEqual(stat.S_IMODE((self.case / ".boot-preflight/context").stat().st_mode), 0o600)
 
     def test_boot_completed_failure_and_untrusted_namespace(self):
-        self.assertEqual(self.run_hook(stage="boot_completed", KSU_KERNEL_VER_CODE="32704",
+        self.assertEqual(self.run_hook(stage="boot_completed", TEST_INFO_FLAGS="0x0",
                                       TEST_MNT_NS="mnt:[42]\nforged=1").returncode, 0)
         result = (self.case / ".boot-preflight/result").read_text()
-        self.assertIn("guard_failure=kernel_version\n", result)
+        self.assertIn("guard_failure=driver_identity\n", result)
         self.assertTrue(result.endswith("guard_exit=1\n"))
         context = (self.case / ".boot-preflight/context").read_text()
         self.assertIn("mnt_namespace=unavailable\n", context)
         self.assertNotIn("forged", context)
-        self.assertFalse((self.case / ".calls").exists())
+        self.assert_no_probe()
 
     def test_context_rejects_untrusted_label(self):
         self.context_input.write_text("u:r:bad label:s0")
@@ -293,6 +443,36 @@ exec "$@"''',
         self.assertIn("preflight=digest_mismatch", self.result())
         self.assertFalse((self.case / ".calls").exists())
 
+    def test_installer_accepts_mutable_kernel_version(self):
+        command = ('abort() { printf "abort\\n"; exit 1; }; '
+                   'set_perm() { :; }; . ./customize.sh; printf "ok\\n"')
+        env = self.env | {
+            "BOOTMODE": "true", "KSU": "true", "BAKASU": "true",
+            "KSU_VER_CODE": "35257", "KSU_UAPI_VER": "6",
+            "ARCH": "arm64", "API": "37",
+            "MODPATH": "/data/adb/modules_update/earkey_control_preflight",
+        }
+        for value in ("32704", "35240", "", None):
+            with self.subTest(kernel_version=value):
+                run_env = env | ({"KSU_KERNEL_VER_CODE": value} if value is not None else {})
+                if value is None:
+                    run_env.pop("KSU_KERNEL_VER_CODE", None)
+                result = subprocess.run(["dash", "-c", command], cwd=self.case, env=run_env,
+                                        capture_output=True, text=True, timeout=8)
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "ok\n")
+
+        self.assertNotIn("KSU_KERNEL_VER_CODE", (FIXTURE / "customize.sh").read_text())
+        for variable, value in (("BOOTMODE", "false"), ("KSU", "false"), ("BAKASU", "false"),
+                                ("KSU_VER_CODE", "1"), ("KSU_UAPI_VER", "1"),
+                                ("ARCH", "arm"), ("API", "31"), ("MODPATH", "/wrong")):
+            with self.subTest(variable=variable):
+                result = subprocess.run(["dash", "-c", command], cwd=self.case,
+                                        env=env | {variable: value},
+                                        capture_output=True, text=True, timeout=8)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout, "abort\n")
+
     def test_package_is_reproducible_and_contains_the_pinned_probe(self):
         if not ELF.exists():
             self.skipTest("the locally built reviewed ELF is unavailable")
@@ -308,7 +488,16 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-probe")).hexdigest(),
                              (FIXTURE / "probe.sha256").read_text().strip())
+            self.assertIn(b"version=0.0.7-preflight\nversionCode=7\n", archive.read("module.prop"))
+            self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
+            modes = {info.filename: (info.external_attr >> 16) & 0o777
+                     for info in archive.infolist()}
+            self.assertEqual(modes["service.sh"], 0o755)
+            self.assertEqual(modes["boot-completed.sh"], 0o755)
+            self.assertEqual(modes["customize.sh"], 0o644)
+            self.assertEqual(modes["module.prop"], 0o644)
+            self.assertEqual(modes["earkey-probe"], 0o500)
 
 
 if __name__ == "__main__":

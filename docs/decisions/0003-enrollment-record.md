@@ -1,6 +1,6 @@
 # Enrollment record decision
 
-Date: 10 November 2026. Status: **Proposed.** The maintainer asked for the enrollment source to be worked out. This record and its implementation await maintainer acceptance.
+Date: 10 November 2026. Status: **Accepted.** The maintainer asked for the enrollment source to be worked out and accepted this record on 10 November 2026. Acceptance does not authorize device access or enrollment on the phone.
 
 ## Context
 

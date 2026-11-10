@@ -1,6 +1,6 @@
 # Service-context launcher guard decision
 
-Date: 10 November 2026. Status: **Accepted — Option A, composite identity check.** The maintainer selected Option A on 10 November 2026. Acceptance applies only to the temporary diagnostic fixture and its metadata-only `self-check`. It does not authorize device access, installation, reboot, input access or any change to the EarKey Control module.
+Date: 10 November 2026. Status: **Accepted — Option A, composite identity check; re-baselined 10 November 2026 to the measured reforge kernel profile.** The maintainer selected Option A on 10 November 2026 and selected the re-baseline to the current kernel on the same date. Acceptance applies only to the temporary diagnostic fixture and its metadata-only `self-check`. It does not authorize device access, installation, reboot, input access or any change to the EarKey Control module.
 
 ## Context
 
@@ -12,6 +12,8 @@ Two authorized runs established that the kernel-version value is not stable duri
 - On 9 November the same services hook saw `32704` in samples 1–7, from 92.90 s to 99.27 s, and `35240` at sample 8, 100.34 s. The boot-completed hook at 107.68 s also saw `35240`.
 
 All diagnostic samples reported `full_version=unknown`, flags `0x20` (`PREINIT`), built-in mode, `lkm=false`, `bundled=false`, `late_load=false` and UAPI `6`. No KSU module was loaded, no driver-initialization line or `ksu_change_ksuver` entry appeared in the filtered `dmesg`, and neither `ksu_toolkit` nor `/data/adb/ksu/.manager_version` was present. The writer remains unidentified.
+
+On 10 November 2026 a read-only preflight observed that the phone had booted a different built-in driver: release `4.14.357-reforge-g9b21e3df6c0a`, build `#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026`, `version=35201`, `full_version=v4.2.0-35201-backslashxx`, flags `0x160`, UAPI `6` and features `0x7`. The manager digest, owner and mode were unchanged and no KSU module was loaded. The previously accepted VantomKernel identity would reject this driver before the metadata check, so the concrete constants needed review rather than silent substitution.
 
 A read-only inspection of the pinned userspace source at `516d3e87` found that module scripts receive `KSU_KERNEL_VER_CODE` from `ksucalls::get_version()` and that the userspace source contains no `CHANGE_KSUVER` invocation. The manager therefore reads the value rather than writing it. This narrows the writer to a module, script, binary or kernel path outside the manager's normal userspace code; it does not identify it.
 
@@ -29,7 +31,7 @@ The value is mutable, so equality on `35240` can reject a correct services conte
 
 ## Option A — composite identity invariant for the metadata check
 
-**Selected on 10 November 2026.** Replace the `KSU_KERNEL_VER_CODE=35240` equality with a reviewed composite that does not depend on the mutable version. The accepted gate requires all of:
+**Selected on 10 November 2026.** Replace the `KSU_KERNEL_VER_CODE=35240` equality with a reviewed composite that does not depend on the mutable version. The concrete values in this section are the original acceptance; the [re-baseline](#re-baseline-to-the-measured-reforge-kernel--10-november-2026) replaces the driver and kernel constants while keeping the option's structure. The accepted gate requires all of:
 
 - the exact diagnostic module ID and staged path;
 - UID 0;
@@ -93,22 +95,47 @@ The accepted gate requires all of the following before `earkey-probe self-check`
 
 - `KSU=true`, `BAKASU=true`, the exact module ID `earkey_control_preflight`, UID 0, `KSU_VER_CODE=35257` and `KSU_UAPI_VER=6`;
 - the reviewed `/data/adb/ksud` regular file, no symlink, owner `0:0`, mode `0755` and SHA-256 `fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50`;
-- one bounded `ksud debug info` query whose fields are complete and unique, with `flags=0x20` (`PREINIT`), `uapi_version=6`, `lkm=false`, `bundled=false`, `late_load=false` and `runtime_mode=built-in`;
-- `/proc/version` containing the measured release `4.14.357-openela-VantomKernel` and build suffix `#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026`;
+- one bounded `ksud debug info` query whose fields are complete and unique, with `full_version=v4.2.0-35201-backslashxx`, `flags=0x160`, `features=0x7`, `uapi_version=6`, `lkm=false`, `bundled=false`, `late_load=false`, `runtime_mode=built-in` and `pr_build=false`;
+- `/proc/version` containing the measured release `4.14.357-reforge-g9b21e3df6c0a` and build suffix `#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026`;
 - no `kernelsu`, `ksu`, `resukisu` or `susfs` entry in `/proc/modules`.
 
-`KSU_KERNEL_VER_CODE` is recorded only as a bounded observation with an unset, empty, numeric or invalid state. `full_version` is recorded only as an observation and may remain `unknown`. Neither is an equality gate.
+`KSU_KERNEL_VER_CODE` is recorded only as a bounded observation with an unset, empty, numeric or invalid state. The driver's `version` field is recorded only as a bounded numeric observation. Neither is an equality gate.
 
 **Scope:** the metadata-only `self-check` launcher check. This decision does not cover `probe-uinput`, evdev access, grab, injection, passthrough, suppression or any policy change. Those remain separate reviews and separate device authorization.
 
-**Residual risks:** the `/proc/version` build string is not cryptographic; a different kernel with the same measured string and driver JSON could pass. `full_version=unknown` means the driver did not supply a compiled-in commit. `KSU_KERNEL_VER_CODE` remains mutable, so a subsequent write is not detected after the query. The boot-completed hook repeats the identity checks but never runs the probe; a boot-completed pass is not service-context success. An on-device run is still required to show that BusyBox, the manager binary and the services launcher behave as the host simulation assumes.
+**Residual risks:** the `/proc/version` release and build string is not cryptographic and can be spoofed through the fork's `CHANGE_SPOOF_UNAME` path; a different kernel with the same measured strings and driver JSON could pass. The driver-reported `version` remains mutable through `ksuver_override`, and `flags` can be replaced through `ksuflags_override` when toolkit support is compiled in; both symbols appeared in `/proc/kallsyms` on this phone. The gate therefore proves the observed state at query time, not provenance. The running kernel's exact source is unidentified, so the meaning of flag bits 6 and 8 is inferred from a related fork rather than proven locally. A future kernel or driver update will fail the gate closed and require another documented re-baseline. The boot-completed hook repeats the identity checks but never runs the probe; a boot-completed pass is not service-context success. An on-device run is still required to show that BusyBox, the manager binary and the services launcher behave as the host simulation assumes.
+
+### Re-baseline to the measured reforge kernel — 10 November 2026
+
+The maintainer selected **Re-baseline to current kernel** on 10 November 2026. This replaces only the measured driver and kernel constants; it does not change the composite structure, weaken any guard, or authorize device execution. The old profile was release `4.14.357-openela-VantomKernel`, build `#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026` and flags `0x20`.
+
+The new measured profile is:
+
+| Field | Measured value |
+| --- | --- |
+| Kernel release | `4.14.357-reforge-g9b21e3df6c0a` |
+| Kernel build | `#2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026` |
+| Driver `version` | `35201` (observation only) |
+| Driver `full_version` | `v4.2.0-35201-backslashxx` |
+| Driver `flags` | `0x160` |
+| Driver `features` | `0x7` |
+| Driver UAPI | `6` |
+| Mode fields | `lkm=false`, `bundled=false`, `late_load=false`, `runtime_mode=built-in`, `pr_build=false` |
+| Manager digest | `fa0a460a91dc65b4408f9eb63a883342e0b017e84da5e444dee4903ee31d8f50`, owner `0:0`, mode `0755` |
+| Loaded KSU module | none |
+
+`flags=0x160` is consistent with `PREINIT` (`0x20`) plus two bits that the related FinaSU fork names `KSU_GET_INFO_FLAG_HOOK_TRACEPOINT` (`0x40`) and `KSU_GET_INFO_FLAG_HOOK_READY` (`0x100`). FinaSU's `KSU_GET_INFO_FLAG_HOOK_SUSFS_INLINE` (`0x80`) is clear, and the live `/proc/config.gz` advertises `CONFIG_KSU_SUSFS=y` with no inline-hook option. BakaSU's UAPI defines only bits 0–5, so the two high bits are not BakaSU constants. `features=0x7` matches BakaSU's `KSU_FEATURE_MAX` (IDs 0–6), not FinaSU's larger enum. The running kernel's exact source is unidentified; these are sourced related-fork interpretations, not proven local semantics. The gate pins the measured numbers rather than claiming a specific fork.
+
+Sources reviewed 10 November 2026: [BakaSU `uapi/supercall.h` at `516d3e87`](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/uapi/supercall.h), [BakaSU `uapi/feature.h` at `516d3e87`](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/uapi/feature.h), and [FinaSU `uapi/supercall.h` at `adf9a186`](https://github.com/LyraVoid/FinaSU/blob/adf9a18614c099d775a4389e8cc94cc5be31da61/uapi/supercall.h), the commit that added the selectable SUSFS inline-hook backend. The live `/proc/config.gz` and manager query are observations from the phone, not source proof.
+
+The read-only preflight that produced this profile did not install anything, reboot, or run the probe. It also verified that the diagnostic active and staged paths were absent, no module was staged, the manager digest and ownership were unchanged, the six-module inventory contained no diagnostic ID, and the metamodule installer was present but unused. The installer path `/data/adb/modules/magic_mount_rs/metainstall.sh` still needs its own authorization if the normal manager installer delegates to it.
 
 ## Implementation status
 
-Host-side implementation is complete for the accepted scope:
+Host-side implementation is complete for the re-baselined accepted scope:
 
-- fixture: `tests/fixtures/resukisu-service-preflight/`, module version `0.0.7-preflight`, version code 7;
-- host suite: `tests/test_service_preflight.py`, 20 passing tests, including the composite gate, mutable-version observation, manager/driver/kernel/module failures, malformed or duplicate fields, installer behavior and deterministic packaging;
-- package: `earkey-control-service-preflight-v7.zip`, 361,235 bytes, SHA-256 `acc33f126bbf6140f053d76817333ecfc21e6e6ffc0606a196d2c8d25b4c9ece`, built twice with identical bytes from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`.
+- fixture: `tests/fixtures/resukisu-service-preflight/`, module version `0.0.8-preflight`, version code 8;
+- host suite: `tests/test_service_preflight.py`, 21 passing tests, including the composite gate, full-version/flags/features/pr-build failures, mutable-version and driver-version observations, manager/driver/kernel/module failures, malformed or duplicate fields, installer behavior and deterministic packaging;
+- package: `earkey-control-service-preflight-v8.zip`, 362,255 bytes, SHA-256 `3643317502ec07f7e140da6dff299c8395ddf334703acbb25646beae11d9c929`, built twice with identical bytes from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`.
 
 No new device authorization is granted by this record. The service-context launcher check remains **Not passed** until the maintainer authorizes one temporary install, one reboot, a bounded record read and one cleanup reboot, and that run succeeds. The [preflight](../prototype-preflight.md) records that status.

@@ -1,6 +1,7 @@
 //! Production worker loop driven by the durable policy.
 //!
-//! The loop reports progress on every pass. It waits without failing while the
+//! The loop reports progress on every pass, including while Android has not yet
+//! opened the proxy. It waits without failing while the
 //! policy is disabled or unreadable, the accessory is absent, a key is down at
 //! acquisition, or another program holds a grab. It forwards with the policy's
 //! blocked groups, returns to waiting on unplug, and reacquires at the next
@@ -24,7 +25,9 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+const READY_POLL: Duration = Duration::from_millis(50);
 
 /// Inputs for one worker process.
 pub struct Context<'a> {
@@ -235,13 +238,37 @@ fn pump(
                 return false;
             }
         };
-        if let Err(error) = wait_ready(
-            &ctx.root.join("sys"),
-            &dev,
-            &ctx.root.join("proc"),
-            &proxy.sysname,
-            ctx.readiness,
-        ) {
+        let since = Instant::now();
+        let ready = loop {
+            match wait_ready(
+                &ctx.root.join("sys"),
+                &dev,
+                &ctx.root.join("proc"),
+                &proxy.sysname,
+                Duration::ZERO,
+            ) {
+                Err(error)
+                    if error.kind() == io::ErrorKind::TimedOut
+                        && since.elapsed() < ctx.readiness
+                        && !stop.load(Ordering::SeqCst) =>
+                {
+                    counter += 1;
+                    if frames
+                        .write_all(&progress_frame(counter))
+                        .and_then(|()| frames.flush())
+                        .is_err()
+                    {
+                        return false;
+                    }
+                    thread::sleep(READY_POLL);
+                }
+                result => break result,
+            }
+        };
+        if stop.load(Ordering::SeqCst) {
+            continue;
+        }
+        if let Err(error) = ready {
             note(report, format!("proxy_ready:{:?}", error.kind()));
             thread::sleep(ctx.poll);
             continue;

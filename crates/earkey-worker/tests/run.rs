@@ -387,17 +387,30 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
     let stop = AtomicBool::new(false);
     let done = AtomicBool::new(false);
     let (frames, report) = (Shared::default(), Shared::default());
+    let android = AtomicBool::new(false);
 
     let passed = thread::scope(|scope| {
         scope.spawn(|| {
             while !done.load(Ordering::SeqCst) {
-                let name = source_name.lock().unwrap().clone();
-                fake.android(&name);
+                if android.load(Ordering::SeqCst) {
+                    let name = source_name.lock().unwrap().clone();
+                    fake.android(&name);
+                }
                 thread::sleep(Duration::from_millis(10));
             }
         });
         let worker = scope.spawn(|| run(&ctx, &stop, &mut frames.clone(), &mut report.clone()));
         let _release = Release(&stop, &done);
+
+        thread::sleep(Duration::from_millis(400));
+        let early = frames.0.lock().unwrap().len();
+        thread::sleep(Duration::from_millis(1200));
+        assert!(
+            frames.0.lock().unwrap().len() >= early + 9 * 10,
+            "progress stalled while Android had not opened the proxy"
+        );
+        assert!(!report.text().contains("proxy_ready"), "{}", report.text());
+        android.store(true, Ordering::SeqCst);
 
         let mut output = proxy_reader(&report, 1);
         assert!(

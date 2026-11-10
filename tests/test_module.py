@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "module"
 PACKAGER = ROOT / "tools/package-module.py"
-ELF = ROOT / "target/stage6/8957c89/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage6/dbd3db0/earkey-worker-arm64-api31"
 STORAGE = "/data/adb/earkey_control"
 
 

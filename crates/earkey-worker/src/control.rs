@@ -11,7 +11,7 @@ use crate::layout;
 use crate::selection::Selection;
 use earkey_policy::identity::{Evidence, VerifiedEnrollment};
 use earkey_policy::policy::{Policy, RecoveryLatch};
-use earkey_policy::store::{EnrollmentRecord, RecoveryOperation, Store, StoreError};
+use earkey_policy::store::{EnrollmentRecord, RecoveryOperation, Runtime, Store, StoreError};
 use std::io;
 use std::path::Path;
 
@@ -126,8 +126,23 @@ pub fn recovery(store: &Store, operation: RecoveryOperation) -> Result<u64, Cont
         .generation())
 }
 
-/// Saved state as `key=value` pairs, without serials.
+/// Saved state, then runtime reports, as `key=value` pairs, without serials.
 pub fn status(store: &Store) -> Vec<(&'static str, String)> {
+    let mut lines = saved(store);
+    for (key, file) in [
+        ("worker", Runtime::Worker),
+        ("supervisor", Runtime::Supervisor),
+    ] {
+        match store.read_runtime(file) {
+            Ok(Some(text)) => lines.extend(text.lines().map(|line| (key, line.to_owned()))),
+            Ok(None) => lines.push((key, "none".into())),
+            Err(error) => lines.push((key, format!("error:{error:?}"))),
+        }
+    }
+    lines
+}
+
+fn saved(store: &Store) -> Vec<(&'static str, String)> {
     let mut lines = Vec::new();
     let records = match store.enrollments() {
         Ok(records) => records,

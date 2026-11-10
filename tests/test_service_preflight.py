@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/resukisu-service-preflight"
-ELF = ROOT / "target/stage4/ba9cd7d/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage4/f3cc75c/earkey-worker-arm64-api31"
 PACKAGER = ROOT / "tools/package-service-probe.py"
 
 
@@ -77,7 +77,7 @@ fi''')
         self.mock(
             "timeout",
 '''[ "$1" = -s ] && [ "$2" = KILL ] || exit 96
-[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 75 ] || exit 96
+[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 30 ] || [ "$3" = 200 ] || exit 96
 shift 3
 case "$1" in
     /system/bin/readlink)
@@ -102,9 +102,10 @@ esac
 exec "$@"''',
         )
         probe = self.case / "earkey-worker"
-        probe.write_text('#!/bin/sh\n[ "$*" = proxy-check ] || exit 97\nprintf "ran\\n" >> .calls\n'
+        probe.write_text('#!/bin/sh\ncase "$*" in check|"supervise 120") ;; *) exit 97 ;; esac\n'
+                         'printf "ran %s\\n" "$1" >> .calls\n'
                          '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "open=error:PermissionDenied\\ncheck=fail\\n"; exit 1; }\n'
-                         'printf "check=pass\\nproxy_check=pass\\n"\n')
+                         '[ "$1" = check ] && printf "check=pass\\n" || printf "supervise=pass\\n"\n')
         probe.chmod(0o500)
         (self.case / "worker.sha256").write_text(hashlib.sha256(probe.read_bytes()).hexdigest() + "\n")
         self.env = os.environ | {
@@ -147,6 +148,9 @@ exec "$@"''',
             "#!/bin/sh\ncat <<'EOF'\n" + output + "EOF\nprintf 'ran\\n' >> .manager_calls\n")
         self.manager.chmod(0o755)
 
+    def digest(self):
+        return (self.case / "worker.sha256").read_text().strip()
+
     def assert_no_probe(self):
         self.assertFalse((self.case / ".calls").exists())
 
@@ -164,7 +168,8 @@ exec "$@"''',
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
         self.assertIn("launcher=resukisu_service\n", result)
-        self.assertIn("check=pass\nproxy_check=pass\nservice_probe_exit=0\n", result)
+        self.assertIn("launcher=resukisu_service\n", result)
+        self.assertIn("check=pass\nservice_probe_exit=0\n", result)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/result").stat().st_mode), 0o600)
         self.assertFalse((self.case / ".preflight/result.tmp").exists())
@@ -176,7 +181,7 @@ exec "$@"''',
         self.assertEqual(stat.S_IMODE((self.case / ".preflight/context").stat().st_mode), 0o600)
         self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
         self.assertEqual(self.run_hook().returncode, 0)
-        self.assertEqual((self.case / ".calls").read_text(), "ran\n")
+        self.assertEqual((self.case / ".calls").read_text(), "ran check\n")
         self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
 
     def test_each_environment_guard_records_failure_without_executing_probe(self):
@@ -388,7 +393,7 @@ exec "$@"''',
         self.assertFalse((self.case / ".manager_calls").exists())
         self.assert_no_probe()
 
-    def test_boot_completed_compares_without_running_probe(self):
+    def test_boot_completed_runs_the_supervised_session_after_the_gate(self):
         self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
         result = (self.case / ".boot-preflight/result").read_text()
         self.assertIn("kernel_version_state=numeric\nkernel_version_value=35201\n", result)
@@ -397,8 +402,10 @@ exec "$@"''',
                       "info_status=complete\ninfo_result=ok\n", result)
         self.assertIn("driver_identity=verified\nkernel_identity=verified\n"
                       "modules_identity=verified\n", result)
-        self.assertTrue(result.endswith("guard_exit=0\n"))
-        self.assert_no_probe()
+        self.assertTrue(result.endswith("launcher=resukisu_boot_completed\n"
+                                        f"artifact_sha256={self.digest()}\n"
+                                        "supervise=pass\nguard_exit=0\n"), result)
+        self.assertEqual((self.case / ".calls").read_text(), "ran supervise\n")
         self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
         self.assertEqual(self.run_hook(stage="boot_completed").returncode, 0)
         self.assertEqual((self.case / ".manager_calls").read_text(), "ran\n")
@@ -476,7 +483,7 @@ exec "$@"''',
         self.assertEqual(self.run_hook(TEST_PROBE_DENIED="1").returncode, 0)
         self.assertTrue(self.result().endswith(
             "open=error:PermissionDenied\ncheck=fail\nservice_probe_exit=1\n"))
-        self.assertEqual((self.case / ".calls").read_text(), "ran\n")
+        self.assertEqual((self.case / ".calls").read_text(), "ran check\n")
 
     def test_symlink_probe_is_rejected(self):
         (self.case / "earkey-worker").rename(self.case / "payload")
@@ -530,7 +537,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-worker")).hexdigest(),
                              (FIXTURE / "worker.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.14-preflight\nversionCode=14\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.15-preflight\nversionCode=15\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

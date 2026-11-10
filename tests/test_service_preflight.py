@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/resukisu-service-preflight"
-ELF = ROOT / "target/stage4/f3cc75c/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage4/7af4c5d/earkey-worker-arm64-api31"
 PACKAGER = ROOT / "tools/package-service-probe.py"
 
 
@@ -77,7 +77,7 @@ fi''')
         self.mock(
             "timeout",
 '''[ "$1" = -s ] && [ "$2" = KILL ] || exit 96
-[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 30 ] || [ "$3" = 200 ] || exit 96
+[ "$3" = 5 ] || [ "$3" = 1 ] || [ "$3" = 30 ] || [ "$3" = 800 ] || exit 96
 shift 3
 case "$1" in
     /system/bin/readlink)
@@ -102,7 +102,7 @@ esac
 exec "$@"''',
         )
         probe = self.case / "earkey-worker"
-        probe.write_text('#!/bin/sh\ncase "$*" in check|"supervise 120") ;; *) exit 97 ;; esac\n'
+        probe.write_text('#!/bin/sh\ncase "$*" in check|"supervise 600") ;; *) exit 97 ;; esac\n'
                          'printf "ran %s\\n" "$1" >> .calls\n'
                          '[ "${TEST_PROBE_DENIED:-0}" = 1 ] && { printf "open=error:PermissionDenied\\ncheck=fail\\n"; exit 1; }\n'
                          '[ "$1" = check ] && printf "check=pass\\n" || printf "supervise=pass\\n"\n')
@@ -537,7 +537,7 @@ exec "$@"''',
             ])
             self.assertEqual(hashlib.sha256(archive.read("earkey-worker")).hexdigest(),
                              (FIXTURE / "worker.sha256").read_text().strip())
-            self.assertIn(b"version=0.0.15-preflight\nversionCode=15\n", archive.read("module.prop"))
+            self.assertIn(b"version=0.0.16-preflight\nversionCode=16\n", archive.read("module.prop"))
             self.assertNotIn(b"KSU_KERNEL_VER_CODE", archive.read("customize.sh"))
             self.assertEqual(archive.read("skip_mount"), b"")
             modes = {info.filename: (info.external_attr >> 16) & 0o777

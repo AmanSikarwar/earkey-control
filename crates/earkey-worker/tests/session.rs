@@ -45,6 +45,31 @@ fn a_progressing_worker_runs_until_the_session_pauses_it() {
         lines.contains(&"supervisor_phase=Inactive(Paused)".to_owned()),
         "{lines:?}"
     );
+    let timeline = lines
+        .iter()
+        .find_map(|l| l.strip_prefix("supervisor_timeline="))
+        .unwrap();
+    let entries: Vec<&str> = timeline
+        .split("; ")
+        .map(|e| e.split_once(':').unwrap().1)
+        .collect();
+    assert_eq!(
+        entries,
+        [
+            "Start",
+            "Starting",
+            "Running",
+            "Stop(Paused)",
+            "Stopping { cause: Paused, forced: false }",
+            "Inactive(Paused)"
+        ],
+        "{timeline}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("supervisor_started_uptime_ms="))
+    );
     let stop: u128 = lines
         .iter()
         .find_map(|l| l.strip_prefix("supervisor_stop_ms="))
@@ -73,6 +98,15 @@ fn a_worker_that_never_starts_is_a_fault_not_a_pass() {
         lines.contains(&"supervisor_failures=1".to_owned()),
         "{lines:?}"
     );
+    let timeline = lines
+        .iter()
+        .find_map(|l| l.strip_prefix("supervisor_timeline="))
+        .unwrap();
+    assert!(
+        timeline.contains(":Stop(Fault(StartTimeout))"),
+        "{timeline}"
+    );
+    assert!(timeline.contains(":WaitingToRestart"), "{timeline}");
 }
 
 #[test]

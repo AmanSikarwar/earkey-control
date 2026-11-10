@@ -21,6 +21,9 @@
 //! its process adapter remain responsible for closing the physical node and
 //! destroying the proxy during `Stop`.
 
+#[cfg(any(target_os = "linux", target_os = "android"))]
+pub mod process;
+
 use std::cmp::Ordering;
 use std::time::{Duration, Instant};
 

@@ -30,6 +30,9 @@ dependencies = [
 [[package]]
 name = "earkey-supervisor"
 version = "0.1.0"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "earkey-trace-supervisor"

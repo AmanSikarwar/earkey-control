@@ -96,7 +96,7 @@ pub struct Environment<'a> {
     pub kernel_build: &'a str,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UsbHid {
     pub vendor: u16,
     pub product: u16,

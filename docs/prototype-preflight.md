@@ -1,6 +1,6 @@
 # Stage 4 Android preflight
 
-Stage 3 is merged. The standalone capability probe targets arm64 Android at API 31. A separate temporary diagnostic fixture was built to run its metadata-only command from the intended launcher; its first authorized service-hook run stopped at the kernel-version guard before executing the probe (see the [service-context result](#service-context-diagnostic-result--8-november-2026)). [Build and inspect the probe](build.md#stage-4-android-capability-probe)
+Stage 3 is merged. The standalone capability probe targets arm64 Android at API 31. A separate temporary diagnostic fixture was built to run its metadata-only command from the intended launcher; its first authorized service-hook run stopped at the kernel-version guard before executing the probe (see the [service-context result](#service-context-diagnostic-result--8-november-2026)). The re-baselined v9 run on 10 November passed the launcher check (see the [v9 result](#v9-service-context-result--10-november-2026)). [Build and inspect the probe](build.md#stage-4-android-capability-probe)
 
 ## Probe commands
 
@@ -217,7 +217,24 @@ The module was marked for removal with `ksud module uninstall`, and the `remove`
 
 After the v8 result, the maintainer decided that the driver `full_version` is a recorded observation only, like the driver `version` and `KSU_KERNEL_VER_CODE`. The services hook still requires the manager file and digest, one complete `debug info` result with `flags=0x160`, `features=0x7`, UAPI 6, built-in mode, no LKM/bundled/late load and `pr_build=false`, the reforge release/build in `/proc/version`, and no loaded KSU module. A malformed or duplicate `full_version` line still makes the info result invalid.
 
-The fixture is `0.0.9-preflight` (version code 9). The host suite has 22 passing tests. `earkey-control-service-preflight-v9.zip` is 362,057 bytes with SHA-256 `1a41ee4def45d74a31a66ec36fdef68472536a43378ec78d054e33251d4a40de`; two builds were byte-identical, from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`. The v8 run showed that the remaining pinned fields matched in the services hook, but that is not a v9 result. The service-context launcher check remains **Not passed** until an authorized v9 run succeeds.
+The fixture is `0.0.9-preflight` (version code 9). The host suite has 22 passing tests. `earkey-control-service-preflight-v9.zip` is 362,057 bytes with SHA-256 `1a41ee4def45d74a31a66ec36fdef68472536a43378ec78d054e33251d4a40de`; two builds were byte-identical, from probe SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`. The v8 run showed that the remaining pinned fields matched in the services hook, but that is not a v9 result. The [v9 result](#v9-service-context-result--10-november-2026) passed the service-context launcher check.
+
+## v9 service-context result — 10 November 2026
+
+The maintainer authorized the same v9 scope used for v8: one temporary install, one reboot, a bounded record read and one cleanup reboot. Pre-checks matched the re-baselined profile. The manager and both metamodule hook digests were unchanged, no module operation was pending, and no diagnostic path existed. The on-device ZIP digest matched `1a41ee4def45d74a31a66ec36fdef68472536a43378ec78d054e33251d4a40de`. `ksud module install` staged `0.0.9-preflight`, the staged probe matched `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`, and the upload was removed.
+
+The service-context launcher check **Passed**.
+
+| Hook | Uptime | Driver `version` / `full_version` | Composite identity | Result |
+| --- | --- | --- | --- | --- |
+| services | 13.41 s | `32726` / `v3.3.1-32726` (observations) | manager, driver, kernel and modules verified | `launcher=resukisu_service`, `probe=self_check_ok`, `service_probe_exit=0` |
+| boot-completed | 27.14 s | `35201` / `v4.2.0-35201-backslashxx` (observations) | all verified | `guard_exit=0`; probe not run by design |
+
+The probe reported artifact SHA-256 `bb9469338156678c53eec406903063bfe6c13a46e4377b5c6bfbdd72e24b2f42`, `arch=aarch64`, `page_size=4096`, `input_event_size=24`, `input_event_type_offset=16`, `effective_uid=0`, `selinux_context=u:r:ksu:s0` and `selinux_enforcing=1`. Both hooks recorded the same SELinux label and mount and UTS namespace identifiers. Neither saw a driver descriptor. The driver identity again changed between hooks, and its writer remains unidentified.
+
+This establishes only that the reviewed probe loads and runs from the ReSukiSU services launcher in `u:r:ksu:s0` under enforcing SELinux on this kernel. It does not test `/dev/uinput` access, evdev, grabs, the EarKey Control module, passthrough or suppression. The `input_event` layout matches the probe's built ABI, but that is a self-report, not an evdev read.
+
+The module was marked for removal and the `remove` marker was verified. After the cleanup reboot, the active and staged paths and the upload were gone. The original six modules, the `magic_mount_rs` metamodule link, the manager digest and Enforcing mode remained. Raw records remain private.
 
 ## Descriptor comparison design
 

@@ -7,3 +7,5 @@ pub mod device;
 pub mod environment;
 pub mod inventory;
 pub mod layout;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+pub mod proxy;

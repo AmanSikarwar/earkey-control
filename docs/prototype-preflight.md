@@ -388,6 +388,32 @@ This run does establish that the services hook can create the decision-0004 prox
 
 v14 repeats the v13 procedure with the fixed worker. The ELF was built twice from `ba9cd7d` with identical results: 675,016 bytes, SHA-256 `7e04111588033f095b4257d367c4925b3d868af66ac23e30fdee769ea72897e5`. It passes the same pins and ELF checks: API 31, 16 KiB-aligned segments, only `libc` and `libdl`, all 82 imports in API 31, and no host paths. The fixture is `0.0.14-preflight` (version code 14). `earkey-control-service-preflight-v14.zip` is 694,868 bytes with SHA-256 `5041d8eebe7f5b872609bdc65d8aaf1e53b28303f6f98ae519d5297f0671ba65`; two builds were byte-identical. It needs a new maintainer authorization.
 
+## Service-context proxy check rerun result (v14) — 10 November 2026
+
+The maintainer authorized the v14 run. Pre-checks over wireless ADB matched the reforge profile, with one earphone node and no proxy node present. The guard directory was created as `0:0` mode `0700` and left empty. The on-device ZIP digest matched `5041d8eebe7f5b872609bdc65d8aaf1e53b28303f6f98ae519d5297f0671ba65`, and the staged worker matched `7e04111588033f095b4257d367c4925b3d868af66ac23e30fdee769ea72897e5`.
+
+The service-context proxy check **Passed**. The services hook at 13.95 s in `u:r:ksu:s0` passed every `check` step (reforge evidence, 9 inventory nodes, live enrollment, one target, read-only open, revalidation, `neutral=yes`) and then reported:
+
+```text
+proxy=created
+proxy_ready_ms=6865
+proxy_event=event9
+proxy_excluded=yes
+proxy_classes=KEYBOARD | EXTERNAL
+proxy_layout=/system/usr/keylayout/Generic.kl
+proxy_kcm=/system/usr/keychars/Generic.kcm
+proxy_configuration=<none>
+proxy_android=ok
+proxy_teardown=ok
+proxy_check=pass
+```
+
+The result was `service_probe_exit=0`. The boot-completed hook verified the identity and did not run the worker. At the record read the guard directory was empty, no proxy node or `earkey-worker` process existed, and no AVC line naming `earkey`, `uhid`, `uinput`, `input_device`, `dumpsys` or `ksu` was found.
+
+The diagnostic was marked for removal, and cleanup was verified after the reboot. The guard directory was removed, and the diagnostic paths and upload were gone. The original six modules, the metamodule link, the manager digest and Enforcing mode remained, with no proxy node or worker process. Raw records remain private.
+
+This establishes, for the reference phone on the reforge kernel from the services hook, that the decision-0004 proxy can be created, that Android opens it within about 7 s of creation at 14 s uptime, that Android classifies it `KEYBOARD | EXTERNAL` with `Generic.kl` exactly like the physical earphones, that the worker inventory excludes it, and that teardown removes it. It does not test forwarded events, key mapping or action equivalence, repeat behavior, grabs, passthrough or suppression. Those are the Stage 4 passthrough gate. A single readiness sample at early boot is not a production deadline.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

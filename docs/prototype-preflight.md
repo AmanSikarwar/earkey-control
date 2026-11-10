@@ -476,6 +476,25 @@ The diagnostic was marked for removal, and cleanup was verified after the reboot
 
 This is the first physical passthrough evidence. On the reference phone, from the boot-completed hook, the supervised worker grabbed the verified collection, forwarded short Center and volume presses through the decision-0004 proxy with the expected single actions, and released cleanly on pause. Stage 4 still needs fault paths on the phone (worker crash, hang, unplug, early stop by the `stay-inactive` marker), holds and repeats, double presses, calls and the microphone, and a session started from the services stage. This is not suppression, module installation or support qualification.
 
+## Supervised fault drill plan (v16) — 10 November 2026
+
+v16 tests the Stage 4 failure paths on the phone during one supervised passthrough session. The boot-completed hook runs `earkey-worker supervise 600` under an 800 s kill deadline. The supervisor now reports `supervisor_started_uptime_ms` and a `supervisor_timeline` of every action and phase change with millisecond offsets, so externally injected faults can be matched to its behavior. The production deadlines are unchanged from v15. The diagnostic never persists the latch.
+
+The fixture is `0.0.16-preflight` (version code 16). `earkey-control-service-preflight-v16.zip` is 783,898 bytes with SHA-256 `02cf742d9067e918e2d99176f95201250ecc681ae092adb00334a2c7bd3a729e`; two builds were byte-identical. It embeds the worker `9cd7ff90e5b9cdab1f7600c2a82226f395f5e66aec027b312eea83140ebc173e` ([build record](build.md#stage-4-android-worker-check)).
+
+After authorization and the usual pre-checks, install and reboot with the earphones connected. Reconnect over wireless ADB. Record `/proc/uptime` before each injection from a root shell, and find the worker by exact command line, `earkey-worker passthrough`:
+
+| Step | Injection | Expected supervisor timeline | Release checks within 5 s |
+| --- | --- | --- | --- |
+| F1 early stop | `(umask 077; : > /data/adb/earkey_control/stay-inactive)`; after 5 s, `rm` it | `Stop(BootDisabled)`, `Inactive(BootDisabled)`, then `Start` and `Running` after removal; no failure counted | worker process gone, proxy node gone |
+| F2 crash | `kill -9 <worker>` | `Fault(UnexpectedExit)`, `WaitingToRestart`, then `Start` after the 5 s restart delay; failures 1 | worker gone, proxy node gone (uinput destroys the device when its descriptor closes) |
+| F3 hang | `kill -STOP <worker>` | `Stop(Fault(ProgressStalled))` after about 1 s, `Kill(...)` after the 1 s pause deadline, exit confirmed, `WaitingToRestart`, `Start`; failures 2 | stopped worker gone, proxy node gone |
+| F4 unplug while held | the maintainer holds Volume Up and unplugs the earphones while holding | a worker read or disconnect fault, `Fault(UnexpectedExit)`, failures 3, `PersistLatch`, which the diagnostic refuses (`supervisor_latch=error:Other`) | proxy node gone, no worker, and the maintainer confirms the volume did not keep changing and the phone keys work |
+
+Between steps, the maintainer may press one earphone button to confirm passthrough resumed after each restart. A deviation from the expected timeline, a remaining proxy node or worker, a stuck key, or any boot or input problem is a failure to record, not a reason to repeat. Cleanup follows the v15 procedure. Remove the marker if one was left, then verify the guard directory is empty before removing it.
+
+This tests supervision and release on the reference phone in the boot-completed context only. It does not test suppression, holds and repeat ownership, double presses, calls or the microphone.
+
 ## Descriptor comparison design
 
 The pinned manager first searches its own inherited descriptors for the two specific KernelSU anonymous-inode names, preferring `ksu_driver_su`; if neither is present, it requests a descriptor through its special syscall and caches the result. A shell-side descriptor inventory cannot establish which descriptor the manager actually received: `exec` can close descriptors, and the manager can obtain one afterward. The pinned [acquisition code](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/ksucalls.rs#L82-L177) and [Linux descriptor information](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html) were reviewed on 8 November 2026.

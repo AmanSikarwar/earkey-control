@@ -1,5 +1,6 @@
 //! Diagnostic entry point:
-//! `earkey-worker check | proxy-check | passthrough | supervise <seconds>`.
+//! `earkey-worker check | proxy-check | passthrough [selection] | supervise <seconds> [selection]`,
+//! where selection is `passthrough`, `block-all` or a comma list of `center`, `volume-up`, `volume-down`.
 
 use std::process::ExitCode;
 
@@ -7,10 +8,12 @@ fn main() -> ExitCode {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let command = match args.as_slice() {
-        [command @ ("check" | "proxy-check" | "passthrough")] => Command::Plain(command),
-        ["supervise", seconds] => match seconds.parse::<u64>() {
+        [command @ ("check" | "proxy-check")] => Command::Plain(command),
+        ["passthrough"] => Command::Passthrough("passthrough"),
+        ["passthrough", selection] => Command::Passthrough(selection),
+        ["supervise", seconds, rest @ ..] if rest.len() <= 1 => match seconds.parse::<u64>() {
             Ok(seconds) if earkey_worker_sessions().contains(&seconds) => {
-                Command::Supervise(seconds)
+                Command::Supervise(seconds, rest.first().copied().unwrap_or("passthrough"))
             }
             _ => return usage(),
         },
@@ -21,11 +24,14 @@ fn main() -> ExitCode {
 
 enum Command<'a> {
     Plain(&'a str),
-    Supervise(u64),
+    Passthrough(&'a str),
+    Supervise(u64, &'a str),
 }
 
 fn usage() -> ExitCode {
-    eprintln!("usage: earkey-worker check | proxy-check | passthrough | supervise <10-600>");
+    eprintln!(
+        "usage: earkey-worker check | proxy-check | passthrough [selection] | supervise <10-600> [selection]"
+    );
     ExitCode::from(2)
 }
 
@@ -60,7 +66,10 @@ fn run(command: Command<'_>) -> ExitCode {
         earkey_supervisor::store::read_gate(&store)
     };
     let root = Path::new("/");
-    if let Command::Supervise(seconds) = command {
+    if let Command::Supervise(seconds, selection) = command {
+        if earkey_worker::session::Selection::parse(selection).is_none() {
+            return usage();
+        }
         let lock = match Lock::acquire(Path::new(LOCK)) {
             Ok(lock) => lock,
             Err(error) => {
@@ -80,7 +89,7 @@ fn run(command: Command<'_>) -> ExitCode {
         let report = unsafe {
             earkey_worker::session::supervise(
                 exe,
-                vec!["passthrough".into()],
+                vec!["passthrough".into(), selection.into()],
                 Duration::from_secs(seconds),
                 earkey_worker::session::LIMITS,
                 store_gate,
@@ -100,8 +109,13 @@ fn run(command: Command<'_>) -> ExitCode {
             ExitCode::FAILURE
         };
     }
-    let Command::Plain(command) = command else {
-        unreachable!()
+    let (command, selection) = match command {
+        Command::Plain(command) => (command, None),
+        Command::Passthrough(text) => match earkey_worker::session::Selection::parse(text) {
+            Some(selection) => ("passthrough", Some(selection)),
+            None => return usage(),
+        },
+        Command::Supervise(..) => unreachable!(),
     };
 
     let environment = match earkey_worker::environment::read() {
@@ -112,7 +126,7 @@ fn run(command: Command<'_>) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if command == "passthrough" {
+    if let Some(selection) = selection {
         // SAFETY: The handler only stores to an atomic, which is async-signal-safe.
         unsafe {
             libc::signal(
@@ -123,6 +137,7 @@ fn run(command: Command<'_>) -> ExitCode {
         let passed = earkey_worker::session::worker(
             root,
             &environment,
+            &selection,
             store_gate,
             &STOP,
             &mut std::io::stdout().lock(),
@@ -195,7 +210,10 @@ fn dumpsys_input() -> std::io::Result<String> {
 fn run(command: Command<'_>) -> ExitCode {
     match command {
         Command::Plain(command) => println!("{command}=android_required"),
-        Command::Supervise(seconds) => println!("supervise_{seconds}=android_required"),
+        Command::Passthrough(selection) => println!("passthrough_{selection}=android_required"),
+        Command::Supervise(seconds, selection) => {
+            println!("supervise_{seconds}_{selection}=android_required")
+        }
     }
     ExitCode::FAILURE
 }

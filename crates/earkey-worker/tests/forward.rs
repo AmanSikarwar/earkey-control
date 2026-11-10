@@ -343,3 +343,62 @@ fn a_removed_source_reports_its_fault_after_releasing_held_keys() {
     assert_eq!(released[0], (1, 0xa4, 0));
     assert!(matches!(released[1], (0, 0, 0 | 1)), "{released:?}");
 }
+
+#[test]
+#[ignore = "needs /dev/uinput and CAP_MKNOD; see docs/build.md"]
+fn blocked_groups_are_read_but_not_forwarded() {
+    let _serial = SERIAL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let dev = Dev::new();
+    let source = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
+    let proxy = Proxy::create(Path::new("/dev"), INPUT_ID, &KEYS).unwrap();
+    let (source_event, source_path) = dev.node(&source);
+    let (_, proxy_path) = dev.node(&proxy);
+    let mut output = reader(&proxy_path);
+    let opened = Opened::open(&dev.0, &observation(&source_event, &source_path)).unwrap();
+    let stop = AtomicBool::new(false);
+    let mut tally = Tally::default();
+    let volume_up = |value| vec![ev(4, 4, 0x000c_00e9), ev(1, 0x73, value), ev(0, 0, 0)];
+    let end = thread::scope(|scope| {
+        let session = scope.spawn(|| {
+            run(
+                &opened,
+                &proxy,
+                EVIDENCE,
+                &[earkey_policy::identity::Group::Center],
+                LIMITS,
+                &stop,
+                &mut tally,
+                |_| {},
+            )
+        });
+        thread::sleep(Duration::from_millis(200));
+        emit(&source, &press(1)).unwrap();
+        emit(&source, &press(0)).unwrap();
+        emit(&source, &volume_up(1)).unwrap();
+        emit(&source, &volume_up(0)).unwrap();
+        let forwarded = read_records(&mut output, 6, Duration::from_secs(2));
+        assert_eq!(
+            forwarded,
+            [
+                (4, 4, 0x000c_00e9),
+                (1, 0x73, 1),
+                (0, 0, 0),
+                (4, 4, 0x000c_00e9),
+                (1, 0x73, 0),
+                (0, 0, 0)
+            ]
+        );
+        assert!(read_records(&mut output, 1, Duration::from_millis(100)).is_empty());
+        stop.store(true, Ordering::SeqCst);
+        session.join().unwrap()
+    });
+    assert_eq!(end.unwrap(), End::Stopped);
+    assert_eq!(
+        tally.read.summary(),
+        "0x73:down=1,repeat=0,up=1;0xa4:down=1,repeat=0,up=1"
+    );
+    assert_eq!(tally.forwarded.summary(), "0x73:down=1,repeat=0,up=1");
+    assert_eq!(tally.cleanup_releases, 0);
+}

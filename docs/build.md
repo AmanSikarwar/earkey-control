@@ -123,6 +123,8 @@ On 10 November 2026 two clean builds from `6db695d` produced identical 576,040-b
 
 `earkey-worker` uses the same pinned r28c tools, recorded tool hashes, flags and checks as the probe, built with `-p earkey-worker`. On 10 November 2026 two clean builds from `a0f45ee` produced identical 572,608-byte ELFs, SHA-256 `7ee31586bf546e696c1e180d5766eaa541ab1628b3f35bd0d091a041c329a4c9`. The NDK revision and the three tool hashes matched the pins. `llvm-readelf` showed an AArch64 PIE using `/system/bin/linker64`, with the Android note at API 31, all four `LOAD` segments aligned to `0x4000`, and `BIND_NOW`. It needs only `libc.so` and `libdl.so`, and all 55 imported symbols are defined by the NDK API 31 stubs. A string scan found no host paths. The ELF is kept outside Git at `target/stage4/a0f45ee/earkey-worker-arm64-api31`.
 
+For v13, two clean builds from `8035136` produced identical 672,792-byte ELFs, SHA-256 `57178e5f0431f85ac0214505381a460b3cdb0a6953191f51bfea9aa085b4e895`. The same pins and checks passed: AArch64 PIE using `linker64`, API 31, four `LOAD` segments aligned to `0x4000`, only `libc.so` and `libdl.so`, all 82 imports in the API 31 stubs, and no host paths. The ELF is kept at `target/stage4/8035136/earkey-worker-arm64-api31`.
+
 ## Pins and native target
 
 Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.

@@ -9,3 +9,5 @@ pub mod inventory;
 pub mod layout;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod proxy;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+pub mod proxy_check;

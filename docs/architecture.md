@@ -47,6 +47,20 @@ The session exposes an incomplete-frame or output deadline to its caller and fai
 
 On `SYN_DROPPED`, the engine discards the partial frame and consumes through the next report within the frame and deadline bounds. It queries current key state, then returns a terminal fault. A snapshot alone cannot reconstruct lost press decisions or scan association. The engine reports which keys may be down on the proxy for cleanup. The worker must destroy the proxy and release the physical node, then start any retry from a fresh verified neutral session. [Linux input protocol](https://docs.kernel.org/input/event-codes.html)
 
+## Worker inventory
+
+[earkey-worker](../crates/earkey-worker) starts with a read-only inventory, `earkey_worker::inventory::scan`. It never opens an input device.
+
+- It walks `/sys/class/input/event*`, at most 64 nodes, and reads bounded UTF-8 attributes: the input name, `id/{bustype,vendor,product,version}`, the `ev`, `key` and `msc` capability bitmaps, and `properties`. Bitmaps are parsed as hex `unsigned long` words, most significant first.
+- USB HID identity is derived only from the measured shape `usb-device/interface/BBBB:VVVV:PPPP.N/input/inputM/eventN`. That gives the USB vendor, product and `bcdDevice`; the interface number and class; the HID bus, vendor and product from the collection name; the serial; and the interface driver. Any other shape yields no USB identity, so it cannot match a USB profile.
+- `is_virtual` means the node resolves under `/sys/devices/virtual`.
+- `/dev/input/eventN` must be a non-symlink character device whose device number equals the sysfs `dev` value. Its filesystem device, inode and character device form the `NodeInstance`.
+- Any node that cannot be fully observed fails the whole scan, so an unreadable duplicate cannot hide an ambiguity from the matcher.
+
+An `Observation` lends itself to the policy matcher as a `Candidate`. The caller supplies the key layout digest. Layout resolution, the environment reader, the enrollment source, post-open revalidation, neutral-state checks and the uinput proxy are not implemented yet.
+
+The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, including kernel `4.14.357-openela-VantomKernel`. The phone now runs a maintainer-installed reforge kernel, so `targets` selects nothing on it until the profile is re-measured and new evidence is reviewed. The kernel must be read from `/proc/version`, because `uname -r` on this kernel is spoofed to the old name.
+
 ## Host supervisor core
 
 [earkey-supervisor](../crates/earkey-supervisor) is a host-tested state machine, not a process supervisor. It performs no process, clock, file, policy or device I/O. The service adapter supplies monotonic time, a gate built from durable pause, the pre-open `stay-inactive` marker and the restart latch, plus worker signals. It executes the returned actions.

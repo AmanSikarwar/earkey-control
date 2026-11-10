@@ -61,6 +61,18 @@ cargo test -p earkey-supervisor --locked
 
 The workspace-wide commands above also run these tests. A passing host suite does not establish process identity, descriptor release, Android service behavior or physical pause/recovery.
 
+The Linux process adapter tests drive real `/bin/sh` workers, so they compile only for Linux and Android. On macOS, run them in the official Rust 1.99.1 Alpine arm64 image `rust@sha256:0a555e8b51945db91fd7b8411b4272bb5b8bfa04261d31eaeb2ada564bc02632`. Use no network, dropped capabilities, a read-only root and the host registry mounted read-only:
+
+```sh
+docker run --rm --network none --cap-drop ALL --read-only --tmpfs /tmp:exec,size=1g \
+  -e RUSTUP_TOOLCHAIN=1.99.1-aarch64-unknown-linux-musl -e CARGO_TARGET_DIR=/tmp/target -e CARGO_HOME=/tmp/cargo \
+  -v "$HOME/.cargo/registry:/tmp/cargo/registry:ro" -v "$PWD:/src:ro" -w /src \
+  rust@sha256:0a555e8b51945db91fd7b8411b4272bb5b8bfa04261d31eaeb2ada564bc02632 \
+  cargo test --workspace --locked --offline
+```
+
+`RUSTUP_TOOLCHAIN` selects the image's installed toolchain instead of syncing `rust-toolchain.toml` components. `cargo clippy -p earkey-supervisor --all-targets --target aarch64-linux-android -- -D warnings` type-checks the adapter and its tests for the Android target.
+
 ## Stage 4 Android capability probe
 
 The prototype host pin uses the existing stable r28c SDK package `28.2.13676358` on arm64 macOS 27.2 and Rust 1.99.1 with the `aarch64-linux-android` target. The official SDK index lists `android-ndk-r28c-darwin.zip` at 952,495,160 bytes with SHA-1 `fc20a6bf15a30fb3428c9b60a7308793a362dc6d`. This identifies the upstream archive. The original download was absent locally, so the build checks the installed package revision and hashes the tool binaries used. Android now archives r28c. This pin applies to the initial probe and must be revisited before release qualification. [Official SDK index](https://dl.google.com/android/repository/repository2-3.xml), [NDK r28c release](https://github.com/android/ndk/releases/tag/r28c)

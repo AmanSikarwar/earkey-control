@@ -1,12 +1,12 @@
 # Recovery outline
 
-**Planning only. No recovery path has been exercised; no module or commands are implemented.** This document must become a device-specific tested guide before any interception prototype is installed. Do not use unimplemented command names as recovery instructions.
+**Device recovery remains untested.** The standalone [Stage 4 capability probe](prototype-preflight.md) checks the inactive marker before its open-only diagnostic. A device-specific recovery guide and drill are still required before interception.
 
 ## Before a prototype
 
 Record the exact root implementation/fork, manager, kernel and ROM, physical power/volume functionality, a verified way to disable only `earkey_control`, and a separate usable privileged debugging/recovery route if available. Verify USB debugging authorization, recovery access and data decryption capabilities only with permission. Do not assume encrypted `/data` is accessible or a bootloader/recovery offers a root shell.
 
-Provide a durable module-specific next-boot inactive marker and check it before opening input nodes. Planned location is `/data/adb/earkey_control/stay-inactive`, with root-only ownership; its exact file-handling semantics and documented control operation must be tested before Stage 4. The temporary prototype also needs a finite session deadline, independent supervisor, and an immediately usable pause path. Stage 6 integrates these protections; it does not defer them until after the prototype.
+The open-only probe checks `/data/adb/earkey_control/stay-inactive` through the validated private store. The host test covers absent, valid, symlinked and improperly permissioned markers. A future worker must apply the same guard before device opens, and the root control operation must create and preserve it durably. Before an interception run, implement and test a finite session deadline, independent supervisor, and immediate pause. Stage 6 integrates these protections; it does not defer them until after the prototype.
 
 ## Recovery layers and expected behavior
 

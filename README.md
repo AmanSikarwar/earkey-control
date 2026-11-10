@@ -2,7 +2,7 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 3 adds a host-tested Rust event engine.** Stage 2 policy and identity validation is merged. See the [host engine](docs/architecture.md#host-event-engine) and [Stage 1 discovery checkpoint](docs/discovery/reference-2026-11-04.md).
+**Stage 4 begins with an arm64 Android capability probe.** The Stage 3 host engine is merged. Device loading and physical passthrough remain pending. [Stage 4 preflight](docs/prototype-preflight.md), [host engine](docs/architecture.md#host-event-engine)
 
 The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
 

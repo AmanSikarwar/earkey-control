@@ -163,6 +163,8 @@ Use the [pinned Android recipe](#stage-4-android-capability-probe) with `-p eark
 
 The default and diagnostic Rust workspace suites passed 126 and 130 tests respectively, including the ignored synthetic kernel tests, on arm64 LinuxKit `7.0.14-linuxkit` with Rust 1.99.1 in image `rust@sha256:0a555e8b51945db91fd7b8411b4272bb5b8bfa04261d31eaeb2ada564bc02632`. Android-target Clippy passed with warnings denied in both build modes. The diagnostic CLI is selected at compile time and the ELF is staged as a standalone file for the [scoped phone test](stage-6-plan.md#updated-kernel-passthrough-plan).
 
+For the phone run, the installed-module gate was changed to accept any confirmed inactive state (`65e5160`). Two clean builds from `65e5160` with the same recipe produced identical 779,520-byte ELFs, SHA-256 `98a2ac4bb8e5c41e41e642f25a6397654356ad05834d1e99a24071944d3e793e`. The pins and checks matched: API 31, four `LOAD` segments aligned to `0x4000`, only `libc`/`libdl`, all 89 imports in API 31, and no host paths. The ELF is kept at `target/stage6/65e5160/earkey-reforge-passthrough-arm64-api31`.
+
 The Cargo feature selection, NDK target linking and inherited parent-death behavior were checked against primary documentation on 11 November 2026. [Cargo Book](https://doc.rust-lang.org/cargo/reference/features.html), [Android NDK guide](https://developer.android.com/ndk/guides/other_build_systems), [Linux man-pages](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
 
 ## Pins and native target

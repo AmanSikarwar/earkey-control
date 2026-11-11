@@ -272,6 +272,10 @@ impl Store {
     /// Adds an enrollment made by [`VerifiedEnrollment::from_observation`]. Ordinary policy
     /// saves cannot create one. Adding an existing enrollment changes nothing.
     pub fn enroll(&self, enrollment: &VerifiedEnrollment<'_>) -> Result<(), StoreError> {
+        #[cfg(feature = "reforge-passthrough")]
+        if enrollment.evidence() == Evidence::XiaomiPixelosReforge20261111 {
+            return Err(StoreError::InvalidEnrollments);
+        }
         let lock = open_at(&self.directory, c".", DIRECTORY)?;
         lock.lock()?;
         let mut records = self.enrollments_locked()?;

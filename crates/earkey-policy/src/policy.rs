@@ -133,6 +133,21 @@ impl Policy {
         })
     }
 
+    /// Targets one verified collection in an acquisition check. The caller
+    /// chooses passthrough or blocking separately from this temporary policy.
+    pub fn for_acquisition(enrollment: &VerifiedEnrollment<'_>) -> Self {
+        let mut policy = Self::inactive();
+        policy.0.enabled = true;
+        policy.0.preset = Preset::BlockAll;
+        policy.0.profiles.push(Profile {
+            evidence: enrollment.evidence(),
+            usb_serial: enrollment.serial().to_owned(),
+            enabled: true,
+            blocked_groups: vec![],
+        });
+        policy
+    }
+
     /// Validates policy bytes against the caller's independently verified enrollments.
     /// Successful decoding does not establish that an accessory is currently present.
     pub fn parse(

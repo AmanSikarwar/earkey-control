@@ -50,6 +50,24 @@ fn enrollment() -> VerifiedEnrollment<'static> {
     VerifiedEnrollment::from_reviewed_measurement(Evidence::XiaomiPixelos20261107, SERIAL).unwrap()
 }
 
+#[cfg(feature = "reforge-passthrough")]
+#[test]
+fn diagnostic_evidence_cannot_be_loaded_or_enrolled() {
+    let scratch = Scratch::new();
+    let evidence = Evidence::XiaomiPixelosReforge20261111;
+    let verified = VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap();
+    let bytes = Policy::for_acquisition(&verified).to_json();
+    assert!(matches!(
+        Policy::parse(&bytes, std::slice::from_ref(&verified)),
+        Err(PolicyError::InvalidJson)
+    ));
+    assert!(matches!(
+        scratch.store().enroll(&verified),
+        Err(StoreError::InvalidEnrollments)
+    ));
+    assert!(scratch.store().enrollments().unwrap().is_empty());
+}
+
 #[test]
 fn missing_is_inactive_and_valid_save_assigns_next_generation() {
     let scratch = Scratch::new();

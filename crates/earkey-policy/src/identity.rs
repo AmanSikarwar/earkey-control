@@ -6,6 +6,10 @@ pub enum Evidence {
     XiaomiPixelos20261107,
     /// The same accessory re-measured on the reforge kernel; see the 10 November revalidation.
     XiaomiPixelosReforge20261110,
+    /// The measured 11 November environment, for temporary passthrough only.
+    #[cfg(feature = "reforge-passthrough")]
+    #[serde(skip_deserializing)]
+    XiaomiPixelosReforge20261111,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -150,6 +154,13 @@ const REFORGE_ENV: Environment<'static> = Environment {
     ..REFERENCE_ENV
 };
 
+#[cfg(feature = "reforge-passthrough")]
+const REFORGE_DIAGNOSTIC_ENV: Environment<'static> = Environment {
+    kernel_release: "4.14.357-reforge-gc216b1fe2466",
+    kernel_build: "#2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026",
+    ..REFERENCE_ENV
+};
+
 const REFERENCE_USB: UsbHid = UsbHid {
     vendor: 0x0020,
     product: 0x0b21,
@@ -174,49 +185,38 @@ const REFERENCE_KEYS: [LinuxKey; 8] = [
 
 impl Evidence {
     pub fn controls(self) -> &'static [Control] {
-        match self {
-            Self::XiaomiPixelos20261107 | Self::XiaomiPixelosReforge20261110 => &CONTROLS,
-        }
+        &CONTROLS
     }
 
     /// Complete key capability set for this evidence, including unmapped keys.
     pub fn advertised_keys(self) -> &'static [LinuxKey] {
-        match self {
-            Self::XiaomiPixelos20261107 | Self::XiaomiPixelosReforge20261110 => &REFERENCE_KEYS,
-        }
+        &REFERENCE_KEYS
     }
 
     pub fn matches_environment(self, environment: &Environment<'_>) -> bool {
         match self {
             Self::XiaomiPixelos20261107 => *environment == REFERENCE_ENV,
             Self::XiaomiPixelosReforge20261110 => *environment == REFORGE_ENV,
+            #[cfg(feature = "reforge-passthrough")]
+            Self::XiaomiPixelosReforge20261111 => *environment == REFORGE_DIAGNOSTIC_ENV,
         }
     }
 
     pub(crate) fn matches_identity(self, serial: &str, device: &Candidate<'_>) -> bool {
-        match self {
-            Self::XiaomiPixelos20261107 | Self::XiaomiPixelosReforge20261110 => {
-                !device.is_virtual
-                    && device.usb_serial == Some(serial)
-                    && device.usb_driver == Some("usbhid")
-                    && device.usb_hid.as_ref() == Some(&REFERENCE_USB)
-                    && device.input_id == [3, 0x0020, 0x0b21, 0x0201]
-                    && device.name == "Generic Xiaomi Type-C Earphones 1"
-            }
-        }
+        !device.is_virtual
+            && device.usb_serial == Some(serial)
+            && device.usb_driver == Some("usbhid")
+            && device.usb_hid.as_ref() == Some(&REFERENCE_USB)
+            && device.input_id == [3, 0x0020, 0x0b21, 0x0201]
+            && device.name == "Generic Xiaomi Type-C Earphones 1"
     }
 
     pub(crate) fn matches_capabilities(self, device: &Candidate<'_>) -> bool {
-        match self {
-            Self::XiaomiPixelos20261107 | Self::XiaomiPixelosReforge20261110 => {
-                device.layout_sha256
-                    == "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
-                    && device.event_types == [0, 1, 4]
-                    && device.keys == self.advertised_keys()
-                    && device.misc == [4]
-                    && device.properties.is_empty()
-            }
-        }
+        device.layout_sha256 == "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
+            && device.event_types == [0, 1, 4]
+            && device.keys == self.advertised_keys()
+            && device.misc == [4]
+            && device.properties.is_empty()
     }
 }
 

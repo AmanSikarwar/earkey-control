@@ -120,6 +120,18 @@ This run covers the update and UI increment. The outstanding physical gates incl
 
 The phone now runs reforge `gc216b1fe2466` with driver 35205 and has alpha.3 installed. The approved alpha.4 run stopped before policy change, staging or reboot. The installed worker refused the updated kernel in its read-only `check`. The maintainer confirmed that the real alpha.3 WebUI showed Fault and the restart-latch reason, and the policy and enrollment digests were unchanged afterwards. The next device plan must bind the new kernel and preserve the observed alpha.3 recovery state. [Measured revalidation and case outcomes](discovery/reforge-revalidation-2026-11-11.md)
 
+### Alpha.4 install on the updated kernel
+
+This was an authorized run on 11 November 2026, on reforge `gc216b1fe2466` with SELinux enforcing. The preflight found alpha.3 installed (`284ecfeb…2b21`) with saved generation 8, the latch clear, enabled, and all three groups selected. That differs from the earlier record (generation 5, latched): the settings changed between the two runs. The worker reported `waiting_accessory` and had no grab or proxy. The ZIP `be8ddda5…f9c` was rebuilt byte-identically from `main` before installation.
+
+| Case | Result |
+| --- | --- |
+| T23 update | The update staged with worker `f49b1464…b571` and `versionCode=4`. After one reboot, the policy and enrollment hashes, saved generation 8, the enabled state and the selected groups all matched the values from before the update. One daemon and one `run` were running, with supervisor `failures=0` |
+| T25 changed kernel | No profile matches, so the worker waits without opening any device. Alpha.4 reports this as `waiting_accessory`. The next worker reports `unsupported_environment` instead |
+| T27 WebUI | The installed page loaded through the ReSukiSU bridge. The maintainer saw "Waiting for earphones", as the worker reported. The `webroot` files are `0644` `system_file`, as set by the manager |
+
+Blocking is not available on this kernel until an exact profile passes the updated-kernel passthrough plan.
+
 ## Updated-kernel passthrough plan
 
 The opt-in `reforge-passthrough` build adds an in-memory profile for the exact 11 November ROM and kernel build. The stored enrollment from the previous reforge build supplies the reference serial privately. Acquisition requires a unique match with the measured USB HID collection, driver, full capability set and layout. It rechecks identity on the opened descriptor against a refreshed inventory and requires neutral input. The new evidence is rejected by the persistent policy and enrollment paths. The alpha.4 package retains its existing worker pin. [Measured environment](discovery/reforge-revalidation-2026-11-11.md#measured-environment)

@@ -335,6 +335,12 @@ fn proxy_reader(report: &Shared, generation: u64) -> File {
 }
 
 fn environment() -> Observed {
+    observed(
+        "Linux version 4.14.357-reforge-g9b21e3df6c0a (b@h) (c) #2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026",
+    )
+}
+
+fn observed(version: &str) -> Observed {
     parse(
         |name| {
             Some(
@@ -350,9 +356,51 @@ fn environment() -> Observed {
                 .to_owned(),
             )
         },
-        "Linux version 4.14.357-reforge-g9b21e3df6c0a (b@h) (c) #2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026",
+        version,
     )
     .unwrap()
+}
+
+#[test]
+fn an_unmeasured_kernel_waits_as_unsupported_without_scanning() {
+    let root = std::env::temp_dir().join(format!("earkey-run-env-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store_dir = root.join("store");
+    fs::create_dir_all(&root).unwrap();
+    DirBuilder::new().mode(0o700).create(&store_dir).unwrap();
+    let store = Store::open_dir(&store_dir).unwrap();
+    let evidence = Evidence::XiaomiPixelosReforge20261110;
+    store
+        .enroll(&VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap())
+        .unwrap();
+    apply(&store, &Selection::BlockAll, true).unwrap();
+    let environment = observed(
+        "Linux version 4.14.357-reforge-gc216b1fe2466 (b@h) (c) #2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026",
+    );
+    let ctx = Context {
+        root: &root,
+        environment: &environment,
+        layout: LAYOUT,
+        store: &store,
+        poll: Duration::from_millis(20),
+        readiness: Duration::from_secs(1),
+        forward: Limits {
+            stall: Duration::from_millis(100),
+            session: Duration::from_secs(1),
+            tick: Duration::from_millis(20),
+        },
+    };
+    let stop = AtomicBool::new(false);
+    let report = Shared::default();
+    let passed = thread::scope(|scope| {
+        let worker = scope.spawn(|| run(&ctx, &stop, &mut Vec::new(), &mut report.clone()));
+        report.wait_for("worker_state=unsupported_environment");
+        stop.store(true, Ordering::SeqCst);
+        worker.join().unwrap()
+    });
+    assert!(passed, "{}", report.text());
+    assert!(!report.text().contains("inventory:"), "{}", report.text());
+    let _ = fs::remove_dir_all(&root);
 }
 
 #[test]

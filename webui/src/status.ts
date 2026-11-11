@@ -179,6 +179,11 @@ export function describe(status: Status | null): Description {
   }
   const state = workerState(status) ?? "";
   switch (state) {
+    case "unsupported_environment":
+      return {
+        state: "Unsupported",
+        reason: "This ROM or kernel has not been measured for your earphones. Their buttons work normally.",
+      };
     case "waiting_accessory":
     case "disconnected":
       return { state: "Waiting for earphones", reason: "Connect the enrolled earphones." };

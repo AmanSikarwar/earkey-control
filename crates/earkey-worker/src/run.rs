@@ -2,7 +2,8 @@
 //!
 //! The loop reports progress on every pass, including while Android has not yet
 //! opened the proxy. It waits without failing while the
-//! policy is disabled or unreadable, the accessory is absent, a key is down at
+//! policy is disabled or unreadable, no enrolled profile matches the running
+//! ROM and kernel, the accessory is absent, a key is down at
 //! acquisition, or another program holds a grab. It forwards with the policy's
 //! blocked groups, returns to waiting on unplug, and reacquires at the next
 //! neutral boundary when the saved generation changes. Only `SIGTERM` (the stop
@@ -86,6 +87,12 @@ fn acquire(ctx: &Context<'_>) -> Result<Acquired, String> {
         return Err("recovery_inactive".into());
     }
     let env = ctx.environment.as_environment();
+    if !(0..policy.profile_count())
+        .filter_map(|index| policy.profile_evidence(index))
+        .any(|evidence| evidence.matches_environment(&env))
+    {
+        return Err("unsupported_environment".into());
+    }
     let (sys, dev) = (ctx.root.join("sys"), ctx.root.join("dev"));
     let nodes =
         inventory::scan(&sys, &dev).map_err(|error| format!("inventory:{:?}", error.kind()))?;

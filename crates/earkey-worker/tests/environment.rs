@@ -48,23 +48,24 @@ fn reference_phone_values_match_only_the_reforge_evidence() {
 }
 
 #[test]
-fn updated_reforge_is_outside_the_production_evidence() {
+fn updated_reforge_selects_only_its_exact_evidence() {
     let version = "Linux version 4.14.357-reforge-gc216b1fe2466 (b) (c) #2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026";
     let observed = read(&properties(), version).unwrap();
-    assert_eq!(evidence_for(&observed), None);
-    #[cfg(feature = "reforge-passthrough")]
-    {
-        let evidence = Evidence::XiaomiPixelosReforge20261111;
-        assert!(evidence.matches_environment(&observed.as_environment()));
-        let mut drifted = observed;
-        drifted.kernel_build.push('1');
-        assert!(!evidence.matches_environment(&drifted.as_environment()));
-        let mut drifted = read(&properties(), version).unwrap();
-        drifted.incremental.push('1');
-        assert!(!evidence.matches_environment(&drifted.as_environment()));
-        let earlier = read(&properties(), REFORGE_VERSION).unwrap();
-        assert!(!evidence.matches_environment(&earlier.as_environment()));
-    }
+    assert_eq!(
+        evidence_for(&observed),
+        Some(Evidence::XiaomiPixelosReforge20261111)
+    );
+    let mut drifted = read(&properties(), version).unwrap();
+    drifted.kernel_build.push('1');
+    assert_eq!(evidence_for(&drifted), None);
+    let mut drifted = read(&properties(), version).unwrap();
+    drifted.incremental.push('1');
+    assert_eq!(evidence_for(&drifted), None);
+    let earlier = read(&properties(), REFORGE_VERSION).unwrap();
+    assert_eq!(
+        evidence_for(&earlier),
+        Some(Evidence::XiaomiPixelosReforge20261110)
+    );
 }
 
 #[test]

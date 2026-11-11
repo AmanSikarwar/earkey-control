@@ -6,9 +6,7 @@ pub enum Evidence {
     XiaomiPixelos20261107,
     /// The same accessory re-measured on the reforge kernel; see the 10 November revalidation.
     XiaomiPixelosReforge20261110,
-    /// The measured 11 November environment, for temporary passthrough only.
-    #[cfg(feature = "reforge-passthrough")]
-    #[serde(skip_deserializing)]
+    /// The same accessory on the updated reforge kernel; see the 11 November revalidation.
     XiaomiPixelosReforge20261111,
 }
 
@@ -154,8 +152,7 @@ const REFORGE_ENV: Environment<'static> = Environment {
     ..REFERENCE_ENV
 };
 
-#[cfg(feature = "reforge-passthrough")]
-const REFORGE_DIAGNOSTIC_ENV: Environment<'static> = Environment {
+const REFORGE_UPDATED_ENV: Environment<'static> = Environment {
     kernel_release: "4.14.357-reforge-gc216b1fe2466",
     kernel_build: "#2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026",
     ..REFERENCE_ENV
@@ -197,8 +194,7 @@ impl Evidence {
         match self {
             Self::XiaomiPixelos20261107 => *environment == REFERENCE_ENV,
             Self::XiaomiPixelosReforge20261110 => *environment == REFORGE_ENV,
-            #[cfg(feature = "reforge-passthrough")]
-            Self::XiaomiPixelosReforge20261111 => *environment == REFORGE_DIAGNOSTIC_ENV,
+            Self::XiaomiPixelosReforge20261111 => *environment == REFORGE_UPDATED_ENV,
         }
     }
 

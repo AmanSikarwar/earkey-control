@@ -102,6 +102,23 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
         7
     );
     assert_eq!(recovery(&store, RecoveryOperation::Resume).unwrap(), 8);
+
+    let updated = Evidence::XiaomiPixelosReforge20261111;
+    store
+        .enroll(&VerifiedEnrollment::from_reviewed_measurement(updated, SERIAL).unwrap())
+        .unwrap();
+    assert_eq!(apply(&store, &Selection::BlockAll, true).unwrap(), 9);
+    let lines = status(&store);
+    assert_eq!(
+        get(&lines, "enrolled_evidence"),
+        ["xiaomi_pixelos_reforge20261110,xiaomi_pixelos_reforge20261111"]
+    );
+    assert_eq!(get(&lines, "profiles"), ["1"]);
+    assert_eq!(get(&lines, "control").len(), 3);
+    let records = store.enrollments().unwrap();
+    let verified: Vec<_> = records.iter().filter_map(|r| r.verified()).collect();
+    let policy = store.load(&verified).unwrap();
+    assert_eq!(policy.profile_evidence(0), Some(updated));
     let lines = status(&store);
     assert_eq!(get(&lines, "stay_inactive"), ["false"]);
     assert_eq!(get(&lines, "paused"), ["false"]);

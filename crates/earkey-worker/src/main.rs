@@ -4,25 +4,10 @@
 
 use std::process::ExitCode;
 
-#[cfg(feature = "reforge-passthrough")]
-mod reforge;
-
 fn main() -> ExitCode {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    #[cfg(feature = "reforge-passthrough")]
-    {
-        reforge::main(&args)
-    }
-    #[cfg(not(feature = "reforge-passthrough"))]
-    {
-        module_main(&args)
-    }
-}
-
-#[cfg(not(feature = "reforge-passthrough"))]
-fn module_main(args: &[&str]) -> ExitCode {
-    let command = match args {
+    let command = match args.as_slice() {
         [command @ ("check" | "proxy-check" | "run" | "daemon")] => Command::Plain(command),
         [
             command @ ("enroll" | "status" | "enable" | "disable" | "pause" | "resume"
@@ -43,7 +28,6 @@ fn module_main(args: &[&str]) -> ExitCode {
     run(command)
 }
 
-#[cfg(not(feature = "reforge-passthrough"))]
 enum Command<'a> {
     Plain(&'a str),
     /// A root control operation: name, optional selection, and `enable` for `apply`.
@@ -52,7 +36,6 @@ enum Command<'a> {
     Supervise(u64, &'a str),
 }
 
-#[cfg(not(feature = "reforge-passthrough"))]
 fn usage() -> ExitCode {
     eprintln!(
         "usage: earkey-worker check | proxy-check | run | passthrough [selection] | supervise <10-600> [selection]\n       \
@@ -62,18 +45,12 @@ fn usage() -> ExitCode {
     ExitCode::from(2)
 }
 
-#[cfg(all(
-    not(feature = "reforge-passthrough"),
-    any(target_os = "linux", target_os = "android")
-))]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn earkey_worker_sessions() -> std::ops::RangeInclusive<u64> {
     earkey_worker::session::SESSION_SECONDS
 }
 
-#[cfg(all(
-    not(feature = "reforge-passthrough"),
-    not(any(target_os = "linux", target_os = "android"))
-))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 fn earkey_worker_sessions() -> std::ops::RangeInclusive<u64> {
     10..=600
 }
@@ -86,7 +63,7 @@ extern "C" fn on_terminate(_: libc::c_int) {
     STOP.store(true, std::sync::atomic::Ordering::SeqCst);
 }
 
-#[cfg(all(target_os = "android", not(feature = "reforge-passthrough")))]
+#[cfg(target_os = "android")]
 fn run(command: Command<'_>) -> ExitCode {
     use earkey_policy::store::Store;
     use earkey_supervisor::process::Lock;
@@ -298,7 +275,7 @@ fn run(command: Command<'_>) -> ExitCode {
 }
 
 /// Runs one root control operation against the private store.
-#[cfg(all(target_os = "android", not(feature = "reforge-passthrough")))]
+#[cfg(target_os = "android")]
 fn control(name: &str, selection: Option<&str>, enable: bool) -> ExitCode {
     use earkey_policy::store::{RecoveryOperation, Store};
     use earkey_worker::control;
@@ -407,7 +384,7 @@ fn dumpsys_input() -> std::io::Result<String> {
     }
 }
 
-#[cfg(all(not(target_os = "android"), not(feature = "reforge-passthrough")))]
+#[cfg(not(target_os = "android"))]
 fn run(command: Command<'_>) -> ExitCode {
     match command {
         Command::Plain(command) => println!("{command}=android_required"),

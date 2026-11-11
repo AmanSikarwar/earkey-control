@@ -146,3 +146,19 @@ After specific approval for the ELF and temporary ADB execution:
 4. On request or any unexpected action, signal the verified diagnostic supervisor with `SIGTERM` or create its private mode `0600` `stay-inactive` marker. Its gate closes and the supervisor requests stop, with kill escalation on timeout. The worker also has parent-death protection. The supervisor may remain idle until the session deadline after an early stop. Confirm worker exit, proxy removal and restored physical controls before removing the temporary executable, marker, lock and directory. Recheck the installed module's latch, worker state and before/after policy and enrollment digests. Retain only reviewed summaries in Git.
 
 The first session covers short presses and basic audio and phone controls in the root-shell context. Updated-kernel service-hook, call, microphone, wake, failure and broader preservation checks remain pending. Passing this session allows a revised upgrade plan for review. Suppression requires its own approved artifact and device test.
+
+### Updated-kernel passthrough result (11 November 2026)
+
+This was an authorized root-shell run of ELF `98a2ac4b…793e` from `65e5160`. The diagnostic originally required the installed module to be latched, the state recorded when it was written. At this run the installed alpha.4 was enabled with the latch clear, so `65e5160` accepts a latch, pause or boot escape. It still requires the installed supervisor to report `Latched`, `Inactive(Paused)` or `Inactive(BootDisabled)`.
+
+| Step | Result |
+| --- | --- |
+| Preflight | `/proc/version` `4.14.357-reforge-gc216b1fe2466`, build `#2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026`. Driver 35205, `PixelOS_sweet-17.0-20261030-2116` / `1793394994`, 4 KiB pages, enforcing, `ksud` digest unchanged. Alpha.4 worker `f49b1464…b571`; saved generation 10, enabled, all three groups; earphones connected |
+| Pause installed | `pause` saved generation 11; the supervisor reported `Inactive(Paused)` with no worker process |
+| `check` | Evidence `xiaomi_pixelos_reforge20261111`: one target, open, revalidation and neutral passed |
+| `proxy-check` | Ready in 50 ms. `KEYBOARD | EXTERNAL`, `Generic.kl` / `Generic.kcm`, no configuration override, excluded from enrollment, torn down |
+| `supervise` (120 s, nothing blocked) | Proxy ready in 12 ms. Read and forwarded were identical: Volume Down 3/3, Volume Up 7/7 and Center 4/4 presses and releases, with no repeats and no cleanup releases. `[Start, Stop(Paused)]`; orderly stop in 413 ms; `failures=0` |
+| Maintainer | With music playing, the maintainer pressed each control, some several times. Every press acted normally |
+| Cleanup | The diagnostic directory was removed, no diagnostic process remained, the proxy was gone, the enrollment hash was unchanged and SELinux was enforcing. At the maintainer's request the installed module stays paused (generation 11) |
+
+Physical passthrough is proven on this kernel for short presses in the root-shell context. Before suppression, the next step is a release that adds this kernel's evidence as a normal profile, followed by the Stage 5 suppression checks.

@@ -41,8 +41,12 @@ fn run(_: Command) -> std::io::Result<bool> {
 }
 
 #[cfg(any(target_os = "android", test))]
-fn installed_module_is_latched(gate: earkey_supervisor::Gate) -> bool {
-    gate.latched && !gate.paused && !gate.boot_disabled
+fn installed_module_is_inactive(gate: earkey_supervisor::Gate, supervisor: Option<&str>) -> bool {
+    gate != earkey_supervisor::Gate::OPEN
+        && matches!(
+            supervisor.and_then(|status| status.lines().next()),
+            Some("phase=Latched" | "phase=Inactive(Paused)" | "phase=Inactive(BootDisabled)")
+        )
 }
 
 #[cfg(target_os = "android")]
@@ -80,12 +84,10 @@ fn run(command: Command) -> std::io::Result<bool> {
         return Err(io::Error::other("reference_environment_mismatch"));
     }
     let installed = Store::open().map_err(|_| io::Error::other("installed_store_unavailable"))?;
-    if !installed_module_is_latched(read_gate(&installed)?)
-        || !installed
-            .read_runtime(Runtime::Supervisor)
-            .map_err(|_| io::Error::other("installed_supervisor_unavailable"))?
-            .is_some_and(|status| status.lines().next() == Some("phase=Latched"))
-    {
+    let supervisor = installed
+        .read_runtime(Runtime::Supervisor)
+        .map_err(|_| io::Error::other("installed_supervisor_unavailable"))?;
+    if !installed_module_is_inactive(read_gate(&installed)?, supervisor.as_deref()) {
         return Err(io::Error::other("installed_supervisor_gate_mismatch"));
     }
     let directory = Path::new(DIRECTORY);
@@ -169,24 +171,41 @@ mod tests {
     }
 
     #[test]
-    fn the_diagnostic_requires_a_latch_and_respects_saved_pause_and_boot_escape() {
+    fn the_installed_module_must_be_closed_and_confirmed_inactive() {
         let latched = Gate {
             latched: true,
             ..Gate::OPEN
         };
-        assert!(installed_module_is_latched(latched));
-        for gate in [
-            Gate::OPEN,
-            Gate {
-                paused: true,
-                ..latched
-            },
+        let paused = Gate {
+            paused: true,
+            ..Gate::OPEN
+        };
+        let status = |phase: &str| format!("phase={phase}\nfailures=0\nlast_fault=none\n");
+        assert!(installed_module_is_inactive(
+            latched,
+            Some(&status("Latched"))
+        ));
+        assert!(installed_module_is_inactive(
+            paused,
+            Some(&status("Inactive(Paused)"))
+        ));
+        assert!(installed_module_is_inactive(
             Gate {
                 boot_disabled: true,
-                ..latched
+                ..Gate::OPEN
             },
-        ] {
-            assert!(!installed_module_is_latched(gate));
+            Some(&status("Inactive(BootDisabled)"))
+        ));
+        assert!(!installed_module_is_inactive(
+            Gate::OPEN,
+            Some(&status("Inactive(Paused)"))
+        ));
+        for phase in ["Running", "Starting", "Inactive(Ready)", "Stopping { .. }"] {
+            assert!(
+                !installed_module_is_inactive(paused, Some(&status(phase))),
+                "{phase}"
+            );
         }
+        assert!(!installed_module_is_inactive(paused, None));
     }
 }

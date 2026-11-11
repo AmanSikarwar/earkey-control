@@ -18,7 +18,7 @@ use earkey_supervisor::{Action, Gate, InactiveReason, Limits, Phase, StopCause, 
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 /// Initial production deadlines, chosen from the drill and proxy measurements:
@@ -47,7 +47,7 @@ pub fn worker(
     root: &Path,
     environment: &Observed,
     selection: &Selection,
-    gate: impl FnOnce() -> io::Result<Gate>,
+    mut gate: impl FnMut() -> io::Result<Gate>,
     stop: &AtomicBool,
     frames: &mut impl Write,
     report: &mut impl Write,
@@ -55,16 +55,19 @@ pub fn worker(
     let line = |report: &mut dyn Write, key: &str, value: &dyn std::fmt::Display| {
         let _ = writeln!(report, "worker_{key}={value}");
     };
-    match gate() {
-        Ok(gate) if gate == Gate::OPEN => {}
+    let mut gate_open = |report: &mut dyn Write| match gate() {
+        Ok(gate) if gate == Gate::OPEN => true,
         Ok(_) => {
             line(report, "gate", &"closed");
-            return false;
+            false
         }
         Err(error) => {
             line(report, "gate", &format!("error:{:?}", error.kind()));
-            return false;
+            false
         }
+    };
+    if !gate_open(report) {
+        return false;
     }
     let (checked, opened): (Report, _) = check::acquire(root, environment);
     for (key, value) in &checked.lines {
@@ -111,14 +114,11 @@ pub fn worker(
         "blocked_effects",
         &blocked_effects(verified.evidence, &groups),
     );
-    if frames
-        .write_all(&started_frame())
-        .and_then(|()| frames.flush())
-        .is_err()
-    {
+    if !gate_open(report) {
         return false;
     }
     let mut last = 0;
+    let mut channel_ok = true;
     let mut tally = forward::Tally::default();
     let end = forward::run(
         &opened,
@@ -130,9 +130,20 @@ pub fn worker(
         &mut tally,
         |counter| {
             last = counter;
-            let _ = frames
-                .write_all(&progress_frame(counter))
-                .and_then(|()| frames.flush());
+            let started = if counter == 1 {
+                frames.write_all(&started_frame())
+            } else {
+                Ok(())
+            };
+            channel_ok = started
+                .and_then(|()| frames.write_all(&progress_frame(counter)))
+                .and_then(|()| frames.flush())
+                .is_ok();
+            if !channel_ok {
+                stop.store(true, Ordering::SeqCst);
+            } else if counter == 1 {
+                line(report, "forwarding", &"ready");
+            }
             false
         },
     );
@@ -143,7 +154,7 @@ pub fn worker(
     match end {
         Ok(end) => {
             line(report, "end", &format!("{end:?}"));
-            end == End::Stopped && last > 0
+            end == End::Stopped && last > 0 && channel_ok
         }
         Err(error) => {
             line(report, "end", &format!("error:{:?}", error.kind()));

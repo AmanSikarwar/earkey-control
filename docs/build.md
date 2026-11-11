@@ -155,6 +155,16 @@ python3 tools/package-module.py /path/to/verified/earkey-worker-arm64-api31 \
 
 Compare the ZIP SHA-256 and verify its embedded worker digest before device use. The packager requires the locked Cargo registry and its license files in the local cache and refuses to overwrite an existing ZIP.
 
+## Stage 6 updated-kernel passthrough executable
+
+On 11 November 2026, two clean archives of `42f8a9d6bb37eb216db8cd8609885d957d8443fc` produced byte-identical 779,328-byte Android ELFs. SHA-256 is `400dc1add05a42898e9d60e4d901048dfe36a99ac46e7f51c571e4df618ff084`. The ELF and inspection reports are stored outside Git at `target/stage6/42f8a9d/`.
+
+Use the [pinned Android recipe](#stage-4-android-capability-probe) with `-p earkey-worker --features reforge-passthrough --offline`, Rust 1.99.1, the locked dependency graph and NDK r28c `28.2.13676358`. All three NDK tool hashes matched the recorded pins. The ELF is an AArch64 PIE with `/system/bin/linker64`, an API 31 identification note, four congruent `LOAD` segments aligned to `0x4000`, `BIND_NOW`, and only `libc.so` and `libdl.so` dependencies. All 89 imported symbols are present in the API 31 stubs. The host path scan passed. Actual Android loading and execution remain pending.
+
+The default and diagnostic Rust workspace suites passed 126 and 130 tests respectively, including the ignored synthetic kernel tests, on arm64 LinuxKit `7.0.14-linuxkit` with Rust 1.99.1 in image `rust@sha256:0a555e8b51945db91fd7b8411b4272bb5b8bfa04261d31eaeb2ada564bc02632`. Android-target Clippy passed with warnings denied in both build modes. The diagnostic CLI is selected at compile time and the ELF is staged as a standalone file for the [scoped phone test](stage-6-plan.md#updated-kernel-passthrough-plan).
+
+The Cargo feature selection, NDK target linking and inherited parent-death behavior were checked against primary documentation on 11 November 2026. [Cargo Book](https://doc.rust-lang.org/cargo/reference/features.html), [Android NDK guide](https://developer.android.com/ndk/guides/other_build_systems), [Linux man-pages](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
+
 ## Pins and native target
 
 Before each corresponding build, pin the toolchain and inputs. Release builds still need a qualified NDK revision and archive digest, WebUI compiler and bridge dependencies and lockfile, build host/container identity, packaging tools and any upstream installer revision. Third-party Actions require reviewed full commit SHAs. Record sources, versions, license notices, patches and research date; no mutable latest dependency, hidden download or boot-time executable fetch.

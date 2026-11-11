@@ -163,7 +163,7 @@ fn the_worker_checks_the_gate_and_acquisition_before_anything_else() {
     for (gate, expected) in [
         (Ok(paused), "worker_gate=closed\n"),
         (
-            Err(io::ErrorKind::PermissionDenied.into()),
+            Err(io::ErrorKind::PermissionDenied),
             "worker_gate=error:PermissionDenied\n",
         ),
     ] {
@@ -172,7 +172,7 @@ fn the_worker_checks_the_gate_and_acquisition_before_anything_else() {
             root,
             &environment(),
             &Selection::Passthrough,
-            || gate,
+            || gate.map_err(io::Error::from),
             &stop,
             &mut frames,
             &mut report

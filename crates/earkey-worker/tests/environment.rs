@@ -1,5 +1,5 @@
 use earkey_policy::identity::Evidence;
-use earkey_worker::environment::{PROPERTIES, parse};
+use earkey_worker::environment::{PROPERTIES, evidence_for, parse};
 use std::collections::HashMap;
 
 const REFORGE_VERSION: &str = "Linux version 4.14.357-reforge-g9b21e3df6c0a (Manipulator@LineageOS) (Neutron clang version 24.0.0, Neutron LLD 24.0.0) #2 SMP PREEMPT Mon Nov 9 19:36:49 WIB 2026\n";
@@ -45,6 +45,26 @@ fn reference_phone_values_match_only_the_reforge_evidence() {
         "#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026"
     );
     assert!(Evidence::XiaomiPixelos20261107.matches_environment(&observed.as_environment()));
+}
+
+#[test]
+fn updated_reforge_is_outside_the_production_evidence() {
+    let version = "Linux version 4.14.357-reforge-gc216b1fe2466 (b) (c) #2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026";
+    let observed = read(&properties(), version).unwrap();
+    assert_eq!(evidence_for(&observed), None);
+    #[cfg(feature = "reforge-passthrough")]
+    {
+        let evidence = Evidence::XiaomiPixelosReforge20261111;
+        assert!(evidence.matches_environment(&observed.as_environment()));
+        let mut drifted = observed;
+        drifted.kernel_build.push('1');
+        assert!(!evidence.matches_environment(&drifted.as_environment()));
+        let mut drifted = read(&properties(), version).unwrap();
+        drifted.incremental.push('1');
+        assert!(!evidence.matches_environment(&drifted.as_environment()));
+        let earlier = read(&properties(), REFORGE_VERSION).unwrap();
+        assert!(!evidence.matches_environment(&earlier.as_environment()));
+    }
 }
 
 #[test]

@@ -63,6 +63,7 @@ Stage numbers identify the earliest relevant evidence. The following results app
 - The temporary diagnostics exercised service access, proxy mapping, passthrough, fault release and individual suppression. Call and microphone preservation and unrelated input remain pending. [Stage 4–5 results](prototype-preflight.md#supervised-gesture-session-result-v17--11-november-2026)
 - Alpha.1 exercised fresh inactive installation, basic Block all and Center-only behavior, phone keys, pause, one reconnect, a connected boot with one worker stall, and removal. Alpha.2 exercised inactive installation and both boot configurations with no observed stall. This gives partial evidence for T01, T03–T04, T10, T12–T13 and T24. [Installed module runs](stage-6-plan.md#first-install-results-010-alpha1-11-november-2026)
 - Alpha.4 has host evidence for held-key policy handoff, independent generation reporting, simulated WebUI operation and upgrade inputs. The device update, bridge, held-key and pause checks in T15, T23–T24 and T27 are pending. [Alpha.4 plan](stage-6-plan.md#alpha4-upgrade-and-webui-check--11-november-2026)
+- The alpha.4 preflight stopped on the updated reforge kernel. T25 safe refusal was observed with the installed alpha.3 `check`. Its actual WebUI displayed the saved latch with matching policy and enrollment digests afterwards, covering the read-only status portion of T27. [Updated kernel evidence](discovery/reforge-revalidation-2026-11-11.md)
 
 | ID | Case | Acceptance | Earliest stage |
 | --- | --- | --- | --- |

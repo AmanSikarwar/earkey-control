@@ -1,6 +1,6 @@
 # Project contract
 
-Created 4 November 2026. Status updated 11 November 2026. **Stage 6 integration is in progress.** Stage 0 and scoped Stage 1 exits are verified. Stages 2 and 3 are merged. Stages 4 and 5 have partial physical evidence on the reforge reference environment, and the installed alpha.2 passed the recorded boot and basic blocking checks. The alpha.4 upgrade and WebUI check is prepared. The remaining physical, recovery and release gates still apply. [Stage 1 exit](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026), [Stage 4–5 diagnostics](prototype-preflight.md), [Stage 6](stage-6-plan.md)
+Created 4 November 2026. Status updated 11 November 2026. **Stage 6 integration is in progress.** Stage 0 and scoped Stage 1 exits are verified. Stages 2 and 3 are merged. Stages 4 and 5 have partial physical evidence on the earlier reforge kernel, and alpha.2 passed its recorded boot and basic blocking checks. The current kernel update stopped the alpha.4 run at preflight. The remaining physical, recovery and release gates still apply. [Stage 1 exit](discovery/stage-1-gap-review-2026-11-05.md#stage-1-exit-review--7-november-2026), [Stage 4–5 diagnostics](prototype-preflight.md), [Stage 6](stage-6-plan.md), [updated kernel](discovery/reforge-revalidation-2026-11-11.md)
 
 ## Requirements and authority
 

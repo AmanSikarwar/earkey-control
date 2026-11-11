@@ -2,15 +2,15 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 6 is in progress.** The KernelSU alpha provides accessory enrollment, Block all, Custom and pause through a root command interface. Alpha.2 passed basic Center blocking and both boot configurations on the reference ReSukiSU phone. Alpha.4 bundles the offline WebUI with the policy handoff fix and is ready for an authorized upgrade and UI check. [Device results and next test](docs/stage-6-plan.md)
+**Stage 6 is in progress.** The KernelSU alpha provides accessory enrollment, Block all, Custom and pause through a root command interface. Alpha.2 passed basic Center blocking and both boot configurations on the earlier reforge kernel. The alpha.4 upgrade stopped at preflight when the phone reported a newer kernel. [Current device results](docs/discovery/reforge-revalidation-2026-11-11.md)
 
 Blocking applies to explicitly enrolled earphone controls. Controls are independently selectable where measured signals permit it. The reference Center signal also handles playback, track changes, the assistant and call actions, so blocking it affects those together. Full preservation of audio, microphone use, connection detection and unrelated input is part of [physical qualification](docs/validation-plan.md#physical-t01t28-matrix).
 
-KernelSU is the first platform, followed by the Magisk and APatch design targets. Android 12 / API 31 and later is the design range. The Redmi Note 10 Pro with PixelOS, the reforge kernel, ReSukiSU and Xiaomi Type-C wired earphones is **Experimental**. The [compatibility matrix](docs/compatibility.md) records the tested alpha builds and pending cases.
+KernelSU is the first platform, followed by the Magisk and APatch design targets. Android 12 / API 31 and later is the design range. The Redmi Note 10 Pro with PixelOS, reforge `g9b21e3df6c0a`, ReSukiSU and Xiaomi Type-C wired earphones is **Experimental**. The updated kernel is **Unsupported** for interception by the current builds. [Compatibility matrix](docs/compatibility.md)
 
 ## Installation and recovery
 
-For a reference test, build the reviewed installable ZIP using the [pinned recipe](docs/build.md#stage-6-module-package) and follow the [upgrade test procedure](docs/stage-6-plan.md#alpha4-upgrade-and-webui-check--11-november-2026) after authorization. A fresh install defaults to inactive. An enrolled user can enable blocking explicitly through the root commands or, on a validated manager, the WebUI. Public release remains pending.
+Build the installable alpha ZIP using the [pinned recipe](docs/build.md#stage-6-module-package). A fresh install defaults to inactive. Device testing requires a matching profile and a reviewed plan for that environment. Public release remains pending.
 
 Use **Pause now** in the WebUI or run `/data/adb/modules/earkey_control/bin/earkey-worker pause` as root. Check `status` for release confirmation. `disable-next-boot` provides a durable inactive setting. See [recovery](docs/recovery.md) for the manager and root paths.
 

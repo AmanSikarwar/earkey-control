@@ -1,6 +1,6 @@
 # Root-manager adapter plan
 
-Status: all adapters are unimplemented Design targets. One policy/core, preferably one release ZIP; differently named assets need a documented manager requirement and the same reviewed commit. Actual manager/fork versions and permissions must be measured separately.
+The KernelSU alpha implements installation, service supervision and root commands. The tested ReSukiSU combination is Experimental and the alpha.4 WebUI awaits device validation. Upstream KernelSU, Magisk and APatch remain separate design targets. Share one policy and core, with one ZIP unless a measured manager requirement calls for separate assets from the same commit. [Stage 6 evidence](stage-6-plan.md), [compatibility](compatibility.md)
 
 | Priority | Planned integration | Required manager-specific evidence |
 | --- | --- | --- |

@@ -2,15 +2,17 @@
 
 Configurable blocking of wired earphone button actions.
 
-**Stage 4 is in progress.** The Stage 3 host engine and the Stage 4 Android capability probe are merged. On the reference phone the probe's `self-check` passed from both a root shell and the ReSukiSU services hook. The policy store has host-tested pause, next-boot escape and restart-latch operations. A host-tested supervisor state machine defines startup, progress, pause, kill and restart deadlines, the three-failure latch and the pre-open recovery gate; its process adapter is unimplemented. `/dev/uinput` access, EarKey Control module loading and physical passthrough remain pending. See the [Stage 4 preflight](docs/prototype-preflight.md), [host supervisor](docs/architecture.md#host-supervisor-core) and [host engine](docs/architecture.md#host-event-engine).
+**Stage 6 is in progress.** The KernelSU alpha provides accessory enrollment, Block all, Custom and pause through a root command interface. Alpha.2 passed basic Center blocking and both boot configurations on the reference ReSukiSU phone. Alpha.4 bundles the offline WebUI with the policy handoff fix and is ready for an authorized upgrade and UI check. [Device results and next test](docs/stage-6-plan.md)
 
-The product will offer Block all and Custom controls for explicitly enrolled earphones while preserving audio, microphone use, connection detection, phone controls, and unrelated input devices. Controls are independently selectable only when measured signals permit it. A shared center signal may also control calls, playback, and assistant gestures.
+Blocking applies to explicitly enrolled earphone controls. Controls are independently selectable where measured signals permit it. The reference Center signal also handles playback, track changes, the assistant and call actions, so blocking it affects those together. Full preservation of audio, microphone use, connection detection and unrelated input is part of [physical qualification](docs/validation-plan.md#physical-t01t28-matrix).
 
-KernelSU is the first design target, followed by Magisk and APatch. Android 12 / API 31 and later is the design range. **No Android version, root manager, or accessory is verified.** The measured reference setup uses a Redmi Note 10 Pro, PixelOS, ReSukiSU, and Xiaomi Type-C wired earphones with a separate USB HID button collection.
+KernelSU is the first platform, followed by the Magisk and APatch design targets. Android 12 / API 31 and later is the design range. The Redmi Note 10 Pro with PixelOS, the reforge kernel, ReSukiSU and Xiaomi Type-C wired earphones is **Experimental**. The [compatibility matrix](docs/compatibility.md) records the tested alpha builds and pending cases.
 
 ## Installation and recovery
 
-There is no release ZIP and no installation procedure yet. Do not install a source archive or treat this documentation as a tested module. The [recovery outline](docs/recovery.md) defines prerequisites for a future prototype; it has not been exercised on the reference phone. No phone access is authorized by this baseline.
+For a reference test, build the reviewed installable ZIP using the [pinned recipe](docs/build.md#stage-6-module-package) and follow the [upgrade test procedure](docs/stage-6-plan.md#alpha4-upgrade-and-webui-check--11-november-2026) after authorization. A fresh install defaults to inactive. An enrolled user can enable blocking explicitly through the root commands or, on a validated manager, the WebUI. Public release remains pending.
+
+Use **Pause now** in the WebUI or run `/data/adb/modules/earkey_control/bin/earkey-worker pause` as root. Check `status` for release confirmation. `disable-next-boot` provides a durable inactive setting. See [recovery](docs/recovery.md) for the manager and root paths.
 
 ## Project documents
 
@@ -21,6 +23,6 @@ There is no release ZIP and no installation procedure yet. Do not install a sour
 - [Compatibility](docs/compatibility.md), [validation plan](docs/validation-plan.md), and [troubleshooting](docs/troubleshooting.md)
 - [Build conventions](docs/build.md), [release process](docs/releasing.md), [privacy](docs/privacy.md), and [research record](docs/research.md)
 
-The approved core is Rust, lifecycle scripts use BusyBox ash, and the offline KernelSU WebUI uses TypeScript compiled to JavaScript with HTML and CSS. Cargo, a pinned Rust toolchain, and the Android NDK will build native Android executables. The [host build](docs/build.md#stage-2-host-checks) pins Rust and Cargo dependencies. Android build pins are a later gate.
+The core is Rust, lifecycle scripts use BusyBox ash, and the offline KernelSU WebUI uses TypeScript compiled to JavaScript with HTML and CSS. Cargo, Rust 1.99.1 and Android NDK r28c build the arm64 worker. See the [build and validation commands](docs/build.md).
 
 Licensed under [MIT](LICENSE). The public repository is [AmanSikarwar/earkey-control](https://github.com/AmanSikarwar/earkey-control). Release publication is deferred until implementation and the specification's acceptance gates are complete. See [SECURITY.md](SECURITY.md) for private reporting status and the [stage review](docs/stage-0-review.md) for actual repository setup.

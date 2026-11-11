@@ -1,6 +1,6 @@
 # Build and reproducibility conventions
 
-Stages 2–4 have Rust libraries and locked host checks: the policy/identity store, the event engine and the supervisor state machine. Stage 4 also adds a standalone Android capability probe. The passthrough executable, installable package and CI workflow are later gates.
+The workspace builds a standalone Android probe and the arm64 worker for the installable KernelSU alpha. The worker, lifecycle scripts and compiled WebUI are packaged together. Repository CI remains planned.
 
 ## Stage 2 host checks
 
@@ -142,6 +142,18 @@ npm test   # compiles to dist/ and runs node:test on the status logic
 ```
 
 `tools/package-module.py` runs `npm run build` and copies `index.html`, `style.css`, `main.js` and `status.js` to `webroot/`. It fails if `node_modules` is missing or the output differs.
+
+## Stage 6 module package
+
+Build the worker from the source commit in the [alpha artifact record](stage-6-plan.md#alpha4-upgrade-and-webui-check--11-november-2026) using the [pinned Android recipe](#stage-4-android-capability-probe) with `-p earkey-worker`. In a clean checkout of the corresponding package commit, install the locked WebUI build dependency with Node 26.13.0 and npm 11.20.0, then pass the verified ELF to the packager with Python 3.15.2. Once the dependency is cached, the build can run offline.
+
+```sh
+(cd webui && npm ci --offline --ignore-scripts --no-audit --no-fund)
+python3 tools/package-module.py /path/to/verified/earkey-worker-arm64-api31 \
+  /path/to/output/earkey-control-0.1.0-alpha.4.zip
+```
+
+Compare the ZIP SHA-256 and verify its embedded worker digest before device use. The packager requires the locked Cargo registry and its license files in the local cache and refuses to overwrite an existing ZIP.
 
 ## Pins and native target
 

@@ -8,8 +8,8 @@ Date: 11 November 2026. Stage 6 turns the Stage 4 and 5 diagnostics into the ins
 | 6.2 Production worker loop | `earkey-worker run`: load enrollments and the verified policy each pass. Wait without failing while disabled, recovery-inactive, unreadable, accessory-absent, not neutral or grab-conflicted. Forward with the policy's blocked groups, reacquire on a new saved generation, and return to waiting on unplug | implemented, end-to-end container test |
 | 6.3 Supervisor daemon | `earkey-worker daemon`: unbounded supervision of `run` with the real persisted restart latch, `clear-latch` to resume, `worker.status`/`supervisor.status` runtime files, and `status` reporting saved and active generations separately | implemented, container-tested |
 | 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | 0.1.0-alpha.1 install plan passed on the reference phone; 0.1.0-alpha.2 (readiness-progress fix) passed its boot check on the reference phone |
-| 6.5 Offline WebUI | `webui/` (TypeScript 6.0.3): one state with a reason and recovery action, Pause now, master switch, Block all or Custom over the measured controls with their disclosed effects, next-boot disable and latch clear. Only allowlisted worker commands go through the synchronous `ksu.exec` bridge, under a self-only CSP | implemented, host-tested; not run on the phone |
-| 6.6 Reference evidence | The Stage 6 physical cases on the reference phone | planned |
+| 6.5 Offline WebUI | `webui/` (TypeScript 6.0.3): state, recovery, Pause now, master switch, Block all and measured Custom groups. Fixed operations use the synchronous `ksu.exec` bridge under a self-only CSP | alpha.3 in [PR #48](https://github.com/AmanSikarwar/earkey-control/pull/48). Alpha.4 adds confirmed policy and pause status, with host checks below |
+| 6.6 Reference evidence | Upgrade an installed alpha.2 and validate the actual WebUI, settings retention, a held-key policy change and immediate pause | Exact alpha.4 ZIP and procedure ready for authorization. Device run pending |
 
 Each increment goes through its own PR. Phone runs need separate maintainer authorization.
 
@@ -81,3 +81,37 @@ This was an authorized run with the same phone and kernel, using ZIP `05371b5eb6
 | Reboot, earphones connected | Generation 1 active at 87 s uptime with the original `run` process; supervisor `failures=0`, `last_fault=none`. The maintainer confirmed that Center did nothing and Volume Up worked. SELinux is enforcing |
 
 The `ProgressStalled` failure seen with alpha.1 did not recur. This is one boot, not a measured rate. The module is still installed with Center blocked.
+
+## Alpha.4 upgrade and WebUI check — 11 November 2026
+
+The alpha.3 review found that the worker wrote `active_generation` before the exclusive grab and that a settings change could end a forwarded press before its physical release. The WebUI also displayed a generic success on save and showed Pause as complete before the worker stopped. Alpha.4 preserves the old policy through the held press, waits for neutral keys and a complete frame before reacquiring, and publishes the new generation after forwarding starts. Pause still requests immediate stop. The WebUI displays the last request, saved and reported active generations and waits for the supervisor to confirm release. The installer leaves the WebUI permissions set by the manager.
+
+The measured ReSukiSU userspace revision is `516d3e87fbc986ccefdde2c2765f1700612441a9`. Source reviewed on 11 November exposes `ksu.exec(cmd)` and serves the bundled page through `WebViewAssetLoader`. The installed manager APK and Android WebView still need the device check. [Bridge source](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/manager/app/src/main/java/org/bakasu/bakasu/ui/webui/WebViewInterface.kt#L23-L33), [WebView setup](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/manager/app/src/main/java/org/bakasu/bakasu/ui/webui/WebViewHelper.kt#L97-L141), [installer source](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/module/installer.sh#L415-L430), [KernelSU WebUI guide](https://kernelsu.org/guide/module-webui.html)
+
+| Artifact | Source | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| Alpha.4 worker (`target/stage6/9bda4e8/earkey-worker-arm64-api31`) | `9bda4e85bdb6252ad61e219c772699ff68f3fe3c` | 932,288 | `f49b14645a0984e200b4d531d0672a11b953447234bdd68fa539eabe3462b571` |
+| `earkey-control-0.1.0-alpha.4.zip` (`target/stage6/f2fc013/`) | `f2fc01375dd5ab46bc09c95b86a3a414338c0119` | 537,472 | `be8ddda5a07db37b5b4e9e9627d7412a5c8d9c73e29393c59317423833147f9c` |
+| Reproduced alpha.2 ZIP for rollback (`target/stage6/dbd3db0/`) | `22d03c13080635abb344325575f69f7d1a7f5512` | 526,994 | `05371b5eb6a8fbb4d9f3db8415e527d4fe7d42ce2060830ff91db3fc26ec41ad` |
+
+Two clean builds matched for the alpha.4 ELF and ZIP. Rust 1.99.1 and NDK r28c produced an AArch64 API 31 PIE with four 16 KiB aligned load segments and 93 imports present in the API 31 stubs. TypeScript 6.0.3, Node 26.13.0, npm 11.20.0 and Python 3.15.2 produced the ZIP. Its 53 entries passed CRC, inventory, version, mode, line-ending and digest checks. See the [build recipe](build.md#stage-6-module-package).
+
+Host checks passed on the pinned arm64 LinuxKit `7.0.14-linuxkit` container (125 Rust tests, including synthetic uinput grab conflict, held-key reload and immediate stop), and on macOS (5 WebUI tests and 8 installer/package tests, Rust formatting, Android-target Clippy, dash syntax and BusyBox ShellCheck). Chrome `157.0.8103.39` exercised the exact packaged page with a simulated bridge in a 360 px viewport. After loading the bundled assets it passed the save and pause transitions in offline mode, reflowed at 200% root text size, and exposed labeled controls and visible Tab focus. Actual bridge execution, TalkBack and Android text scaling are pending.
+
+### Proposed reference run
+
+Use the measured [reforge environment](discovery/reforge-revalidation-2026-11-10.md). The last recorded phone state has alpha.2 installed with Center blocked. Confirm that state before proceeding. This scope covers one alpha.4 update using the normal ReSukiSU installer and its previously reviewed delegation, one reboot, bounded module status reads, and the checks below ending paused. Record UTC time, the exact environment and ZIP/ELF digests, expected and observed outcomes, and evidence location. Keep policy contents, serials, and any audio private.
+
+| Case | Expected evidence |
+| --- | --- |
+| T23 preflight and stage | Check the installed alpha.2 digest, manager/hook digests, SELinux, and absence of pending module operations. Pause alpha.2 and verify release before staging. Record private policy/enrollment hashes and the saved generation after pausing. Verify the alpha.4 ZIP digest before installation and the staged metadata and worker digest before reboot. Remove the temporary ZIP upload |
+| T23 reboot and retention | After one reboot, the installed worker digest, `versionCode=4`, policy/enrollment hashes, and saved pause state match. One daemon waits in `Inactive(Paused)`, with no worker grab or proxy |
+| T27 actual WebUI | Open EarKey Control in the installed manager. Read the measured profile, saved generation and paused state. Check the group labels and linked Center effects, keyboard focus, TalkBack and 200% Android text scaling. Test with Internet unavailable if the independent recovery route remains available |
+| T05/T15 activation and held key | Resume the retained Center-only selection and confirm playback, volume and the phone keys. While an allowed inline volume press is held, save Block all. The old generation stays active through release. The new generation appears only after reacquisition. Confirm the newly blocked key has no action on its next press |
+| T24 immediate pause | Pause from the WebUI and check the supervisor confirms inactivity, the proxy is gone, and the inline controls work normally. Record time from request to observed release. Restore the original selection while paused and leave the module paused |
+
+Stop the experiment on an identity or digest mismatch, an unexpected module operation, or a preservation failure. Use the already available root `pause` command if the page fails, then `disable-next-boot` if the service cannot confirm release. For a rollback, use the digest-verified alpha.2 ZIP with the same v1 store, after review of the observed failure and the rollback installation and reboot scope. The rollback ZIP was reproduced on the host. An actual downgrade remains pending. [Recovery](recovery.md)
+
+Record the release and reacquisition interval because physical actions can pass through between sessions. Confirm live process and proxy state alongside the UI. A sudden daemon exit can leave a status file behind, which is a Stage 7 fault case.
+
+This run covers the update and UI increment. The outstanding physical gates include call and microphone preservation, unrelated input, manager disable and independent rescue, a mountless run without a metamodule where supported, and separate upstream KernelSU evidence. Retain the earlier reconnect evidence and the reference repetition waiver. [Validation matrix](validation-plan.md#physical-t01t28-matrix)

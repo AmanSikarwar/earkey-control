@@ -36,6 +36,7 @@ test("status states, reasons and recovery actions", () => {
   const disabled = edit(edit(base, "enabled", "false"), "worker", "state=disabled");
   assert.equal(describe(parse(disabled)).action, "enable");
   assert.equal(describe(parse(edit(base, "worker", "state=waiting_accessory"))).state, "Waiting for earphones");
+  assert.equal(describe(parse(edit(base, "worker", "state=unsupported_environment"))).state, "Unsupported");
   assert.equal(describe(parse(edit(base, "worker", "state=disabled"))).state, "Discovering");
   assert.equal(describe(parse(edit(base, "worker", "state=active:generation=4:blocked=none"))).state, "Ready");
   assert.equal(describe(parse(edit(base, "worker", "state=fault:Stalled"))).reason, "Worker reported: fault:Stalled");

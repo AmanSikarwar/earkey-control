@@ -70,11 +70,18 @@ export function workerState(status: Status): string | undefined {
 }
 
 export function activeGeneration(status: Status): string {
-  return runtime(status, "worker", "active_generation") ?? "0";
+  return activeReport(status)?.[1] ?? "0";
 }
 
 export function supervisor(status: Status, field: string): string | undefined {
   return runtime(status, "supervisor", field);
+}
+
+function activeReport(status: Status): RegExpMatchArray | null {
+  const phase = supervisor(status, "phase");
+  if (phase !== "Running" && !phase?.startsWith("Stopping ")) return null;
+  const active = workerState(status)?.match(/^active:generation=([1-9]\d*):blocked=(.+)$/);
+  return active && active[1] === runtime(status, "worker", "active_generation") ? active : null;
 }
 
 export function controls(status: Status): Control[] {
@@ -115,6 +122,10 @@ export function describe(status: Status | null): Description {
   if (!status.has("enrollments") || failed("enrollments") || failed("policy")) {
     return { state: "Fault", reason: "The saved settings could not be read." };
   }
+  const phase = supervisor(status, "phase");
+  if (phase?.startsWith("Unsafe(")) {
+    return { state: "Fault", reason: "The service could not confirm release. Use the recovery controls." };
+  }
   if (first(status, "enrollments") === "0") {
     return {
       state: "Inactive",
@@ -126,48 +137,58 @@ export function describe(status: Status | null): Description {
   if (first(status, "restart_latch") === "true") {
     return {
       state: "Fault",
-      reason: "Stopped after repeated failures. Earphone buttons work normally.",
+      reason: "The restart limit was reached. Clear the failure stop to try again.",
       action: "clear-latch",
       actionLabel: "Clear and restart",
     };
   }
-  if (first(status, "stay_inactive") === "true" || first(status, "boot_disabled") === "true") {
-    return {
-      state: "Inactive",
-      reason: "Kept off, including after reboot.",
-      action: "enable-next-boot",
-      actionLabel: "Allow at next boot",
-    };
+  const bootOff = first(status, "stay_inactive") === "true" || first(status, "boot_disabled") === "true";
+  if (bootOff || first(status, "paused") === "true") {
+    if (phase === "Starting" || phase === "Running" || phase?.startsWith("Stopping ")) {
+      return { state: "Discovering", reason: "Waiting for the service to release the earphone buttons." };
+    }
+    if (!phase?.startsWith("Inactive(") && phase !== "Latched") {
+      return { state: "Fault", reason: "The off setting is saved. Release has yet to be confirmed." };
+    }
+    return bootOff
+      ? { state: "Inactive", reason: "Kept off, including after reboot.", action: "enable-next-boot", actionLabel: "Allow blocking again" }
+      : { state: "Inactive", reason: "Paused. Earphone buttons work normally.", action: "resume", actionLabel: "Resume" };
   }
-  if (first(status, "paused") === "true") {
-    return { state: "Inactive", reason: "Paused. Earphone buttons work normally.", action: "resume", actionLabel: "Resume" };
-  }
-  if (first(status, "enabled") !== "true") {
-    return { state: "Inactive", reason: "Blocking is off.", action: "enable", actionLabel: "Turn blocking on" };
-  }
-  const phase = supervisor(status, "phase");
-  if (!phase || phase === "none") {
-    return { state: "Fault", reason: "The background service is not running. Reboot to start it." };
-  }
-  const state = workerState(status) ?? "";
-  const active = state.match(/^active:generation=(\d+):blocked=(.+)$/);
+  const active = activeReport(status);
   if (active) {
     const blocked = active[2] === "none" ? [] : active[2].split(",");
     if (blocked.length === 0) {
       return { state: "Ready", reason: "Earphones connected. Nothing is blocked." };
     }
     const names = blocked.map((g) => (GROUP_FROM_STATUS[g] ? label(GROUP_FROM_STATUS[g]) : g));
-    return { state: "Active", reason: `Blocking ${names.join(", ")}.` };
+    const saved = first(status, "saved_generation");
+    const pending = saved && saved !== active[1] ? ` Saved settings ${saved} are pending.` : "";
+    return { state: "Active", reason: `Blocking ${names.join(", ")}.${pending}` };
   }
+  if (savedGroups(status).length === 0) {
+    return { state: "Inactive", reason: "Choose the controls to block, then save your settings." };
+  }
+  if (first(status, "enabled") !== "true") {
+    return { state: "Inactive", reason: "Blocking is off.", action: "enable", actionLabel: "Turn blocking on" };
+  }
+  if (!phase) {
+    return { state: "Fault", reason: "The background service is unavailable. Reboot to start it." };
+  }
+  if (phase !== "Running") {
+    return { state: "Discovering", reason: "Waiting for the background service." };
+  }
+  const state = workerState(status) ?? "";
   switch (state) {
     case "waiting_accessory":
+    case "disconnected":
       return { state: "Waiting for earphones", reason: "Connect the enrolled earphones." };
     case "not_neutral":
-      return { state: "Waiting for earphones", reason: "Release every earphone button." };
+      return { state: "Discovering", reason: "Release every earphone button." };
     case "grab_conflict":
       return { state: "Fault", reason: "Another app is holding the earphones." };
     case "":
     case "disabled":
+    case "discovering":
     case "recovery_inactive":
     case "stopped":
       return { state: "Discovering", reason: "Applying the saved settings." };
@@ -195,9 +216,11 @@ export function applyCommand(groups: readonly string[] | "block-all", enable: bo
   return `${WORKER} apply ${selection}${enable ? " enable" : ""}`;
 }
 
-/** The `<operation>=ok:...` or `=error:...` result line, or the whole output. */
-export function result(operation: string, output: string): { ok: boolean; text: string } {
+/** A control reply acknowledges a save or enrollment. Activation comes from status. */
+export function result(operation: string, output: string): { ok: boolean; text: string; generation?: string } {
   const value = first(parse(output), operation);
   if (value === undefined) return { ok: false, text: output.trim() || "No response." };
-  return { ok: value.startsWith("ok"), text: value };
+  if (operation === "enroll") return { ok: /^ok:enrolled:[a-z0-9_]+$/.test(value), text: value };
+  const generation = value.match(/^ok:saved_generation:([1-9]\d*)$/)?.[1];
+  return generation ? { ok: true, text: value, generation } : { ok: false, text: value };
 }

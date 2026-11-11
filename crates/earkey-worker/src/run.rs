@@ -158,29 +158,34 @@ pub fn run(
     frames: &mut impl Write,
     report: &mut impl Write,
 ) -> bool {
-    if frames
-        .write_all(&started_frame())
-        .and_then(|()| frames.flush())
+    if ctx
+        .store
+        .write_runtime(Runtime::Worker, &status_text("discovering"))
         .is_err()
+        || frames
+            .write_all(&started_frame())
+            .and_then(|()| frames.flush())
+            .is_err()
     {
         return false;
     }
-    let interrupt = AtomicBool::new(false);
     let active = AtomicU64::new(0);
+    let newer_generation = AtomicU64::new(0);
     let done = AtomicBool::new(false);
     thread::scope(|scope| {
         scope.spawn(|| {
             while !done.load(Ordering::SeqCst) {
                 thread::sleep(ctx.poll);
-                let changed = active.load(Ordering::SeqCst) != 0
-                    && load(ctx.store)
-                        .is_ok_and(|policy| policy.generation() != active.load(Ordering::SeqCst));
-                if stop.load(Ordering::SeqCst) || changed {
-                    interrupt.store(true, Ordering::SeqCst);
+                let generation = active.load(Ordering::SeqCst);
+                if generation != 0
+                    && let Ok(policy) = load(ctx.store)
+                    && policy.generation() > generation
+                {
+                    newer_generation.store(policy.generation(), Ordering::SeqCst);
                 }
             }
         });
-        let result = pump(ctx, stop, &interrupt, &active, frames, report);
+        let result = pump(ctx, stop, &newer_generation, &active, frames, report);
         done.store(true, Ordering::SeqCst);
         result
     })
@@ -189,13 +194,13 @@ pub fn run(
 fn pump(
     ctx: &Context<'_>,
     stop: &AtomicBool,
-    interrupt: &AtomicBool,
+    newer_generation: &AtomicU64,
     active: &AtomicU64,
     frames: &mut impl Write,
     report: &mut impl Write,
 ) -> bool {
     let mut counter = 0u64;
-    let mut state = String::new();
+    let mut state = "discovering".to_owned();
     let mut note = |report: &mut dyn Write, value: String| {
         if value != state {
             let _ = writeln!(report, "worker_state={value}");
@@ -226,6 +231,7 @@ fn pump(
                 continue;
             }
         };
+        note(report, "discovering".into());
         let dev = ctx.root.join("dev");
         let proxy = match Proxy::create(
             &dev,
@@ -273,21 +279,9 @@ fn pump(
             thread::sleep(ctx.poll);
             continue;
         }
-        let groups: Vec<String> = acquired.groups.iter().map(|g| format!("{g:?}")).collect();
-        note(
-            report,
-            format!(
-                "active:generation={}:blocked={}",
-                acquired.generation,
-                if groups.is_empty() {
-                    "none".into()
-                } else {
-                    groups.join(",")
-                }
-            ),
-        );
-        interrupt.store(stop.load(Ordering::SeqCst), Ordering::SeqCst);
-        active.store(acquired.generation, Ordering::SeqCst);
+        if !load(ctx.store).is_ok_and(|policy| policy.generation() == acquired.generation) {
+            continue;
+        }
         let mut tally = Tally::default();
         let end = forward::run(
             &acquired.opened,
@@ -295,16 +289,31 @@ fn pump(
             acquired.evidence,
             &acquired.groups,
             ctx.forward,
-            interrupt,
+            stop,
             &mut tally,
-            |_| {
+            |step| {
                 counter += 1;
                 let _ = frames
                     .write_all(&progress_frame(counter))
                     .and_then(|()| frames.flush());
+                if step == 1 {
+                    let groups: Vec<String> =
+                        acquired.groups.iter().map(|g| format!("{g:?}")).collect();
+                    active.store(acquired.generation, Ordering::SeqCst);
+                    note(
+                        report,
+                        format!(
+                            "active:generation={}:blocked={}",
+                            acquired.generation,
+                            groups.join(",")
+                        ),
+                    );
+                }
+                newer_generation.load(Ordering::SeqCst) > acquired.generation
             },
         );
         active.store(0, Ordering::SeqCst);
+        drop(proxy);
         let _ = writeln!(
             report,
             "worker_session=read:{};forwarded:{};cleanup:{}",
@@ -313,7 +322,7 @@ fn pump(
             tally.cleanup_releases
         );
         match end {
-            Ok(End::Stopped | End::SessionLimit) => {}
+            Ok(End::Stopped | End::SessionLimit) => note(report, "discovering".into()),
             Ok(End::NotNeutral) => note(report, "not_neutral".into()),
             Ok(End::Fault(Fault::Disconnected | Fault::Read(_))) => {
                 note(report, "disconnected".into())

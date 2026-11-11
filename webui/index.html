@@ -15,16 +15,18 @@
 
   <section aria-labelledby="state-heading">
     <h2 id="state-heading" class="visually-hidden">Status</h2>
-    <p class="state-line">State: <strong id="state" data-state="Discovering">Discovering</strong></p>
-    <p id="reason">Reading status…</p>
+    <div role="status" aria-atomic="true">
+      <p class="state-line">State: <strong id="state" data-state="Discovering">Discovering</strong></p>
+      <p id="reason">Reading status…</p>
+    </div>
     <button type="button" id="action" hidden></button>
     <p id="message" role="status" aria-live="polite"></p>
   </section>
 
   <section aria-labelledby="pause-heading">
     <h2 id="pause-heading">Pause</h2>
-    <p>Pause stops blocking at once. Earphone buttons then work normally until you resume.</p>
-    <button type="button" id="pause" class="primary" aria-pressed="false">Pause now</button>
+    <p id="pause-description">Pause requests immediate release of the earphone buttons. Resume restores your saved settings.</p>
+    <button type="button" id="pause" class="primary" aria-describedby="pause-description">Pause now</button>
   </section>
 
   <form id="settings" hidden>
@@ -38,12 +40,13 @@
       <p><input type="radio" name="mode" id="mode-all" value="all"> <label for="mode-all">Block all</label></p>
       <p><input type="radio" name="mode" id="mode-custom" value="custom"> <label for="mode-custom">Custom</label></p>
     </fieldset>
+    <p id="all-effects" hidden></p>
     <fieldset id="custom" hidden>
       <legend>Controls to block</legend>
       <p>Only controls measured on your earphones are listed. One control can have several effects; blocking it blocks all of them.</p>
       <ul id="groups"></ul>
     </fieldset>
-    <p>Changes take effect within about a second, once no earphone button is held.</p>
+    <p>Changes wait for held buttons to be released. Check Active settings to see when a saved change takes effect.</p>
     <button type="submit" class="primary">Save</button>
   </form>
 
@@ -53,6 +56,8 @@
     <button type="button" id="latch" hidden>Clear failure stop</button>
     <h3>Details</h3>
     <dl>
+      <dt>Enrolled profile</dt><dd id="profile"></dd>
+      <dt>Last request</dt><dd id="requested-generation"></dd>
       <dt>Saved settings</dt><dd id="saved-generation"></dd>
       <dt>Active settings</dt><dd id="active-generation"></dd>
       <dt>Service failures</dt><dd id="failures"></dd>

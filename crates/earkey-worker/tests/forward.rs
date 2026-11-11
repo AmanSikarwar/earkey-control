@@ -168,7 +168,10 @@ fn passthrough_forwards_exactly_and_grab_hides_the_source() {
                 LIMITS,
                 &stop,
                 &mut tally,
-                |c| counter.store(c, Ordering::SeqCst),
+                |c| {
+                    counter.store(c, Ordering::SeqCst);
+                    false
+                },
             )
         });
         thread::sleep(Duration::from_millis(200));
@@ -236,7 +239,7 @@ fn stop_during_a_held_key_releases_it_on_the_proxy() {
                 LIMITS,
                 &stop,
                 &mut tally,
-                |_| {},
+                |_| false,
             )
         });
         thread::sleep(Duration::from_millis(200));
@@ -282,7 +285,7 @@ fn a_key_held_at_grab_time_abandons_the_session() {
             LIMITS,
             &stop,
             &mut Tally::default(),
-            |_| {}
+            |_| panic!("a refused grab transition must not report forwarding progress")
         )
         .unwrap(),
         End::NotNeutral
@@ -324,7 +327,7 @@ fn a_removed_source_reports_its_fault_after_releasing_held_keys() {
                 LIMITS,
                 &stop,
                 &mut Tally::default(),
-                |_| {},
+                |_| false,
             )
         });
         thread::sleep(Duration::from_millis(200));
@@ -370,7 +373,7 @@ fn blocked_groups_are_read_but_not_forwarded() {
                 LIMITS,
                 &stop,
                 &mut tally,
-                |_| {},
+                |_| false,
             )
         });
         thread::sleep(Duration::from_millis(200));

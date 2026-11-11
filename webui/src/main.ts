@@ -25,6 +25,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 let status: Status | null = null;
 let dirty = false;
+let requestedGeneration: string | undefined;
 
 function exec(line: string): string {
   if (!window.ksu) throw new Error("KernelSU bridge unavailable");
@@ -38,13 +39,21 @@ function announce(text: string, ok: boolean) {
 }
 
 function run(operation: string, line: string) {
+  requestedGeneration = undefined;
   try {
     const outcome = result(operation, exec(line));
-    announce(outcome.ok ? "Done." : `Failed: ${outcome.text}`, outcome.ok);
+    if (outcome.ok) {
+      requestedGeneration = outcome.generation;
+      announce(requestedGeneration
+        ? `Settings ${requestedGeneration} saved. Check the active settings below.`
+        : "Earphones enrolled. Choose which controls to block.", true);
+      dirty = false;
+    } else {
+      announce(`Failed: ${outcome.text}`, false);
+    }
   } catch (error) {
     announce(`Failed: ${String(error)}`, false);
   }
-  dirty = false;
   refresh();
 }
 
@@ -61,6 +70,12 @@ function selectedGroups(): GroupName[] {
   return Array.from(document.querySelectorAll<HTMLInputElement>("#groups input:checked")).map(
     (input) => input.value as GroupName,
   );
+}
+
+function renderMode() {
+  const custom = $<HTMLInputElement>("mode-custom").checked;
+  $("custom").hidden = !custom;
+  $("all-effects").hidden = custom || !$("all-effects").textContent;
 }
 
 function renderGroups(s: Status) {
@@ -99,9 +114,9 @@ function renderGroups(s: Status) {
 
 function render() {
   const d = describe(status);
-  $("state").textContent = d.state;
+  if ($("state").textContent !== d.state) $("state").textContent = d.state;
   $("state").dataset.state = d.state;
-  $("reason").textContent = d.reason;
+  if ($("reason").textContent !== d.reason) $("reason").textContent = d.reason;
   const action = $<HTMLButtonElement>("action");
   action.hidden = !d.action;
   action.textContent = d.actionLabel ?? "";
@@ -111,30 +126,39 @@ function render() {
   const usable = !!s && first(s, "enrollments") !== "0" && controls(s).length > 0;
   $("settings").hidden = !usable;
   $("recovery").hidden = !s;
+  const pause = $<HTMLButtonElement>("pause");
+  pause.disabled = !s;
   if (!s) return;
 
   const paused = first(s, "paused") === "true";
-  const pause = $<HTMLButtonElement>("pause");
-  pause.textContent = paused ? "Resume" : "Pause now";
-  pause.setAttribute("aria-pressed", String(paused));
+  const releasing = d.state === "Discovering";
+  pause.disabled = paused && releasing;
+  pause.textContent = paused ? (releasing ? "Pausing…" : "Resume") : "Pause now";
 
   const bootOff = first(s, "boot_disabled") === "true" || first(s, "stay_inactive") === "true";
-  $("boot").textContent = bootOff ? "Allow at next boot" : "Keep off, including after reboot";
+  const boot = $<HTMLButtonElement>("boot");
+  boot.textContent = bootOff ? "Allow blocking again" : "Keep off, including after reboot";
+  boot.disabled = bootOff && releasing;
   $<HTMLButtonElement>("latch").hidden = first(s, "restart_latch") !== "true";
 
+  $("profile").textContent = first(s, "enrolled_evidence") ?? "none";
+  $("requested-generation").textContent = requestedGeneration ?? "none";
   $("saved-generation").textContent = first(s, "saved_generation") ?? "none";
-  $("active-generation").textContent = activeGeneration(s);
+  const active = activeGeneration(s);
+  $("active-generation").textContent = active === "0" ? "none reported" : active;
   $("failures").textContent = supervisor(s, "failures") ?? "unknown";
   $("last-fault").textContent = supervisor(s, "last_fault") ?? "unknown";
 
   if (!usable) return;
   renderGroups(s);
+  const center = controls(s).find((c) => c.name === "center");
+  $("all-effects").textContent = center ? `Blocking Center also blocks ${center.effects.join("; ")}.` : "";
   if (!dirty) {
     $<HTMLInputElement>("enabled").checked = first(s, "enabled") === "true";
     const all = controls(s).every((c) => savedGroups(s).includes(c.name));
     $<HTMLInputElement>(all ? "mode-all" : "mode-custom").checked = true;
   }
-  $("custom").hidden = !$<HTMLInputElement>("mode-custom").checked;
+  renderMode();
 }
 
 function init() {
@@ -152,7 +176,7 @@ function init() {
   $("latch").addEventListener("click", () => run("clear-latch", command("clear-latch")));
   $("settings").addEventListener("change", () => {
     dirty = true;
-    $("custom").hidden = !$<HTMLInputElement>("mode-custom").checked;
+    renderMode();
   });
   $("settings").addEventListener("submit", (event) => {
     event.preventDefault();

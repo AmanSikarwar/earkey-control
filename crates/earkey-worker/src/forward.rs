@@ -177,8 +177,8 @@ pub struct Tally {
     pub cleanup_releases: usize,
 }
 
-/// Runs one passthrough or suppression session. `progress` receives a strictly
-/// increasing counter from the loop itself, including idle waits.
+/// Runs one forwarding session. `progress` runs after each successful engine
+/// step. Returning true requests a stop at the next neutral boundary. `stop` is immediate.
 #[allow(clippy::too_many_arguments)]
 pub fn run(
     opened: &Opened,
@@ -188,10 +188,13 @@ pub fn run(
     limits: Limits,
     stop: &AtomicBool,
     tally: &mut Tally,
-    mut progress: impl FnMut(u64),
+    mut progress: impl FnMut(u64) -> bool,
 ) -> io::Result<End> {
     let mut engine = Engine::new(evidence, 1, groups, limits.stall)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "unsupported group"))?;
+    if stop.load(Ordering::SeqCst) {
+        return Ok(End::Stopped);
+    }
     opened.grab(true)?;
     let end = session(
         opened,
@@ -219,7 +222,7 @@ fn session(
     limits: Limits,
     stop: &AtomicBool,
     tally: &mut Tally,
-    progress: &mut impl FnMut(u64),
+    progress: &mut impl FnMut(u64) -> bool,
 ) -> io::Result<End> {
     if drain_had_keys(opened)? || !opened.pressed_keys()?.is_empty() {
         return Ok(End::NotNeutral);
@@ -250,7 +253,7 @@ fn pump(
     stop: &AtomicBool,
     source: &mut NativeSource<'_>,
     sink: &mut ProxySink<'_>,
-    progress: &mut impl FnMut(u64),
+    progress: &mut impl FnMut(u64) -> bool,
 ) -> io::Result<End> {
     let end_at = Instant::now() + limits.session;
     let mut counter = 0u64;
@@ -266,6 +269,14 @@ fn pump(
             Ok(activity) => activity,
             Err(fault) => return Ok(End::Fault(fault)),
         };
+        counter += 1;
+        if progress(counter)
+            && activity == Activity::WaitInput
+            && engine.is_neutral()
+            && opened.pressed_keys()?.is_empty()
+        {
+            return Ok(End::Stopped);
+        }
         let wait = match activity {
             Activity::Progress | Activity::Retry => None,
             Activity::WaitInput => Some((opened.file().as_raw_fd(), libc::POLLIN)),
@@ -293,8 +304,6 @@ fn pump(
                 return Err(io::Error::last_os_error());
             }
         }
-        counter += 1;
-        progress(counter);
     }
 }
 

@@ -6,10 +6,12 @@
 
 use earkey_engine::Event;
 use earkey_policy::identity::{Evidence, VerifiedEnrollment};
-use earkey_policy::store::Store;
+use earkey_policy::store::{Runtime, Store};
 use earkey_worker::control::apply;
+use earkey_worker::device::Opened;
 use earkey_worker::environment::{Observed, parse};
 use earkey_worker::forward::{Limits, encode};
+use earkey_worker::inventory;
 use earkey_worker::proxy::{
     PROXY_NAME, UI_DEV_CREATE, UI_DEV_DESTROY, UI_DEV_SETUP, UI_SET_EVBIT, UI_SET_KEYBIT,
     UI_SET_MSCBIT, UinputSetup, ui_get_sysname,
@@ -369,6 +371,11 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
     let fake = Fake::new();
     let mut source = Source::create();
     fake.earphones(real_event(&source.sysname).1);
+    let dev = fake.0.join("dev");
+    let nodes = inventory::scan(&fake.0.join("sys"), &dev).unwrap();
+    assert_eq!(nodes.len(), 1);
+    let competing_grab = Opened::open(&dev, &nodes[0]).unwrap();
+    competing_grab.grab(true).unwrap();
     let source_name = Arc::new(Mutex::new(source.sysname.clone()));
     let environment = environment();
     let ctx = Context {
@@ -411,6 +418,9 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
         );
         assert!(!report.text().contains("proxy_ready"), "{}", report.text());
         android.store(true, Ordering::SeqCst);
+        report.wait_for("worker_state=grab_conflict");
+        assert!(!report.text().contains("worker_state=active:"));
+        competing_grab.grab(false).unwrap();
 
         let mut output = proxy_reader(&report, 1);
         assert!(
@@ -430,7 +440,32 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
             [(0x73, 1), (0x73, 0)]
         );
 
+        source.emit(&volume_up(1));
+        assert_eq!(
+            read_keys(&mut output, Duration::from_millis(300)),
+            [(0x73, 1)]
+        );
         apply(&store, &Selection::BlockAll, true).unwrap();
+        assert!(read_keys(&mut output, Duration::from_millis(300)).is_empty());
+        assert_eq!(
+            store.read_runtime(Runtime::Worker).unwrap().as_deref(),
+            Some("state=active:generation=1:blocked=Center\nactive_generation=1\n")
+        );
+
+        android.store(false, Ordering::SeqCst);
+        source.emit(&volume_up(0));
+        report.wait_for(
+            "worker_session=read:0x73:down=2,repeat=0,up=2;0xa4:down=1,repeat=0,up=1;forwarded:0x73:down=2,repeat=0,up=2;cleanup:0",
+        );
+        let end = Instant::now() + Duration::from_secs(2);
+        while store.read_runtime(Runtime::Worker).unwrap().as_deref()
+            != Some("state=discovering\nactive_generation=0\n")
+        {
+            assert!(Instant::now() < end, "old generation still marked active");
+            thread::sleep(Duration::from_millis(20));
+        }
+        assert!(!report.text().contains("worker_state=active:generation=2"));
+        android.store(true, Ordering::SeqCst);
         let mut output = proxy_reader(&report, 2);
         assert!(
             report
@@ -478,10 +513,7 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
         report.text()
     );
     assert_eq!(
-        store
-            .read_runtime(earkey_policy::store::Runtime::Worker)
-            .unwrap()
-            .as_deref(),
+        store.read_runtime(Runtime::Worker).unwrap().as_deref(),
         Some("state=stopped\nactive_generation=0\n")
     );
     assert_eq!(

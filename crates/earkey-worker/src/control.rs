@@ -3,7 +3,8 @@
 //! Enrollment comes only from a unique live observation that matches reviewed
 //! evidence. Policy writes keep the saved generation and recovery state, and
 //! report only the saved generation; the worker acknowledges the active one.
-//! Status never includes serials.
+//! Status never includes serials. It lists each enrolled accessory's measured
+//! controls by selection name with their disclosed effects.
 
 use crate::environment::{Observed, evidence_for};
 use crate::inventory;
@@ -169,6 +170,21 @@ fn saved(store: &Store) -> Vec<(&'static str, String)> {
             evidence.join(",")
         },
     ));
+    let mut kinds: Vec<Evidence> = records.iter().map(|record| record.evidence).collect();
+    kinds.dedup();
+    for control in kinds.iter().flat_map(|evidence| evidence.controls()) {
+        let name = serde_json::to_value(control.group)
+            .ok()
+            .and_then(|v| v.as_str().map(|s| s.replace('_', "-")))
+            .unwrap_or_default();
+        let effects: Vec<&str> = control
+            .observed_effects
+            .iter()
+            .chain(control.reported_effects)
+            .copied()
+            .collect();
+        lines.push(("control", format!("{name}:{}", effects.join("|"))));
+    }
     lines.push((
         "stay_inactive",
         store.has_inactive_marker().map_or_else(

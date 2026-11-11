@@ -133,6 +133,7 @@ pub fn worker(
             let _ = frames
                 .write_all(&progress_frame(counter))
                 .and_then(|()| frames.flush());
+            false
         },
     );
     line(report, "progress", &last);
@@ -142,7 +143,7 @@ pub fn worker(
     match end {
         Ok(end) => {
             line(report, "end", &format!("{end:?}"));
-            end == End::Stopped
+            end == End::Stopped && last > 0
         }
         Err(error) => {
             line(report, "end", &format!("error:{:?}", error.kind()));

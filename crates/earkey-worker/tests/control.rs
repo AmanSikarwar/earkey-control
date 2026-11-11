@@ -46,6 +46,7 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     assert_eq!(get(&empty, "enrollments"), ["0"]);
     assert_eq!(get(&empty, "saved_generation"), ["0"]);
     assert_eq!(get(&empty, "enabled"), ["false"]);
+    assert!(get(&empty, "control").is_empty());
     assert!(matches!(
         apply(&store, &Selection::BlockAll, true),
         Err(ControlError::NotEnrolled)
@@ -66,6 +67,16 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
         get(&lines, "profile_blocked_groups"),
         ["Center,VolumeUp,VolumeDown"]
     );
+    let controls = get(&lines, "control");
+    assert_eq!(controls.len(), 3);
+    assert!(controls[0].starts_with("center:Play or pause|"));
+    assert!(controls[0].ends_with("|Reject an incoming call"));
+    assert!(controls[1].starts_with("volume-up:Raise volume|"));
+    assert!(controls[2].starts_with("volume-down:Lower volume|"));
+    for control in controls {
+        let name = control.split_once(':').unwrap().0;
+        assert!(Selection::parse(name).is_some(), "{name}");
+    }
 
     assert_eq!(set_enabled(&store, true).unwrap(), 2);
     assert_eq!(get(&status(&store), "enabled"), ["true"]);

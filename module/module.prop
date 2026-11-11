@@ -1,6 +1,6 @@
 id=earkey_control
 name=EarKey Control
-version=0.1.0-alpha.2
-versionCode=2
+version=0.1.0-alpha.4
+versionCode=4
 author=Aman Sikarwar
 description=Configurable blocking of wired earphone button actions.

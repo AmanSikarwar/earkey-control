@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "module"
 PACKAGER = ROOT / "tools/package-module.py"
-ELF = ROOT / "target/stage6/dbd3db0/earkey-worker-arm64-api31"
+ELF = ROOT / "target/stage6/9bda4e8/earkey-worker-arm64-api31"
 STORAGE = "/data/adb/earkey_control"
 
 
@@ -44,7 +44,8 @@ class ModuleTests(unittest.TestCase):
                "ARCH": "arm64", "API": "37", "MODPATH": str(modpath)} | overrides
         env = {k: v for k, v in env.items() if v is not None}
         command = ('abort() { printf "abort:%s\\n" "$1"; exit 1; }; '
-                   'set_perm() { :; }; set_perm_recursive() { :; }; ui_print() { :; }; '
+                   'set_perm() { :; }; ui_print() { :; }; '
+                   'set_perm_recursive() { abort "! Installer must preserve manager permissions"; }; '
                    f'. {script}; printf "ok\\n"')
         return subprocess.run(["dash", "-c", command], env=env, capture_output=True,
                               text=True, timeout=8)
@@ -62,10 +63,13 @@ class ModuleTests(unittest.TestCase):
         result = self.install()
         self.assertEqual(result.stdout, "ok\n")
         self.assertEqual(stat.S_IMODE(self.storage.stat().st_mode), 0o700)
-        (self.storage / "policy.json").write_text("{}")
+        saved = {"policy.json": '{"recovery":{"paused":true}}', "enrollments.json": "{}", "stay-inactive": ""}
+        for name, contents in saved.items():
+            (self.storage / name).write_text(contents)
         self.storage.chmod(0o755)
         self.assertEqual(self.install().stdout, "ok\n")
-        self.assertEqual((self.storage / "policy.json").read_text(), "{}")
+        for name, contents in saved.items():
+            self.assertEqual((self.storage / name).read_text(), contents)
         self.assertEqual(stat.S_IMODE(self.storage.stat().st_mode), 0o700)
 
     def test_installer_refuses_a_symlinked_storage(self):
@@ -148,8 +152,13 @@ class ModuleTests(unittest.TestCase):
             names = archive.namelist()
             for required in ("module.prop", "customize.sh", "service.sh", "uninstall.sh",
                              "skip_mount", "bin/earkey-worker", "bin/earkey-worker.sha256",
-                             "LICENSE", "THIRD_PARTY_NOTICES.md"):
+                             "LICENSE", "THIRD_PARTY_NOTICES.md", "webroot/index.html",
+                             "webroot/style.css", "webroot/main.js", "webroot/status.js"):
                 self.assertIn(required, names)
+            self.assertFalse(any(n.startswith("webroot/") and n.endswith(".ts") for n in names))
+            page = archive.read("webroot/index.html").decode()
+            self.assertIn("script-src 'self'", page)
+            self.assertNotIn("http", page.replace('http-equiv', ''))
             self.assertFalse(any(n.startswith(("module/", "earkey")) for n in names))
             for crate in ("sha2-0.11.1", "libc-0.2.191", "serde_json-1.0.154", "typenum-1.20.1"):
                 self.assertTrue(any(n.startswith(f"licenses/{crate}/") for n in names), crate)

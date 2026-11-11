@@ -137,6 +137,14 @@ impl Engine {
         self.deadline
     }
 
+    /// No held keys, pending frame or unread records at a policy handoff.
+    pub fn is_neutral(&self) -> bool {
+        self.pressed == 0
+            && self.published == 0
+            && self.deadline.is_none()
+            && self.unread.is_empty()
+    }
+
     /// Includes presses from an attempted partial frame because a faulty sink
     /// may have accepted a prefix. Use the set only for cleanup.
     pub fn possibly_forwarded_keys(&self) -> impl Iterator<Item = LinuxKey> {

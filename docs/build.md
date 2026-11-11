@@ -1,6 +1,6 @@
 # Build and reproducibility conventions
 
-Stages 2–4 have Rust libraries and locked host checks: the policy/identity store, the event engine and the supervisor state machine. Stage 4 also adds a standalone Android capability probe. The passthrough executable, installable package and CI workflow are later gates.
+The workspace builds a standalone Android probe and the arm64 worker for the installable KernelSU alpha. The worker, lifecycle scripts and compiled WebUI are packaged together. Repository CI remains planned.
 
 ## Stage 2 host checks
 
@@ -130,6 +130,30 @@ For v16, two clean builds from `7af4c5d` produced identical 763,952-byte ELFs, S
 For v15, two clean builds from `f3cc75c` produced identical 741,728-byte ELFs, SHA-256 `e6a32fca5671f4d0831bb9615e5d7c7cf4adf2a0824a012fcf8767a4e93ed091`, with the same pins and checks: API 31, 16 KiB-aligned segments, only `libc`/`libdl`, all 90 imports in API 31, and no host paths. The ELF is kept at `target/stage4/f3cc75c/earkey-worker-arm64-api31`.
 
 For v13, two clean builds from `8035136` produced identical 672,792-byte ELFs, SHA-256 `57178e5f0431f85ac0214505381a460b3cdb0a6953191f51bfea9aa085b4e895`. The same pins and checks passed: AArch64 PIE using `linker64`, API 31, four `LOAD` segments aligned to `0x4000`, only `libc.so` and `libdl.so`, all 82 imports in the API 31 stubs, and no host paths. The ELF is kept at `target/stage4/8035136/earkey-worker-arm64-api31`.
+
+## Stage 6 WebUI
+
+`webui/` is TypeScript compiled by TypeScript 6.0.3, pinned exactly in `package.json` and by integrity in `package-lock.json`. TypeScript is build-only, and the page has no runtime dependencies, so no WebUI code is bundled from third parties. Node 26.13.0 and npm 11.20.0 built it on 11 November 2026.
+
+```sh
+cd webui
+npm ci --ignore-scripts
+npm test   # compiles to dist/ and runs node:test on the status logic
+```
+
+`tools/package-module.py` runs `npm run build` and copies `index.html`, `style.css`, `main.js` and `status.js` to `webroot/`. It fails if `node_modules` is missing or the output differs.
+
+## Stage 6 module package
+
+Build the worker from the source commit in the [alpha artifact record](stage-6-plan.md#alpha4-upgrade-and-webui-check--11-november-2026) using the [pinned Android recipe](#stage-4-android-capability-probe) with `-p earkey-worker`. In a clean checkout of the corresponding package commit, install the locked WebUI build dependency with Node 26.13.0 and npm 11.20.0, then pass the verified ELF to the packager with Python 3.15.2. Once the dependency is cached, the build can run offline.
+
+```sh
+(cd webui && npm ci --offline --ignore-scripts --no-audit --no-fund)
+python3 tools/package-module.py /path/to/verified/earkey-worker-arm64-api31 \
+  /path/to/output/earkey-control-0.1.0-alpha.4.zip
+```
+
+Compare the ZIP SHA-256 and verify its embedded worker digest before device use. The packager requires the locked Cargo registry and its license files in the local cache and refuses to overwrite an existing ZIP.
 
 ## Pins and native target
 

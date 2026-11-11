@@ -1,12 +1,12 @@
 # Recovery outline
 
-**Device recovery remains untested.** The standalone [Stage 4 capability probe](prototype-preflight.md) checks the inactive marker before its open-only diagnostic. A device-specific recovery guide and drill are still required before interception.
+The Stage 4 diagnostic exercised crash, hang and marker recovery on the reforge reference phone. The installed alpha.1 exercised root-command pause and module removal. The alpha.4 WebUI pause, manager disable and independent rescue checks remain pending. [Fault drill](prototype-preflight.md#supervised-fault-drill-result-v16--10-november-2026), [alpha device evidence](stage-6-plan.md)
 
 ## Before a prototype
 
 Record the exact root implementation/fork, manager, kernel and ROM, physical power/volume functionality, a verified way to disable only `earkey_control`, and a separate usable privileged debugging/recovery route if available. Verify USB debugging authorization, recovery access and data decryption capabilities only with permission. Do not assume encrypted `/data` is accessible or a bootloader/recovery offers a root shell.
 
-Provide a durable module-specific next-boot inactive marker and check it before opening input nodes. Location is `/data/adb/earkey_control/stay-inactive`, with root-only ownership. The open-only probe checks it through the validated private store; the host test covers absent, valid, symlinked and improperly permissioned markers. The host store validates the marker, creates or removes it with file and directory synchronization, and exposes generation-checked pause, boot-escape and restart-latch operations with synthetic tests. A future worker must apply the same guard before device opens. A separate host-tested supervisor state machine covers startup, progress, pause, kill and restart deadlines, restart spacing, the three-failure latch and explicit recovery; it does not own a process or descriptor. The root control surface, real process adapter, measured deadlines, single-instance enforcement, device behavior and the full recovery drill remain unmeasured. Before an interception run, implement and test a finite session deadline, independent supervisor, and immediate pause. Stage 6 integrates these protections; it does not defer them until after the prototype.
+From a trusted root shell, use `/data/adb/modules/earkey_control/bin/earkey-worker pause`, then run `status` with the same binary. Confirm the supervisor reports `Inactive(Paused)` and the proxy is gone before relying on release. `disable-next-boot` creates the private `/data/adb/earkey_control/stay-inactive` marker and keeps the worker from opening input nodes. `resume` restores the saved selection when the other recovery gates allow it. The module checks the marker and policy before starting the worker. The supervisor controls deadlines and the three-failure latch independently of the input descriptors.
 
 ## Recovery layers and expected behavior
 
@@ -17,7 +17,7 @@ Provide a durable module-specific next-boot inactive marker and check it before 
 | Worker crash or hang | Independent supervisor stops verified worker instance, releases resources and records fault; after three failures latch inactive |
 | Prevent next-boot activation | Set durable inactive state; boot checks it before candidate opens; preserve it across update/reboot |
 | Manager disable | Disable only this module, verify actual immediate/next-boot timing; pause first when accessible |
-| Uninstall | Stop only verified module processes, release grabs/proxies, remove only module-owned files. `uninstall.sh` (0.1.0-alpha.1) removes the private store, including settings and the enrollment serial; settings are not retained. Physical uninstall test pending |
+| Uninstall | Pause first, then remove EarKey Control in the manager and reboot. Alpha.1 removed the module, its processes, proxy and private store including settings and enrollment. Repeat the check for the candidate under test |
 | Android not usable | Apply exact installed manager's verified rescue procedure or prevalidated privileged disable route; no universal recipe is asserted |
 
 KernelSU's official rescue guidance includes volume-down input with timing/integration qualifications; it is not proof for the user's unmeasured fork. Magisk and APatch have their own mechanisms. Consult and verify the installed implementation before an experiment:

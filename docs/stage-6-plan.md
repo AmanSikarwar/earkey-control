@@ -8,14 +8,16 @@ Date: 11 November 2026. Stage 6 turns the Stage 4 and 5 diagnostics into the ins
 | 6.2 Production worker loop | `earkey-worker run`: load enrollments and the verified policy each pass. Wait without failing while disabled, recovery-inactive, unreadable, accessory-absent, not neutral or grab-conflicted. Forward with the policy's blocked groups, reacquire on a new saved generation, and return to waiting on unplug | implemented, end-to-end container test |
 | 6.3 Supervisor daemon | `earkey-worker daemon`: unbounded supervision of `run` with the real persisted restart latch, `clear-latch` to resume, `worker.status`/`supervisor.status` runtime files, and `status` reporting saved and active generations separately | implemented, container-tested |
 | 6.4 Module package | `module/` plus `tools/package-module.py`: KernelSU boot-mode, arm64 and API 31 installer checks; a 0700 private store created or kept; `service.sh` starts the daemon only for the pinned digest; `uninstall.sh` stops only this module's processes and removes the store; runtime license files bundled; inactive after a fresh install | 0.1.0-alpha.1 install plan passed on the reference phone; 0.1.0-alpha.2 (readiness-progress fix) passed its boot check on the reference phone |
-| 6.5 Offline WebUI | TypeScript/HTML/CSS through the KernelSU WebUI bridge, calling only the fixed control commands. Accessible and offline | planned |
-| 6.6 Reference evidence | The Stage 6 physical cases on the reference phone | planned |
+| 6.5 Offline WebUI | `webui/` (TypeScript 6.0.3): state, recovery, Pause now, master switch, Block all and measured Custom groups. Fixed operations use the synchronous `ksu.exec` bridge under a self-only CSP | Alpha.3 status displayed the saved latch in the installed manager. Alpha.4 has host evidence for confirmed policy and pause status |
+| 6.6 Reference evidence | Validate the upgrade, settings retention, a held-key policy change and immediate pause | Alpha.4 preflight stopped on the updated kernel. The phone already has alpha.3. [Read-only revalidation](discovery/reforge-revalidation-2026-11-11.md) |
 
 Each increment goes through its own PR. Phone runs need separate maintainer authorization.
 
-## Module package 0.1.0-alpha.2
+## Module package 0.1.0-alpha.3
 
-The package is built by `tools/package-module.py` from the pinned worker. Two clean builds from `dbd3db0` gave identical 924,608-byte ELFs, SHA-256 `2179496b26d866d9b73c824658db45ee2961b9db58276aca81b83ac9f8f74dca`. They pass the NDK pins and ELF checks: API 31, four `LOAD` segments aligned to `0x4000`, only `libc`/`libdl`, all 93 imports in API 31, and no host paths. The ELF is kept at `target/stage6/dbd3db0/earkey-worker-arm64-api31`. The ZIP has `module.prop` at its root, the scripts, `skip_mount`, `bin/earkey-worker` with its digest, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `licenses/<crate>-<version>/` for every crate in the Android dependency tree. Two builds of `earkey-control-0.1.0-alpha.2.zip` were byte-identical: 526,994 bytes, SHA-256 `05371b5eb6a8fbb4d9f3db8415e527d4fe7d42ce2060830ff91db3fc26ec41ad`.
+The package is built by `tools/package-module.py` from the pinned worker. Two clean builds from `47f7e58` gave identical 928,408-byte ELFs, SHA-256 `284ecfeb0405598a254f018d2ee17ad6ce79f873a58f73d5bc5ceb509bbd2b21`. They pass the NDK pins and ELF checks: API 31, four `LOAD` segments aligned to `0x4000`, only `libc`/`libdl`, all 93 imports in API 31, and no host paths. The ELF is kept at `target/stage6/47f7e58/earkey-worker-arm64-api31`. The ZIP has `module.prop` at its root, the scripts, `skip_mount`, `bin/earkey-worker` with its digest, the compiled WebUI under `webroot/`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `licenses/<crate>-<version>/` for every crate in the Android dependency tree. Two builds of `earkey-control-0.1.0-alpha.3.zip` were byte-identical: 535,352 bytes, SHA-256 `cf29c568f950059593098bba47b1c18005073a6d8e0ed6f81431ba7f4c8a4f50`.
+
+Alpha.3 adds the WebUI. `status` now also prints one `control=<name>:<effect>|...` line for each measured control of each enrolled accessory, and the WebUI offers only those controls. Alpha.2 (`05371b5e…41ad`, worker `2179496b…4dca`) is the build that passed the boot check below.
 
 Alpha.2 differs from alpha.1 in two ways. The worker now sends progress frames while it waits for `system_server` to open the proxy, so a slow early boot no longer trips the 1 s progress deadline. The installer now prints the installed worker path, not the `modules_update` staging path.
 
@@ -27,6 +29,8 @@ Alpha.2 differs from alpha.1 in two ways. The worker now sends progress frames w
 **Service and uninstall:**
 - `service.sh` starts `earkey-worker daemon` in the background, only if the binary matches its digest and the store is a real directory.
 - `uninstall.sh` runs when the manager prunes the module (before the services stage at boot), or during a full KernelSU uninstall. It stops only processes whose executable is this module's binary (`daemon` with SIGTERM, a 5 s bound, then SIGKILL; then any `run`). It then **removes the private store, including the policy, the enrollment serial and the runtime status**. Keeping settings across an uninstall is not offered yet.
+
+**WebUI:** open the module in the KernelSU manager. The page runs only the fixed `earkey-worker` operations: `status`, `enroll`, `enable`, `disable`, `pause`, `resume`, `disable-next-boot`, `enable-next-boot`, `clear-latch`, and `apply` with `block-all`, `passthrough` or a list of measured group names. It calls the manager's synchronous `ksu.exec(command)` bridge with a 15 s `timeout`. Status refreshes every 3 s while the page is visible. Device text is rendered only as text, and the CSP allows only the page's own scripts and styles. The bridge comes from the KernelSU manager source (`WebViewInterface.kt`, `exec(cmd)`). That ReSukiSU exposes the same interface is unverified until the phone run.
 
 **Use, as root, with `M=/data/adb/modules/earkey_control/bin/earkey-worker`:**
 1. `$M enroll` with the earphones connected.
@@ -76,4 +80,42 @@ This was an authorized run with the same phone and kernel, using ZIP `05371b5eb6
 | Reboot, earphones absent | The maintainer plugged them in only after boot. The worker waited as `waiting_accessory` and acquired them on plug-in without restarting; `failures=0` |
 | Reboot, earphones connected | Generation 1 active at 87 s uptime with the original `run` process; supervisor `failures=0`, `last_fault=none`. The maintainer confirmed that Center did nothing and Volume Up worked. SELinux is enforcing |
 
-The `ProgressStalled` failure seen with alpha.1 did not recur. This is one boot, not a measured rate. The module is still installed with Center blocked.
+The `ProgressStalled` failure seen with alpha.1 did not recur on that boot. At the end of the run, alpha.2 remained installed with Center blocked.
+
+## Alpha.4 upgrade and WebUI check — 11 November 2026
+
+The alpha.3 review found that the worker wrote `active_generation` before the exclusive grab and that a settings change could end a forwarded press before its physical release. The WebUI also displayed a generic success on save and showed Pause as complete before the worker stopped. Alpha.4 preserves the old policy through the held press, waits for neutral keys and a complete frame before reacquiring, and publishes the new generation after forwarding starts. Pause still requests immediate stop. The WebUI displays the last request, saved and reported active generations and waits for the supervisor to confirm release. The installer leaves the WebUI permissions set by the manager.
+
+The measured ReSukiSU userspace revision is `516d3e87fbc986ccefdde2c2765f1700612441a9`. Source reviewed on 11 November exposes `ksu.exec(cmd)` and serves the bundled page through `WebViewAssetLoader`. The installed manager APK and Android WebView still need the device check. [Bridge source](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/manager/app/src/main/java/org/bakasu/bakasu/ui/webui/WebViewInterface.kt#L23-L33), [WebView setup](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/manager/app/src/main/java/org/bakasu/bakasu/ui/webui/WebViewHelper.kt#L97-L141), [installer source](https://github.com/Baka-SU/BakaSU/blob/516d3e87fbc986ccefdde2c2765f1700612441a9/userspace/ksud/src/android/module/installer.sh#L415-L430), [KernelSU WebUI guide](https://kernelsu.org/guide/module-webui.html)
+
+| Artifact | Source | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| Alpha.4 worker (`target/stage6/9bda4e8/earkey-worker-arm64-api31`) | `9bda4e85bdb6252ad61e219c772699ff68f3fe3c` | 932,288 | `f49b14645a0984e200b4d531d0672a11b953447234bdd68fa539eabe3462b571` |
+| `earkey-control-0.1.0-alpha.4.zip` (`target/stage6/f2fc013/`) | `f2fc01375dd5ab46bc09c95b86a3a414338c0119` | 537,472 | `be8ddda5a07db37b5b4e9e9627d7412a5c8d9c73e29393c59317423833147f9c` |
+| Reproduced alpha.2 ZIP for rollback (`target/stage6/dbd3db0/`) | `22d03c13080635abb344325575f69f7d1a7f5512` | 526,994 | `05371b5eb6a8fbb4d9f3db8415e527d4fe7d42ce2060830ff91db3fc26ec41ad` |
+
+Two clean builds matched for the alpha.4 ELF and ZIP. Rust 1.99.1 and NDK r28c produced an AArch64 API 31 PIE with four 16 KiB aligned load segments and 93 imports present in the API 31 stubs. TypeScript 6.0.3, Node 26.13.0, npm 11.20.0 and Python 3.15.2 produced the ZIP. Its 53 entries passed CRC, inventory, version, mode, line-ending and digest checks. See the [build recipe](build.md#stage-6-module-package).
+
+Host checks passed on the pinned arm64 LinuxKit `7.0.14-linuxkit` container (125 Rust tests, including synthetic uinput grab conflict, held-key reload and immediate stop), and on macOS (5 WebUI tests and 8 installer/package tests, Rust formatting, Android-target Clippy, dash syntax and BusyBox ShellCheck). Chrome `157.0.8103.39` exercised the exact packaged page with a simulated bridge in a 360 px viewport. After loading the bundled assets it passed the save and pause transitions in offline mode, reflowed at 200% root text size, and exposed labeled controls and visible Tab focus. Actual bridge execution, TalkBack and Android text scaling are pending.
+
+### Original reference run plan
+
+Use the measured [reforge environment](discovery/reforge-revalidation-2026-11-10.md). The last recorded phone state has alpha.2 installed with Center blocked. Confirm that state before proceeding. This scope covers one alpha.4 update using the normal ReSukiSU installer and its previously reviewed delegation, one reboot, bounded module status reads, and the checks below ending paused. Record UTC time, the exact environment and ZIP/ELF digests, expected and observed outcomes, and evidence location. Keep policy contents, serials, and any audio private.
+
+| Case | Expected evidence |
+| --- | --- |
+| T23 preflight and stage | Check the installed alpha.2 digest, manager/hook digests, SELinux, and absence of pending module operations. Pause alpha.2 and verify release before staging. Record private policy/enrollment hashes and the saved generation after pausing. Verify the alpha.4 ZIP digest before installation and the staged metadata and worker digest before reboot. Remove the temporary ZIP upload |
+| T23 reboot and retention | After one reboot, the installed worker digest, `versionCode=4`, policy/enrollment hashes, and saved pause state match. One daemon waits in `Inactive(Paused)`, with no worker grab or proxy |
+| T27 actual WebUI | Open EarKey Control in the installed manager. Read the measured profile, saved generation and paused state. Check the group labels and linked Center effects, keyboard focus, TalkBack and 200% Android text scaling. Test with Internet unavailable if the independent recovery route remains available |
+| T05/T15 activation and held key | Resume the retained Center-only selection and confirm playback, volume and the phone keys. While an allowed inline volume press is held, save Block all. The old generation stays active through release. The new generation appears only after reacquisition. Confirm the newly blocked key has no action on its next press |
+| T24 immediate pause | Pause from the WebUI and check the supervisor confirms inactivity, the proxy is gone, and the inline controls work normally. Record time from request to observed release. Restore the original selection while paused and leave the module paused |
+
+Stop the experiment on an identity or digest mismatch, an unexpected module operation, or a preservation failure. Use the already available root `pause` command if the page fails, then `disable-next-boot` if the service cannot confirm release. For a rollback, use the digest-verified alpha.2 ZIP with the same v1 store, after review of the observed failure and the rollback installation and reboot scope. The rollback ZIP was reproduced on the host. An actual downgrade remains pending. [Recovery](recovery.md)
+
+Record the release and reacquisition interval because physical actions can pass through between sessions. Confirm live process and proxy state alongside the UI. A sudden daemon exit can leave a status file behind, which is a Stage 7 fault case.
+
+This run covers the update and UI increment. The outstanding physical gates include call and microphone preservation, unrelated input, manager disable and independent rescue, a mountless run without a metamodule where supported, and separate upstream KernelSU evidence. Retain the earlier reconnect evidence and the reference repetition waiver. [Validation matrix](validation-plan.md#physical-t01t28-matrix)
+
+### Preflight result after kernel update
+
+The phone now runs reforge `gc216b1fe2466` with driver 35205 and has alpha.3 installed. The approved alpha.4 run stopped before policy change, staging or reboot. The installed worker refused the updated kernel in its read-only `check`. The maintainer confirmed that the real alpha.3 WebUI showed Fault and the restart-latch reason, and the policy and enrollment digests were unchanged afterwards. The next device plan must bind the new kernel and preserve the observed alpha.3 recovery state. [Measured revalidation and case outcomes](discovery/reforge-revalidation-2026-11-11.md)

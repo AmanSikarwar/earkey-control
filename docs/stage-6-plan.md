@@ -179,3 +179,17 @@ The module remains installed and active with Block all.
 ### Alpha.6 package (13 November 2026)
 
 Alpha.6 adds per-node reasons to `enroll`'s `NoCandidate` error, so a repeat of the alpha.5 enroll failure shows which check each input node failed. It also matches evidence on the device model, codename and API level only, so a ROM or kernel update does not disable blocking by itself ([decision 0005](decisions/0005-rom-and-kernel-independent-evidence.md)). Every live accessory check is unchanged. Two clean builds from `cb437ed` produced identical 937,320-byte workers, SHA-256 `37e48bccb91cd26a75ea8bbfbed8a3488983f789bd11f04a8a7ccf61946be599`. The NDK revision and the three tool hashes matched the pins. The ELF is an AArch64 PIE with `/system/bin/linker64`, the API 31 note, four `LOAD` segments aligned to `0x4000`, `BIND_NOW`, and only `libc.so` and `libdl.so`. All 93 imports are in the API 31 stubs, and no host paths were found. The ZIP `earkey-control-0.1.0-alpha.6.zip` is 541,839 bytes, SHA-256 `39c4c70410a0f50808a9c30b331157f810abfa0706752091d968398e23f185a8`, with two byte-identical builds. Module tests (8) and WebUI tests (5) pass. An earlier alpha.6 build from `c3c2f3f` (worker `641c7304…ed3d`, ZIP `a2f39627…d280`) was never installed and is superseded. Not installed on the phone.
+
+### Alpha.6 install on an updated kernel and ROM (13 November 2026)
+
+The maintainer had already updated the phone to reforge `4.14.357-reforge-g1137338f9583` and ROM `PixelOS_sweet-17.0-20261111-0405` (build ID `CP2A.260605.016`, incremental `1794369917`, API 37). Neither has a measured profile. `Generic.kl` still has the measured digest `4d28d904…f773`.
+
+| Step | Result |
+| --- | --- |
+| Before | Alpha.5 reported `unsupported_environment` on the new kernel and ROM. Saved settings were at generation 19, Block all, enabled and not paused, with two enrollments |
+| Update | Staged alpha.6 over alpha.5 with the pinned ZIP and worker digests; `versionCode=6` after reboot; enforcing. The policy and enrollment hashes were unchanged |
+| Boot without earphones | The daemon and worker were running, the worker reported `waiting_accessory`, and `failures=0` |
+| Plug in | Without re-enrolling, the worker reported `active:generation=19:blocked=Center,VolumeUp,VolumeDown`, with the proxy present and `failures=0` |
+| Block all | With music playing, the maintainer pressed every earphone button several times and none acted. The phone keys worked |
+
+This is the first run of the ROM- and kernel-independent matching. It is one physical blocking check on one unmeasured kernel and ROM; preservation, held keys, calls, boot with the earphones connected and rescue are untested on this combination. The module remains installed and active with Block all.

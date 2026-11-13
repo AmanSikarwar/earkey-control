@@ -182,7 +182,7 @@ export function describe(status: Status | null): Description {
     case "unsupported_environment":
       return {
         state: "Unsupported",
-        reason: "This ROM or kernel has not been measured for your earphones. Their buttons work normally.",
+        reason: "This phone or Android version has not been measured for your earphones. Their buttons work normally.",
       };
     case "waiting_accessory":
     case "disconnected":

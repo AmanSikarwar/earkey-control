@@ -190,12 +190,21 @@ impl Evidence {
         &REFERENCE_KEYS
     }
 
+    /// Compares the device and API level. The ROM and kernel are recorded but not pinned.
     pub fn matches_environment(self, environment: &Environment<'_>) -> bool {
-        match self {
-            Self::XiaomiPixelos20261107 => *environment == REFERENCE_ENV,
-            Self::XiaomiPixelosReforge20261110 => *environment == REFORGE_ENV,
-            Self::XiaomiPixelosReforge20261111 => *environment == REFORGE_UPDATED_ENV,
-        }
+        let pinned = match self {
+            Self::XiaomiPixelos20261107 => REFERENCE_ENV,
+            Self::XiaomiPixelosReforge20261110 => REFORGE_ENV,
+            Self::XiaomiPixelosReforge20261111 => REFORGE_UPDATED_ENV,
+        };
+        Environment {
+            rom: environment.rom,
+            build_id: environment.build_id,
+            incremental: environment.incremental,
+            kernel_release: environment.kernel_release,
+            kernel_build: environment.kernel_build,
+            ..pinned
+        } == *environment
     }
 
     pub(crate) fn matches_identity(self, serial: &str, device: &Candidate<'_>) -> bool {

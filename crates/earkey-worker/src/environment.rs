@@ -1,4 +1,4 @@
-//! Reads the environment fields that reviewed evidence pins.
+//! Reads the environment fields that reviewed evidence pins, and the ROM and kernel, which it records but does not pin.
 //!
 //! The kernel comes from `/proc/version`, not `uname`, which the reference
 //! kernel spoofs. Any missing, empty, possibly truncated or malformed value is
@@ -29,11 +29,12 @@ pub const EVIDENCE: [Evidence; 3] = [
     Evidence::XiaomiPixelosReforge20261111,
 ];
 
-/// The reviewed evidence whose pinned environment matches `observed`.
+/// The newest reviewed evidence whose pinned environment matches `observed`.
 pub fn evidence_for(observed: &Observed) -> Option<Evidence> {
     let environment = observed.as_environment();
     EVIDENCE
         .into_iter()
+        .rev()
         .find(|evidence| evidence.matches_environment(&environment))
 }
 

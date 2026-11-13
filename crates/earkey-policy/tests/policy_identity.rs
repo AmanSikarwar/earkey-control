@@ -404,7 +404,17 @@ fn enrollment_from_observation_requires_the_reviewed_environment_identity_and_ca
         kernel_release: "4.14.357-reforge-g9b21e3df6c0a",
         ..ENVIRONMENT
     };
-    assert!(VerifiedEnrollment::from_observation(EVIDENCE, &other_kernel, &device).is_none());
+    assert!(VerifiedEnrollment::from_observation(EVIDENCE, &other_kernel, &device).is_some());
+    let other_rom = Environment {
+        incremental: "1793394995",
+        ..other_kernel
+    };
+    assert!(VerifiedEnrollment::from_observation(EVIDENCE, &other_rom, &device).is_some());
+    let other_api = Environment {
+        api: 38,
+        ..ENVIRONMENT
+    };
+    assert!(VerifiedEnrollment::from_observation(EVIDENCE, &other_api, &device).is_none());
 
     let rejected = [
         Candidate {
@@ -442,7 +452,7 @@ fn enrollment_from_observation_requires_the_reviewed_environment_identity_and_ca
 }
 
 #[test]
-fn reforge_evidence_matches_only_the_reforge_kernel() {
+fn evidence_ignores_the_rom_and_kernel_and_pins_the_device_and_api() {
     const REFORGE: Evidence = Evidence::XiaomiPixelosReforge20261110;
     let reforge = Environment {
         kernel_release: "4.14.357-reforge-g9b21e3df6c0a",
@@ -450,36 +460,42 @@ fn reforge_evidence_matches_only_the_reforge_kernel() {
         ..ENVIRONMENT
     };
     assert!(REFORGE.matches_environment(&reforge));
-    assert!(!REFORGE.matches_environment(&ENVIRONMENT));
-    assert!(!EVIDENCE.matches_environment(&reforge));
+    assert!(REFORGE.matches_environment(&ENVIRONMENT));
+    assert!(EVIDENCE.matches_environment(&reforge));
     assert_eq!(REFORGE.advertised_keys(), EVIDENCE.advertised_keys());
     assert_eq!(REFORGE.controls().len(), EVIDENCE.controls().len());
-    for spoofed in [
+    for other in [
         Environment {
-            kernel_release: "4.14.357-openela-VantomKernel",
+            model: "M2101K6G",
             ..reforge
         },
         Environment {
-            kernel_build: "#1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026",
+            device: "sweet",
             ..reforge
         },
+        Environment { api: 36, ..reforge },
     ] {
-        assert!(!REFORGE.matches_environment(&spoofed));
+        assert!(!REFORGE.matches_environment(&other));
     }
+    let updated = Environment {
+        rom: "PixelOS_sweet-17.0-20261130-0000",
+        build_id: "CP2A.260705.001",
+        incremental: "1793394995",
+        ..reforge
+    };
+    assert!(REFORGE.matches_environment(&updated));
 
     let device = earphones(9);
     let enrolled = VerifiedEnrollment::from_observation(REFORGE, &reforge, &device).unwrap();
-    assert!(VerifiedEnrollment::from_observation(REFORGE, &ENVIRONMENT, &device).is_none());
+    assert!(VerifiedEnrollment::from_observation(REFORGE, &ENVIRONMENT, &device).is_some());
     let request = with_edit(|value| {
         value["profiles"][0]["evidence"] = "xiaomi_pixelos_reforge20261110".into();
     });
     let policy = Policy::parse(&request, &[enrolled]).unwrap();
     assert_eq!(policy.targets(&reforge, &[earphones(9)]).unwrap().len(), 1);
-    assert!(
-        policy
-            .targets(&ENVIRONMENT, &[earphones(9)])
-            .unwrap()
-            .is_empty()
+    assert_eq!(
+        policy.targets(&ENVIRONMENT, &[earphones(9)]).unwrap().len(),
+        1
     );
 
     let old = VerifiedEnrollment::from_reviewed_measurement(EVIDENCE, SERIAL).unwrap();

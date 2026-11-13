@@ -6,14 +6,13 @@
 //! The report carries only counts and outcomes, never serials or other names.
 
 use crate::device::Opened;
-use crate::environment::Observed;
+use crate::environment::{Observed, evidence_for};
 use crate::inventory::{self, Observation};
 use crate::layout;
 use earkey_policy::identity::{Evidence, VerifiedEnrollment};
 use earkey_policy::policy::Policy;
 use std::path::Path;
 
-pub use crate::environment::EVIDENCE;
 /// Digest given to a node whose layout is overridden; it matches no evidence.
 const OVERRIDDEN: &str = "override";
 
@@ -78,7 +77,7 @@ fn acquire_with(
     let mut report = Report::default();
     report.note("layout_sha256", layout_sha256);
     let env = environment.as_environment();
-    let Some(evidence) = EVIDENCE.into_iter().find(|e| e.matches_environment(&env)) else {
+    let Some(evidence) = evidence_for(environment) else {
         return (report.fail("evidence", "none"), None);
     };
     report.note(

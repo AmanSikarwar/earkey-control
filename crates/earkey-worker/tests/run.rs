@@ -362,7 +362,7 @@ fn observed(version: &str) -> Observed {
 }
 
 #[test]
-fn an_unmeasured_kernel_waits_as_unsupported_without_scanning() {
+fn an_unmeasured_device_waits_as_unsupported_without_scanning() {
     let root = std::env::temp_dir().join(format!("earkey-run-env-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store_dir = root.join("store");
@@ -374,9 +374,10 @@ fn an_unmeasured_kernel_waits_as_unsupported_without_scanning() {
         .enroll(&VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap())
         .unwrap();
     apply(&store, &Selection::BlockAll, true).unwrap();
-    let environment = observed(
-        "Linux version 4.14.357-reforge-gc216b1fe2466 (b@h) (c) #2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026",
+    let mut environment = observed(
+        "Linux version 4.14.360-other-g0123456789ab (b@h) (c) #5 SMP PREEMPT Fri Nov 13 00:00:00 UTC 2026",
     );
+    environment.model = "M2101K6G".into();
     let ctx = Context {
         root: &root,
         environment: &environment,

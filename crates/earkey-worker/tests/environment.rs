@@ -26,7 +26,7 @@ fn read(
 }
 
 #[test]
-fn reference_phone_values_match_only_the_reforge_evidence() {
+fn reference_phone_values_parse_and_match_regardless_of_kernel() {
     let observed = read(&properties(), REFORGE_VERSION).unwrap();
     assert_eq!(observed.kernel_release, "4.14.357-reforge-g9b21e3df6c0a");
     assert_eq!(
@@ -36,7 +36,7 @@ fn reference_phone_values_match_only_the_reforge_evidence() {
     assert_eq!(observed.api, 37);
     let environment = observed.as_environment();
     assert!(Evidence::XiaomiPixelosReforge20261110.matches_environment(&environment));
-    assert!(!Evidence::XiaomiPixelos20261107.matches_environment(&environment));
+    assert!(Evidence::XiaomiPixelos20261107.matches_environment(&environment));
 
     let stage1 = "Linux version 4.14.357-openela-VantomKernel (builder@host) (clang version 1 (https://example.invalid) #x) #1 SMP PREEMPT Sun Oct 11 07:45:56 UTC 2026";
     let observed = read(&properties(), stage1).unwrap();
@@ -48,24 +48,28 @@ fn reference_phone_values_match_only_the_reforge_evidence() {
 }
 
 #[test]
-fn updated_reforge_selects_only_its_exact_evidence() {
-    let version = "Linux version 4.14.357-reforge-gc216b1fe2466 (b) (c) #2 SMP PREEMPT Tue Nov 10 05:21:32 UTC 2026";
-    let observed = read(&properties(), version).unwrap();
+fn any_rom_or_kernel_on_the_measured_device_selects_the_newest_evidence() {
+    let unmeasured = "Linux version 4.14.360-other-g0123456789ab (b) (c) #5 SMP PREEMPT Fri Nov 13 00:00:00 UTC 2026";
+    for version in [REFORGE_VERSION, unmeasured] {
+        assert_eq!(
+            evidence_for(&read(&properties(), version).unwrap()),
+            Some(Evidence::XiaomiPixelosReforge20261111)
+        );
+    }
+    let mut updated = read(&properties(), unmeasured).unwrap();
+    updated.rom = "PixelOS_sweet-17.0-20261130-0000".into();
+    updated.build_id = "CP2A.260705.001".into();
+    updated.incremental.push('1');
     assert_eq!(
-        evidence_for(&observed),
+        evidence_for(&updated),
         Some(Evidence::XiaomiPixelosReforge20261111)
     );
-    let mut drifted = read(&properties(), version).unwrap();
-    drifted.kernel_build.push('1');
-    assert_eq!(evidence_for(&drifted), None);
-    let mut drifted = read(&properties(), version).unwrap();
-    drifted.incremental.push('1');
-    assert_eq!(evidence_for(&drifted), None);
-    let earlier = read(&properties(), REFORGE_VERSION).unwrap();
-    assert_eq!(
-        evidence_for(&earlier),
-        Some(Evidence::XiaomiPixelosReforge20261110)
-    );
+    let mut other = read(&properties(), unmeasured).unwrap();
+    other.model = "M2101K6G".into();
+    assert_eq!(evidence_for(&other), None);
+    let mut other = read(&properties(), unmeasured).unwrap();
+    other.api = 38;
+    assert_eq!(evidence_for(&other), None);
 }
 
 #[test]

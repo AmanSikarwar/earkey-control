@@ -85,7 +85,12 @@ fn verified(records: &[EnrollmentRecord]) -> Vec<VerifiedEnrollment<'_>> {
 
 /// Saves a policy blocking `selection` for every enrolled accessory, and returns the saved generation.
 /// An accessory re-enrolled under newer evidence uses its latest enrollment.
-pub fn apply(store: &Store, selection: &Selection, enabled: bool) -> Result<u64, ControlError> {
+/// `enabled` of `None` keeps the saved master switch.
+pub fn apply(
+    store: &Store,
+    selection: &Selection,
+    enabled: Option<bool>,
+) -> Result<u64, ControlError> {
     let records = store.enrollments()?;
     if records.is_empty() {
         return Err(ControlError::NotEnrolled);
@@ -119,7 +124,7 @@ pub fn apply(store: &Store, selection: &Selection, enabled: bool) -> Result<u64,
     let request = serde_json::json!({
         "schema_version": 1,
         "generation": current.generation(),
-        "enabled": enabled,
+        "enabled": enabled.unwrap_or(current.enabled()),
         "preset": if *selection == Selection::BlockAll { "block_all" } else { "custom" },
         "profiles": profiles,
         "requested_backend": "evdev_uinput",

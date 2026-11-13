@@ -48,7 +48,7 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     assert_eq!(get(&empty, "enabled"), ["false"]);
     assert!(get(&empty, "control").is_empty());
     assert!(matches!(
-        apply(&store, &Selection::BlockAll, true),
+        apply(&store, &Selection::BlockAll, Some(true)),
         Err(ControlError::NotEnrolled)
     ));
 
@@ -56,7 +56,7 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     store
         .enroll(&VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap())
         .unwrap();
-    assert_eq!(apply(&store, &Selection::BlockAll, false).unwrap(), 1);
+    assert_eq!(apply(&store, &Selection::BlockAll, Some(false)).unwrap(), 1);
     let lines = status(&store);
     assert_eq!(
         get(&lines, "enrolled_evidence"),
@@ -81,11 +81,13 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     assert_eq!(set_enabled(&store, true).unwrap(), 2);
     assert_eq!(get(&status(&store), "enabled"), ["true"]);
     let center = Selection::parse("center").unwrap();
-    assert_eq!(apply(&store, &center, true).unwrap(), 3);
-    assert_eq!(get(&status(&store), "profile_blocked_groups"), ["Center"]);
+    assert_eq!(apply(&store, &center, None).unwrap(), 3);
+    let lines = status(&store);
+    assert_eq!(get(&lines, "profile_blocked_groups"), ["Center"]);
+    assert_eq!(get(&lines, "enabled"), ["true"]);
 
     assert_eq!(recovery(&store, RecoveryOperation::Pause).unwrap(), 4);
-    assert_eq!(apply(&store, &Selection::BlockAll, true).unwrap(), 5);
+    assert_eq!(apply(&store, &Selection::BlockAll, Some(true)).unwrap(), 5);
     let lines = status(&store);
     assert_eq!(get(&lines, "paused"), ["true"]);
     assert_eq!(get(&lines, "saved_generation"), ["5"]);
@@ -107,7 +109,7 @@ fn apply_enable_and_recovery_keep_generations_and_recovery_state() {
     store
         .enroll(&VerifiedEnrollment::from_reviewed_measurement(updated, SERIAL).unwrap())
         .unwrap();
-    assert_eq!(apply(&store, &Selection::BlockAll, true).unwrap(), 9);
+    assert_eq!(apply(&store, &Selection::BlockAll, Some(true)).unwrap(), 9);
     let lines = status(&store);
     assert_eq!(
         get(&lines, "enrolled_evidence"),

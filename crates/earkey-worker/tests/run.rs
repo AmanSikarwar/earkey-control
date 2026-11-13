@@ -373,7 +373,7 @@ fn an_unmeasured_device_waits_as_unsupported_without_scanning() {
     store
         .enroll(&VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap())
         .unwrap();
-    apply(&store, &Selection::BlockAll, true).unwrap();
+    apply(&store, &Selection::BlockAll, Some(true)).unwrap();
     let mut environment = observed(
         "Linux version 4.14.360-other-g0123456789ab (b@h) (c) #5 SMP PREEMPT Fri Nov 13 00:00:00 UTC 2026",
     );
@@ -415,7 +415,7 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
     store
         .enroll(&VerifiedEnrollment::from_reviewed_measurement(evidence, SERIAL).unwrap())
         .unwrap();
-    apply(&store, &Selection::parse("center").unwrap(), true).unwrap();
+    apply(&store, &Selection::parse("center").unwrap(), Some(true)).unwrap();
 
     let fake = Fake::new();
     let mut source = Source::create();
@@ -494,7 +494,7 @@ fn the_policy_loop_blocks_reloads_survives_unplug_and_stops() {
             read_keys(&mut output, Duration::from_millis(300)),
             [(0x73, 1)]
         );
-        apply(&store, &Selection::BlockAll, true).unwrap();
+        apply(&store, &Selection::BlockAll, Some(true)).unwrap();
         assert!(read_keys(&mut output, Duration::from_millis(300)).is_empty());
         assert_eq!(
             store.read_runtime(Runtime::Worker).unwrap().as_deref(),

@@ -175,3 +175,7 @@ Alpha.5 adds `xiaomi_pixelos_reforge20261111` as a normal profile and removes th
 | Block all | `apply block-all enable` saved generation 14. The worker reported `active:generation=14:blocked=Center,VolumeUp,VolumeDown`, the proxy was present, and `failures=0`. With music playing, the maintainer pressed every earphone button several times and none acted. The phone keys worked |
 
 The module remains installed and active with Block all.
+
+### Alpha.6 package (13 November 2026)
+
+Alpha.6 adds per-node reasons to `enroll`'s `NoCandidate` error, so a repeat of the alpha.5 enroll failure shows which check each input node failed. Matching is unchanged. Two clean builds from `c3c2f3f` produced identical 938,880-byte workers, SHA-256 `641c7304127adac142c1db755673542679b0508b44ae041317fe53eb50e6ed3d`. The NDK revision and the three tool hashes matched the pins. The ELF is an AArch64 PIE with `/system/bin/linker64`, the API 31 note, four `LOAD` segments aligned to `0x4000`, `BIND_NOW`, and only `libc.so` and `libdl.so`. All 93 imports are in the API 31 stubs, and no host paths were found. The ZIP `earkey-control-0.1.0-alpha.6.zip` is 542,366 bytes, SHA-256 `a2f3962732ce152c228e123b57b9515106f5c099cc3bf43c0e8258b0b21bd280`, with two byte-identical builds. Module tests (8) and WebUI tests (5) pass. Not installed on the phone.

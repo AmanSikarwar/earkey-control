@@ -218,7 +218,7 @@ export function applyCommand(groups: readonly string[] | "block-all", enable: bo
     }
     selection = groups.length === 0 ? "passthrough" : groups.join(",");
   }
-  return `${WORKER} apply ${selection}${enable ? " enable" : ""}`;
+  return `${WORKER} apply ${selection} ${enable ? "enable" : "disable"}`;
 }
 
 /** A control reply acknowledges a save or enrollment. Activation comes from status. */

@@ -23,9 +23,10 @@ const TRUNCATED: usize = 91;
 const MAX_PROC_VERSION: u64 = 1024;
 
 /// Evidence that may be selected, by environment.
-pub const EVIDENCE: [Evidence; 2] = [
+pub const EVIDENCE: [Evidence; 3] = [
     Evidence::XiaomiPixelos20261107,
     Evidence::XiaomiPixelosReforge20261110,
+    Evidence::XiaomiPixelosReforge20261111,
 ];
 
 /// The reviewed evidence whose pinned environment matches `observed`.

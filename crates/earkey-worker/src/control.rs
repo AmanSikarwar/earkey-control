@@ -68,6 +68,7 @@ fn verified(records: &[EnrollmentRecord]) -> Vec<VerifiedEnrollment<'_>> {
 }
 
 /// Saves a policy blocking `selection` for every enrolled accessory, and returns the saved generation.
+/// An accessory re-enrolled under newer evidence uses its latest enrollment.
 pub fn apply(store: &Store, selection: &Selection, enabled: bool) -> Result<u64, ControlError> {
     let records = store.enrollments()?;
     if records.is_empty() {
@@ -75,8 +76,17 @@ pub fn apply(store: &Store, selection: &Selection, enabled: bool) -> Result<u64,
     }
     let verified = verified(&records);
     let current = store.load(&verified)?;
-    let profiles: Vec<serde_json::Value> = records
-        .iter()
+    let mut latest: Vec<&EnrollmentRecord> = Vec::new();
+    for record in records.iter().rev() {
+        if !latest
+            .iter()
+            .any(|seen| seen.usb_serial == record.usb_serial)
+        {
+            latest.insert(0, record);
+        }
+    }
+    let profiles: Vec<serde_json::Value> = latest
+        .into_iter()
         .map(|record| {
             let groups = match selection {
                 Selection::BlockAll => vec![],
@@ -170,9 +180,12 @@ fn saved(store: &Store) -> Vec<(&'static str, String)> {
             evidence.join(",")
         },
     ));
-    let mut kinds: Vec<Evidence> = records.iter().map(|record| record.evidence).collect();
-    kinds.dedup();
-    for control in kinds.iter().flat_map(|evidence| evidence.controls()) {
+    let mut listed = Vec::new();
+    for control in records.iter().flat_map(|record| record.evidence.controls()) {
+        if listed.contains(&control.group) {
+            continue;
+        }
+        listed.push(control.group);
         let name = serde_json::to_value(control.group)
             .ok()
             .and_then(|v| v.as_str().map(|s| s.replace('_', "-")))

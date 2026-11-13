@@ -162,3 +162,16 @@ This was an authorized root-shell run of ELF `98a2ac4b…793e` from `65e5160`. T
 | Cleanup | The diagnostic directory was removed, no diagnostic process remained, the proxy was gone, the enrollment hash was unchanged and SELinux was enforcing. At the maintainer's request the installed module stays paused (generation 11) |
 
 Physical passthrough is proven on this kernel for short presses in the root-shell context. Before suppression, the next step is a release that adds this kernel's evidence as a normal profile, followed by the Stage 5 suppression checks.
+
+### Alpha.5 install on the updated kernel (11 November 2026)
+
+Alpha.5 adds `xiaomi_pixelos_reforge20261111` as a normal profile and removes the opt-in diagnostic. `apply` now writes one profile per accessory from its latest enrollment, so re-enrolling under new evidence does not break the distinct-serial rule. It also includes the `unsupported_environment` state. Worker `a3b57a6f01aa6ca5cfc8f9ce5a996031d3137a7b6b6a9aa66a8c29c7c2fc8ac5` (935,712 bytes, two identical builds from `a7ae2ce`, ELF checks passed). ZIP `earkey-control-0.1.0-alpha.5.zip` is 539,832 bytes, SHA-256 `5a19093747b4e99fda29427e4979b93d66585a3826ddfa99ff599d672450c260`, with two byte-identical builds.
+
+| Step | Result |
+| --- | --- |
+| Update | Staged over alpha.4 (paused, generation 11) with the pinned digest; `versionCode=5` after reboot; enforcing |
+| After reboot | The saved settings were at generation 12 and not paused, so someone resumed the module after the reboot. The worker reported `unsupported_environment` for the earlier enrollment, as intended |
+| Enroll | The first `enroll`, about 2 minutes after boot, returned `NoCandidate`, although the earphone node was present. A read-only `check` then passed, and a retry at 145 s enrolled `xiaomi_pixelos_reforge20261111`. The cause is unexplained |
+| Block all | `apply block-all enable` saved generation 14. The worker reported `active:generation=14:blocked=Center,VolumeUp,VolumeDown`, the proxy was present, and `failures=0`. With music playing, the maintainer pressed every earphone button several times and none acted. The phone keys worked |
+
+The module remains installed and active with Block all.

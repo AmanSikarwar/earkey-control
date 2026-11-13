@@ -11,8 +11,6 @@ use crate::inventory::{self, Observation};
 use crate::layout;
 use earkey_policy::identity::{Evidence, VerifiedEnrollment};
 use earkey_policy::policy::Policy;
-#[cfg(feature = "reforge-passthrough")]
-use earkey_policy::store::{EnrollmentRecord, Store};
 use std::path::Path;
 
 pub use crate::environment::EVIDENCE;
@@ -80,13 +78,7 @@ fn acquire_with(
     let mut report = Report::default();
     report.note("layout_sha256", layout_sha256);
     let env = environment.as_environment();
-    let evidence = crate::environment::evidence_for(environment);
-    #[cfg(feature = "reforge-passthrough")]
-    let evidence = evidence.or_else(|| {
-        let diagnostic = Evidence::XiaomiPixelosReforge20261111;
-        diagnostic.matches_environment(&env).then_some(diagnostic)
-    });
-    let Some(evidence) = evidence else {
+    let Some(evidence) = EVIDENCE.into_iter().find(|e| e.matches_environment(&env)) else {
         return (report.fail("evidence", "none"), None);
     };
     report.note(
@@ -96,20 +88,6 @@ fn acquire_with(
             .as_str()
             .unwrap_or("?"),
     );
-
-    #[cfg(feature = "reforge-passthrough")]
-    let expected_serial = if evidence == Evidence::XiaomiPixelosReforge20261111 {
-        let records = Store::open().and_then(|store| store.enrollments());
-        match records
-            .map_err(|_| "unavailable")
-            .and_then(reference_serial)
-        {
-            Ok(serial) => Some(serial),
-            Err(error) => return (report.fail("saved_enrollment", error), None),
-        }
-    } else {
-        None
-    };
 
     let (sys, dev) = (root.join("sys"), root.join("dev"));
     let inventory = match inventory::scan(&sys, &dev) {
@@ -135,12 +113,6 @@ fn acquire_with(
         .iter()
         .zip(&digests)
         .filter_map(|(observed, digest)| {
-            #[cfg(feature = "reforge-passthrough")]
-            if let Some(serial) = expected_serial.as_deref()
-                && observed.usb_serial.as_deref() != Some(serial)
-            {
-                return None;
-            }
             VerifiedEnrollment::from_observation(evidence, &env, &observed.candidate(digest))
                 .map(|enrollment| (observed, enrollment))
         })
@@ -160,7 +132,29 @@ fn acquire_with(
     };
     report.note("enrollment", "observed");
 
-    let policy = Policy::for_acquisition(enrollment);
+    let request = serde_json::json!({
+        "schema_version": 1,
+        "generation": 0,
+        "enabled": true,
+        "preset": "block_all",
+        "profiles": [{
+            "evidence": evidence,
+            "usb_serial": enrollment.serial(),
+            "enabled": true,
+            "blocked_groups": [],
+        }],
+        "requested_backend": "evdev_uinput",
+        "unknown_accessory": "ignore",
+        "diagnostics": {"enabled": false, "seconds": 0, "max_bytes": 0},
+        "recovery": {"paused": false, "boot_disabled": false, "latch": "clear"},
+    });
+    let policy = match Policy::parse(
+        request.to_string().as_bytes(),
+        std::slice::from_ref(enrollment),
+    ) {
+        Ok(policy) => policy,
+        Err(error) => return (report.fail("policy", format!("{error:?}")), None),
+    };
     let candidates: Vec<_> = inventory
         .iter()
         .zip(&digests)
@@ -234,18 +228,6 @@ fn acquire_with(
     (report, Some(opened))
 }
 
-#[cfg(feature = "reforge-passthrough")]
-fn reference_serial(records: Vec<EnrollmentRecord>) -> Result<String, &'static str> {
-    let mut previous = records
-        .into_iter()
-        .filter(|record| record.evidence == Evidence::XiaomiPixelosReforge20261110);
-    let record = previous.next().ok_or("missing")?;
-    if previous.next().is_some() {
-        return Err("ambiguous");
-    }
-    Ok(record.usb_serial)
-}
-
 /// The `Generic.kl` digest for each node, or a non-matching marker where a device-specific layout applies.
 fn node_digests<'a>(root: &Path, nodes: &[Observation], generic: &'a str) -> Vec<&'a str> {
     nodes
@@ -258,34 +240,4 @@ fn node_digests<'a>(root: &Path, nodes: &[Observation], generic: &'a str) -> Vec
             }
         })
         .collect()
-}
-
-#[cfg(all(test, feature = "reforge-passthrough"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn only_one_earlier_reforge_enrollment_can_supply_the_serial() {
-        let original = EnrollmentRecord {
-            evidence: Evidence::XiaomiPixelos20261107,
-            usb_serial: "unrelated".into(),
-        };
-        let reference = EnrollmentRecord {
-            evidence: Evidence::XiaomiPixelosReforge20261110,
-            usb_serial: "reference".into(),
-        };
-        let duplicate = EnrollmentRecord {
-            usb_serial: "other".into(),
-            ..reference.clone()
-        };
-        assert_eq!(reference_serial(vec![original.clone()]), Err("missing"));
-        assert_eq!(
-            reference_serial(vec![original, reference.clone()]).as_deref(),
-            Ok("reference")
-        );
-        assert_eq!(
-            reference_serial(vec![reference, duplicate]),
-            Err("ambiguous")
-        );
-    }
 }

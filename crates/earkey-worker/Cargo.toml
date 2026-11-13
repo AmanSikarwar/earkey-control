@@ -5,9 +5,6 @@ edition = "2024"
 rust-version = "1.99"
 publish = false
 
-[features]
-reforge-passthrough = ["earkey-policy/reforge-passthrough"]
-
 [dependencies]
 earkey-engine = { path = "../earkey-engine" }
 earkey-policy = { path = "../earkey-policy" }

@@ -21,4 +21,4 @@ Date: 10 November 2026. Status: **Accepted.** The maintainer asked for the enrol
 
 ## Limits and revisit conditions
 
-The enrollment command, the UI flow and the operation to forget an accessory are not implemented. Forgetting will need to remove the enrollment and its profile together. The current reference evidence pins the Stage 1 kernel, so `from_observation` refuses it on the reforge kernel until new evidence is reviewed. Revisit this record if serial-less or multi-collection accessories are added, or if the root command interface changes the trust boundary.
+The enrollment command, the UI flow and the operation to forget an accessory are not implemented. Forgetting will need to remove the enrollment and its profile together. Evidence no longer pins the ROM build or kernel; see [decision 0005](0005-rom-and-kernel-independent-evidence.md). Revisit this record if serial-less or multi-collection accessories are added, or if the root command interface changes the trust boundary.

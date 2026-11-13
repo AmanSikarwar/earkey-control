@@ -199,20 +199,55 @@ impl Evidence {
     }
 
     pub(crate) fn matches_identity(self, serial: &str, device: &Candidate<'_>) -> bool {
-        !device.is_virtual
-            && device.usb_serial == Some(serial)
-            && device.usb_driver == Some("usbhid")
-            && device.usb_hid.as_ref() == Some(&REFERENCE_USB)
-            && device.input_id == [3, 0x0020, 0x0b21, 0x0201]
-            && device.name == "Generic Xiaomi Type-C Earphones 1"
+        device.usb_serial == Some(serial) && self.identity_mismatch(device).is_none()
     }
 
     pub(crate) fn matches_capabilities(self, device: &Candidate<'_>) -> bool {
-        device.layout_sha256 == "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773"
-            && device.event_types == [0, 1, 4]
-            && device.keys == self.advertised_keys()
-            && device.misc == [4]
-            && device.properties.is_empty()
+        self.capability_mismatch(device).is_none()
+    }
+
+    fn identity_mismatch(self, device: &Candidate<'_>) -> Option<&'static str> {
+        [
+            (device.is_virtual, "virtual"),
+            (device.usb_driver != Some("usbhid"), "driver"),
+            (device.usb_hid.as_ref() != Some(&REFERENCE_USB), "usb"),
+            (device.input_id != [3, 0x0020, 0x0b21, 0x0201], "input_id"),
+            (device.name != "Generic Xiaomi Type-C Earphones 1", "name"),
+        ]
+        .into_iter()
+        .find_map(|(bad, reason)| bad.then_some(reason))
+    }
+
+    fn capability_mismatch(self, device: &Candidate<'_>) -> Option<&'static str> {
+        [
+            (
+                device.layout_sha256
+                    != "4d28d904e72ea3beb4d32d73437cf9e7f1ed297a436d51d53b1a248a5cd5f773",
+                "layout",
+            ),
+            (device.event_types != [0, 1, 4], "event_types"),
+            (device.keys != self.advertised_keys(), "keys"),
+            (device.misc != [4], "misc"),
+            (!device.properties.is_empty(), "properties"),
+        ]
+        .into_iter()
+        .find_map(|(bad, reason)| bad.then_some(reason))
+    }
+
+    /// The first enrollment check a live candidate fails, as a label without identifiers.
+    pub fn mismatch(
+        self,
+        environment: &Environment<'_>,
+        device: &Candidate<'_>,
+    ) -> Option<&'static str> {
+        if !self.matches_environment(environment) {
+            return Some("environment");
+        }
+        if !device.usb_serial.is_some_and(valid_serial) {
+            return Some("serial");
+        }
+        self.identity_mismatch(device)
+            .or_else(|| self.capability_mismatch(device))
     }
 }
 
@@ -237,11 +272,10 @@ impl<'a> VerifiedEnrollment<'a> {
         candidate: &Candidate<'a>,
     ) -> Option<Self> {
         let serial = candidate.usb_serial?;
-        (valid_serial(serial)
-            && evidence.matches_environment(environment)
-            && evidence.matches_identity(serial, candidate)
-            && evidence.matches_capabilities(candidate))
-        .then_some(Self { evidence, serial })
+        evidence
+            .mismatch(environment, candidate)
+            .is_none()
+            .then_some(Self { evidence, serial })
     }
 
     pub fn evidence(&self) -> Evidence {

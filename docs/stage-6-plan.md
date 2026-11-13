@@ -171,7 +171,7 @@ Alpha.5 adds `xiaomi_pixelos_reforge20261111` as a normal profile and removes th
 | --- | --- |
 | Update | Staged over alpha.4 (paused, generation 11) with the pinned digest; `versionCode=5` after reboot; enforcing |
 | After reboot | The saved settings were at generation 12 and not paused, so someone resumed the module after the reboot. The worker reported `unsupported_environment` for the earlier enrollment, as intended |
-| Enroll | The first `enroll`, about 2 minutes after boot, returned `NoCandidate`, although the earphone node was present. A read-only `check` then passed, and a retry at 145 s enrolled `xiaomi_pixelos_reforge20261111`. The cause is unexplained |
+| Enroll | The first `enroll`, about 2 minutes after boot, returned `NoCandidate`, although the earphone node was present. A read-only `check` then passed, and a retry at 145 s enrolled `xiaomi_pixelos_reforge20261111`. The cause is unexplained: `enroll` and `check` use the same scan and matching, and the error recorded no per-node reason. Later workers report the failed check for each node |
 | Block all | `apply block-all enable` saved generation 14. The worker reported `active:generation=14:blocked=Center,VolumeUp,VolumeDown`, the proxy was present, and `failures=0`. With music playing, the maintainer pressed every earphone button several times and none acted. The phone keys worked |
 
 The module remains installed and active with Block all.

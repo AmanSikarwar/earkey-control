@@ -12,9 +12,10 @@ fn main() -> ExitCode {
         [
             command @ ("enroll" | "status" | "enable" | "disable" | "pause" | "resume"
             | "disable-next-boot" | "enable-next-boot" | "clear-latch"),
-        ] => Command::Control(command, None, false),
-        ["apply", selection] => Command::Control("apply", Some(selection), false),
-        ["apply", selection, "enable"] => Command::Control("apply", Some(selection), true),
+        ] => Command::Control(command, None, None),
+        ["apply", selection] => Command::Control("apply", Some(selection), None),
+        ["apply", selection, "enable"] => Command::Control("apply", Some(selection), Some(true)),
+        ["apply", selection, "disable"] => Command::Control("apply", Some(selection), Some(false)),
         ["passthrough"] => Command::Passthrough("passthrough"),
         ["passthrough", selection] => Command::Passthrough(selection),
         ["supervise", seconds, rest @ ..] if rest.len() <= 1 => match seconds.parse::<u64>() {
@@ -30,8 +31,8 @@ fn main() -> ExitCode {
 
 enum Command<'a> {
     Plain(&'a str),
-    /// A root control operation: name, optional selection, and `enable` for `apply`.
-    Control(&'a str, Option<&'a str>, bool),
+    /// A root control operation: name, optional selection, and `enable`/`disable` for `apply`.
+    Control(&'a str, Option<&'a str>, Option<bool>),
     Passthrough(&'a str),
     Supervise(u64, &'a str),
 }
@@ -39,7 +40,7 @@ enum Command<'a> {
 fn usage() -> ExitCode {
     eprintln!(
         "usage: earkey-worker check | proxy-check | run | passthrough [selection] | supervise <10-600> [selection]\n       \
-         earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume\n       \
+         earkey-worker enroll | status | apply <selection> [enable|disable] | enable | disable | pause | resume\n       \
          earkey-worker disable-next-boot | enable-next-boot | clear-latch | daemon"
     );
     ExitCode::from(2)
@@ -276,7 +277,7 @@ fn run(command: Command<'_>) -> ExitCode {
 
 /// Runs one root control operation against the private store.
 #[cfg(target_os = "android")]
-fn control(name: &str, selection: Option<&str>, enable: bool) -> ExitCode {
+fn control(name: &str, selection: Option<&str>, enable: Option<bool>) -> ExitCode {
     use earkey_policy::store::{RecoveryOperation, Store};
     use earkey_worker::control;
     use earkey_worker::selection::Selection;
@@ -390,7 +391,7 @@ fn run(command: Command<'_>) -> ExitCode {
         Command::Plain(command) => println!("{command}=android_required"),
         Command::Control(command, selection, enable) => {
             println!(
-                "{command}_{}_{enable}=android_required",
+                "{command}_{}_{enable:?}=android_required",
                 selection.unwrap_or("none")
             )
         }

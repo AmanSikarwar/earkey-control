@@ -74,7 +74,7 @@ test("commands are allowlisted", () => {
   assert.equal(command("pause"), `${W} pause`);
   assert.throws(() => command("status; reboot"));
   assert.equal(applyCommand("block-all", true), `${W} apply block-all enable`);
-  assert.equal(applyCommand(["center", "volume-down"], false), `${W} apply center,volume-down`);
+  assert.equal(applyCommand(["center", "volume-down"], false), `${W} apply center,volume-down disable`);
   assert.equal(applyCommand([], true), `${W} apply passthrough enable`);
   assert.throws(() => applyCommand(["center;reboot"], true));
   assert.throws(() => applyCommand(["center", "center"], true));

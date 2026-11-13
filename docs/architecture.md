@@ -90,7 +90,7 @@ The reference evidence `xiaomi_pixelos20261107` pins the Stage 1 environment, in
 
 ## Root control commands
 
-`earkey_worker::control` implements the first root command operations ([Stage 6 plan](stage-6-plan.md)), exposed as `earkey-worker enroll | status | apply <selection> [enable] | enable | disable | pause | resume | disable-next-boot | enable-next-boot`:
+`earkey_worker::control` implements the first root command operations ([Stage 6 plan](stage-6-plan.md)), exposed as `earkey-worker enroll | status | apply <selection> [enable|disable] | enable | disable | pause | resume | disable-next-boot | enable-next-boot`:
 - `enroll` selects the reviewed evidence by environment, hashes `Generic.kl`, scans the inventory, and enrolls only the single candidate without a layout override for which `VerifiedEnrollment::from_observation` succeeds. Zero or several candidates are refused.
 - `apply` saves a policy at the current generation with one enabled profile per enrollment. `block-all` uses the `block_all` preset; other selections use `custom` with the listed groups. The current recovery state is preserved, because ordinary saves cannot change it. `enable` and `disable` change only the master enabled state.
 - `pause`, `resume`, `disable-next-boot` and `enable-next-boot` use the dedicated recovery operations.

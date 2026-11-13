@@ -148,7 +148,7 @@ fn reference_earphones_reach_the_open_step() {
         lines[..5],
         [
             layout.as_str(),
-            "evidence=xiaomi_pixelos_reforge20261110",
+            "evidence=xiaomi_pixelos_reforge20261111",
             "inventory_nodes=1",
             "enrollment=observed",
             "targets=1",
@@ -184,7 +184,7 @@ fn device_specific_layout_or_configuration_prevents_enrollment() {
 }
 
 #[test]
-fn missing_duplicate_or_wrong_kernel_stops_the_check() {
+fn missing_duplicate_or_unmeasured_device_stops_the_check() {
     let root = Root::new();
     assert!(
         lines(&root, &reforge(), LAYOUT)
@@ -200,8 +200,8 @@ fn missing_duplicate_or_wrong_kernel_stops_the_check() {
             .contains(&"enrollment=ambiguous".to_owned())
     );
 
-    let other =
-        environment("Linux version 4.14.357-other (b@h) (c) #3 SMP PREEMPT Tue Nov 10 2026");
+    let mut other = reforge();
+    other.model = "M2101K6G".into();
     assert_eq!(
         lines(&root, &other, LAYOUT).0,
         [

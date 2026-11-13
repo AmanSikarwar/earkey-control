@@ -22,7 +22,8 @@ pub enum ControlError {
     Layout(io::ErrorKind),
     Inventory(io::ErrorKind),
     UnknownEnvironment,
-    NoCandidate,
+    /// Each scanned node with the first check it failed.
+    NoCandidate(String),
     AmbiguousCandidates,
     NotEnrolled,
     Json,
@@ -52,7 +53,22 @@ pub fn enroll(
         .filter_map(|node| {
             VerifiedEnrollment::from_observation(evidence, &env, &node.candidate(&generic))
         });
-    let enrollment = enrolled.next().ok_or(ControlError::NoCandidate)?;
+    let enrollment = enrolled.next().ok_or_else(|| {
+        let reasons: Vec<String> = nodes
+            .iter()
+            .map(|node| {
+                let reason = if layout::has_override(root, node) {
+                    "override"
+                } else {
+                    evidence
+                        .mismatch(&env, &node.candidate(&generic))
+                        .unwrap_or("none")
+                };
+                format!("{}={reason}", node.event)
+            })
+            .collect();
+        ControlError::NoCandidate(reasons.join(","))
+    })?;
     if enrolled.next().is_some() {
         return Err(ControlError::AmbiguousCandidates);
     }

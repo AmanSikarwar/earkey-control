@@ -282,13 +282,13 @@ mod live {
         root.write(&root.0.join("system/usr/keylayout/Generic.kl"), LAYOUT_TEXT);
         assert!(matches!(
             enroll(&store, &root.0, &reforge()),
-            Err(ControlError::NoCandidate)
+            Err(ControlError::NoCandidate(reasons)) if reasons.is_empty()
         ));
         root.earphones("1-1", "event9", 73);
         // The fake Generic.kl digest differs from the evidence, so nothing enrolls.
         assert!(matches!(
             enroll(&store, &root.0, &reforge()),
-            Err(ControlError::NoCandidate)
+            Err(ControlError::NoCandidate(reasons)) if reasons == "event9=layout"
         ));
         assert!(store.enrollments().unwrap().is_empty());
     }
